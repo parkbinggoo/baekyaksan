@@ -48,7 +48,7 @@ function climbFail(){
  $('climbPanel').classList.add('hide');
  faintAnimal({name:'바위 추락',fall:true,durationMs:2*60*1000});
 }
-function climbAct(){
+function climbAct(){if(inSecretCave)return;
  if(Date.now()<faintUntil||inTent||cooking)return;
  if(onRock){
    const rock=onRock,dx=P.x-rock.x,dz=P.z-rock.z,len=Math.hypot(dx,dz)||1;

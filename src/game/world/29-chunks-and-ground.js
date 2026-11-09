@@ -282,6 +282,7 @@ function buildChunk(cx,cz){
     putFruit('wildberry',c.key+':berry'+i,x,z,false);
   }
   relocateRareInChunk(c);
+  applyGoldenVariants(c);
   // Check all genuine collectibles after five-star relocation and before display.
   repairChunkResources(c);
   scene.add(grp);chunks.set(c.key,c);return c;
@@ -309,6 +310,7 @@ function rescueTrailChunk(key,cx,cz){
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
+    applyGoldenVariants(c);
     repairChunkResources(c);
     scene.add(grp);chunks.set(key,c);chunkFailures.delete(key);
     return true;

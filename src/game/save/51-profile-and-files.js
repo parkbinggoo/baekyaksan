@@ -58,13 +58,19 @@ function validProfileDoc(doc,cred){return !!doc&&doc.app===PROFILE_APP&&doc.form
   doc.profile.verifier===cred.verifier&&doc.progress&&typeof doc.progress==='object'}
 function readProfileDoc(cred){try{const doc=JSON.parse(localStorage.getItem(cred.key)||'null');return validProfileDoc(doc,cred)?doc:null}catch(e){return null}}
 function normalizeRecord(raw){
-  const inv={};const allow=new Set([...Object.keys(HERBS),...Object.keys(MUSH),...Object.keys(FRUITS),...HONEY_KEYS,TWIG_KEY]);
+  const inv={};const allow=new Set([...Object.keys(HERBS),...Object.keys(MUSH),...Object.keys(FRUITS),...HONEY_KEYS,TWIG_KEY,...GOLD_FIVE_BASES.map(goldenKey)]);
   if(raw&&raw.inv&&typeof raw.inv==='object'&&!Array.isArray(raw.inv))for(const [k,v] of Object.entries(raw.inv)){
     if(allow.has(k)&&Number.isFinite(v)&&v>=0)inv[k]=Math.min(100000,Math.floor(v));
   }
+  const goldKnown={};
+  if(raw?.goldKnown&&typeof raw.goldKnown==='object')for(const key of GOLD_FIVE_BASES){if(raw.goldKnown[key])goldKnown[key]=1}
+  for(const key of Object.keys(inv))if(isGoldenKey(key))goldKnown[goldBase(key)]=1;
+  const unlocked=Array.isArray(raw?.specialTitles?.unlocked)?[...new Set(raw.specialTitles.unlocked.filter(validSpecialTitle))]:[];
+  const requested=validSpecialTitle(raw?.specialTitles?.equipped);
+  const specialTitles={unlocked,equipped:unlocked.includes(requested)?requested:''};
   const known={};
   if(raw&&raw.known&&typeof raw.known==='object'&&!Array.isArray(raw.known))for(const [k,v] of Object.entries(raw.known)){ if(allow.has(k)&&v)known[k]=1; }
-  for(const k of Object.keys(inv))if(k!==TWIG_KEY) known[k]=1;
+  for(const k of Object.keys(inv))if(k!==TWIG_KEY&&!isGoldenKey(k)) known[k]=1;
   const wonValue=Number.isFinite(raw?.won)?Math.max(0,Math.floor(raw.won)):0;
   const color=Number.isInteger(raw?.color)?clamp(raw.color,0,JACKETS.length-1):0;
   let pos=null;const p=raw?.pos;
@@ -79,7 +85,7 @@ function normalizeRecord(raw){
   if(old&&old.harvestedTypes&&typeof old.harvestedTypes==='object')for(const k of Object.keys(old.harvestedTypes))if(allow.has(k)&&old.harvestedTypes[k])harvestedTypes[k]=1;
   // Old saves recorded discoveries but not lifetime harvests: discovered species
   // prove at least one earlier successful harvest; previous sold quantities cannot be recovered.
-  for(const k of Object.keys(known))if(k!==TWIG_KEY)harvestedTypes[k]=1;
+  for(const k of Object.keys(known))if(k!==TWIG_KEY&&!isGoldenKey(k))harvestedTypes[k]=1;
   const held=Object.entries(inv).reduce((sum,[k,n])=>sum+(k===TWIG_KEY?0:n),0);
   const statNumber=(v,minimum)=>Number.isFinite(v)?Math.max(minimum,Math.min(10000000,Math.floor(v))):minimum;
   const stats={
@@ -90,12 +96,12 @@ function normalizeRecord(raw){
   };
   const highestRank=Number.isInteger(raw?.highestRank)?clamp(raw.highestRank,1,RANKS.length):1;
   const mealBuffUntil=Number.isFinite(raw?.mealBuffUntil)?clamp(raw.mealBuffUntil,0,Date.now()+20*60*1000):0;
-  return {inv,known,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
+  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;

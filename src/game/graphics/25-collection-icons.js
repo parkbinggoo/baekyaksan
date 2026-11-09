@@ -89,8 +89,10 @@ function hive3D(type){
  return g;
 }
 function renderIcon(kind,type){
+  const gilded=isGoldenKey(type);type=goldBase(type);
   iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
   let obj;if(kind==='herb'){obj=new THREE.Mesh(plantGeo(SPI[type],0),plantMat)}else if(kind==='fruit'){obj=fruit3D(type)}else if(kind==='honey'){obj=hive3D(type)}else{obj=mush3D(type);obj.rotation.y=-Math.PI/2}
+  if(gilded)tintGoldenObject(obj);
   const grp=new THREE.Group();grp.add(obj);
   const box=new THREE.Box3().setFromObject(grp),sz=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
   if(kind==='herb'&&SPI[type].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);

@@ -83,9 +83,10 @@ function renderRankGuide(){
   const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);guide.appendChild(section);
  }
 }
-function itemInfo(key){return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
-function itemKindOf(key){return HONEY[key]?'honey':FRUITS[key]?'fruit':MUSH[key]?'mush':HERBS[key]?'herb':null}
+function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
+function itemKindOf(key){key=goldBase(key);return HONEY[key]?'honey':FRUITS[key]?'fruit':MUSH[key]?'mush':HERBS[key]?'herb':null}
 function itemPrice(key){
+  if(isGoldenKey(key))return 0; // Defence in depth: never attach a market price.
   if(MARKET_PRICE[key])return MARKET_PRICE[key];
   const info=itemInfo(key);if(!info)return 0;
   const base=info.cat==='root'?950:info.cat==='leaf'?600:info.cat==='herb'?750:850;

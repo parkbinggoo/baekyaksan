@@ -1,6 +1,6 @@
 const SELL_CATEGORIES=[['all','전체'],['herb','약초'],['leaf','나물'],['mush','버섯'],['fruit','열매'],['honey','벌꿀']];
 let sellCategory='all';
-function sellableKeys(){return [...HERB_KEYS,...MUSH_KEYS,...Object.keys(FRUITS),...HONEY_KEYS].filter(k=>(save.inv[k]||0)>0)}
+function sellableKeys(){return [...HERB_KEYS,...MUSH_KEYS,...Object.keys(FRUITS),...HONEY_KEYS].filter(k=>!isGoldenKey(k)&&(save.inv[k]||0)>0)}
 function sellCategoryOf(k){if(HONEY[k])return 'honey';if(FRUITS[k])return 'fruit';if(MUSH[k])return 'mush';return HERBS[k]?.cat==='leaf'?'leaf':'herb'}
 function buildSellTabs(){
  const host=$('sellTabs');host.replaceChildren();
@@ -28,6 +28,7 @@ function buildSellGrid(){
  else updateSellSummary();
 }
 function selectSellItem(key){
+ if(isGoldenKey(key)||!sellableKeys().includes(key)){selectedSellKey='';return}
  selectedSellKey=key;
  for(const b of $('sellGrid').children)b.classList.toggle('on',b.dataset.key===key);
  const info=itemInfo(key),have=save.inv[key]||0,price=itemPrice(key);
@@ -41,7 +42,9 @@ function updateSellSummary(){
  const q=currentSellQty();$('sellSummary').textContent=`${q}개 판매 시 ${won(q*itemPrice(selectedSellKey))} · 판매하면 가방에서 차감됩니다.`;
 }
 function sellSelected(){
- const key=selectedSellKey,have=save.inv[key]||0;if(!key||!have)return;
+ const key=selectedSellKey;
+ if(isGoldenKey(key)||!sellableKeys().includes(key)){toast('황금 5성은 절대로 판매할 수 없습니다');return}
+ const have=save.inv[key]||0;if(!key||!have||itemPrice(key)<=0)return;
  const q=currentSellQty(),sum=q*itemPrice(key),name=itemInfo(key).name;
  const balance=Math.max(0,have-q);
  if(balance)save.inv[key]=balance;else delete save.inv[key];

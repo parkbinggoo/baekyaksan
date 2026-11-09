@@ -87,7 +87,7 @@ function drawCompassOn(g,cx,cy,r,bd){
   g.fillStyle='#1f2b28';g.beginPath();g.arc(cx,cy,2.5,0,7);g.fill();g.textBaseline='alphabetic';
   g.font='11px "Gowun Dodum",sans-serif';g.fillStyle='rgba(244,239,227,.92)';const t=`${dirName(bd)} ${Math.round(bd)}°`,tw=g.measureText(t).width;g.fillRect(cx-tw/2-4,cy+r+4,tw+8,15);g.fillStyle='#1f2b28';g.fillText(t,cx,cy+r+15);
 }
-function toggleMap(open){mapOpen=open===undefined?!mapOpen:open;$('mapView').classList.toggle('hide',!mapOpen);if(mapOpen){mapBaseAt=null;drawMap()}}
+function toggleMap(open){if(inSecretCave&&open!==false){toast('동굴 안에서는 지도를 펼칠 수 없습니다.');return}mapOpen=open===undefined?!mapOpen:open;$('mapView').classList.toggle('hide',!mapOpen);if(mapOpen){mapBaseAt=null;drawMap()}}
 $('mapBtn').onclick=()=>toggleMap(true);$('mapClose').onclick=()=>toggleMap(false);
 $('mapView').addEventListener('pointerdown',e=>{if(e.target.id==='mapView')toggleMap(false)});
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||mode!=='game')return;if(e.code==='KeyM')toggleMap();if(e.code==='Escape')toggleMap(false)});

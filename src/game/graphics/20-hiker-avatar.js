@@ -85,7 +85,7 @@ const DIG_T=.55;
 function poseHiker(h,dt,speed){
   h.t+=dt;let lL=0,lR=0,aL=.08,aR=.08,aLz=.12,aRz=-.12,by=0,lean=0,hd=0;
   // The walking stick and hoe do not overlap the temporary cooking utensils.
-  if(h.stick)h.stick.visible=h.mode!=='cook';if(h.hoe)h.hoe.visible=h.mode!=='cook';
+  if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
   else if(h.mode==='joy'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
@@ -110,6 +110,11 @@ function poseHiker(h,dt,speed){
       const bite=.5-.5*Math.cos((k-COOK_TIMES.fork)*Math.PI*1.75);
       aL=-.30;aR=-1.48-bite*1.08;aRz=-.38;hd=-.10-bite*.08;lean=.05;
     }
+  }
+  else if(h.mode==='bow'){
+    const t=Math.min(1,h.t/2.5),down=clamp((t-.18)/.25,0,1),up=clamp((t-.72)/.23,0,1),bend=down*(1-up);
+    aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
+    lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}

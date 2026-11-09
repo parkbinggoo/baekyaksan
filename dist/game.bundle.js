@@ -154,9 +154,10 @@ function renderRankGuide(){
   const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);guide.appendChild(section);
  }
 }
-function itemInfo(key){return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
-function itemKindOf(key){return HONEY[key]?'honey':FRUITS[key]?'fruit':MUSH[key]?'mush':HERBS[key]?'herb':null}
+function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
+function itemKindOf(key){key=goldBase(key);return HONEY[key]?'honey':FRUITS[key]?'fruit':MUSH[key]?'mush':HERBS[key]?'herb':null}
 function itemPrice(key){
+  if(isGoldenKey(key))return 0; // Defence in depth: never attach a market price.
   if(MARKET_PRICE[key])return MARKET_PRICE[key];
   const info=itemInfo(key);if(!info)return 0;
   const base=info.cat==='root'?950:info.cat==='leaf'?600:info.cat==='herb'?750:850;
@@ -215,13 +216,13 @@ function chime(rar){const base=[392,494,587,784,988]; const n=rar>=4?5:3; for(le
 const SAVE3='baekyaksan3d-v1'; // Old single-browser record; kept for one-time migration.
 const TWIG_KEY='fallenTwig',MEAL_SPEED_MULT=1.32,MEAL_JUMP_MULT=1.175;
 const PROFILE_STORE_PREFIX='baekyaksan-profile-v2:', PROFILE_APP='baekyaksan3d', PROFILE_FORMAT=2;
-let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{}};
+let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''}};
 try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.inv)save=Object.assign(save,s)}catch(e){}
 const legacySave=JSON.parse(JSON.stringify(save));
 let activeProfileKey='',activeCredential=null;
 function profileProgress(){
-  const pos=(typeof P!=='undefined'&&mode==='game')?{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}:save.pos;
-  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0};
+  const pos=(typeof P!=='undefined'&&mode==='game')?(inSecretCave&&caveReturnPos?{x:caveReturnPos.x,z:caveReturnPos.z}:{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}):save.pos;
+  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''}};
 }
 function profileDocument(cred,progress){return {app:PROFILE_APP,format:PROFILE_FORMAT,profile:{name:cred.nick,verifier:cred.verifier},progress,updatedAt:Date.now()}}
 function persist(){
@@ -844,7 +845,7 @@ $('lanternUpgradeClose').addEventListener('click',()=>$('lanternUpgradePanel').c
 $('lanternUpgradeBuy').addEventListener('click',buyLanternUpgrade);
 const SELL_CATEGORIES=[['all','전체'],['herb','약초'],['leaf','나물'],['mush','버섯'],['fruit','열매'],['honey','벌꿀']];
 let sellCategory='all';
-function sellableKeys(){return [...HERB_KEYS,...MUSH_KEYS,...Object.keys(FRUITS),...HONEY_KEYS].filter(k=>(save.inv[k]||0)>0)}
+function sellableKeys(){return [...HERB_KEYS,...MUSH_KEYS,...Object.keys(FRUITS),...HONEY_KEYS].filter(k=>!isGoldenKey(k)&&(save.inv[k]||0)>0)}
 function sellCategoryOf(k){if(HONEY[k])return 'honey';if(FRUITS[k])return 'fruit';if(MUSH[k])return 'mush';return HERBS[k]?.cat==='leaf'?'leaf':'herb'}
 function buildSellTabs(){
  const host=$('sellTabs');host.replaceChildren();
@@ -872,6 +873,7 @@ function buildSellGrid(){
  else updateSellSummary();
 }
 function selectSellItem(key){
+ if(isGoldenKey(key)||!sellableKeys().includes(key)){selectedSellKey='';return}
  selectedSellKey=key;
  for(const b of $('sellGrid').children)b.classList.toggle('on',b.dataset.key===key);
  const info=itemInfo(key),have=save.inv[key]||0,price=itemPrice(key);
@@ -885,7 +887,9 @@ function updateSellSummary(){
  const q=currentSellQty();$('sellSummary').textContent=`${q}개 판매 시 ${won(q*itemPrice(selectedSellKey))} · 판매하면 가방에서 차감됩니다.`;
 }
 function sellSelected(){
- const key=selectedSellKey,have=save.inv[key]||0;if(!key||!have)return;
+ const key=selectedSellKey;
+ if(isGoldenKey(key)||!sellableKeys().includes(key)){toast('황금 5성은 절대로 판매할 수 없습니다');return}
+ const have=save.inv[key]||0;if(!key||!have||itemPrice(key)<=0)return;
  const q=currentSellQty(),sum=q*itemPrice(key),name=itemInfo(key).name;
  const balance=Math.max(0,have-q);
  if(balance)save.inv[key]=balance;else delete save.inv[key];
@@ -1321,7 +1325,7 @@ const DIG_T=.55;
 function poseHiker(h,dt,speed){
   h.t+=dt;let lL=0,lR=0,aL=.08,aR=.08,aLz=.12,aRz=-.12,by=0,lean=0,hd=0;
   // The walking stick and hoe do not overlap the temporary cooking utensils.
-  if(h.stick)h.stick.visible=h.mode!=='cook';if(h.hoe)h.hoe.visible=h.mode!=='cook';
+  if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
   else if(h.mode==='joy'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
@@ -1346,6 +1350,11 @@ function poseHiker(h,dt,speed){
       const bite=.5-.5*Math.cos((k-COOK_TIMES.fork)*Math.PI*1.75);
       aL=-.30;aR=-1.48-bite*1.08;aRz=-.38;hd=-.10-bite*.08;lean=.05;
     }
+  }
+  else if(h.mode==='bow'){
+    const t=Math.min(1,h.t/2.5),down=clamp((t-.18)/.25,0,1),up=clamp((t-.72)/.23,0,1),bend=down*(1-up);
+    aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
+    lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}
@@ -1547,6 +1556,76 @@ for(const k of Object.keys(HERBS))delete HERBS[k];HERB_KEYS.length=0;
 const starOf=ab=>ab>=6?1:ab>=2.5?2:ab>=1?3:ab>=.3?4:5;
 for(const s of SPECIES){HERBS[s.id]={name:s.n,w:s.ab,need:s.need,rar:starOf(s.ab),root:!!s.root,under:!!s.root&&s.cat==='root',desc:s.d,part:s.part,hab:s.hab,cat:s.cat,sp:s};HERB_KEYS.push(s.id)}
 const SPI={};SPECIES.forEach(s=>SPI[s.id]=s);
+/* ================= GOLDEN FIVE-STAR VARIANTS ================= */
+// Same species and resource slot as the ordinary 5-star item, with a rare
+// deterministic gilded appearance. No golden variant is ever sellable.
+const GOLD_PREFIX='gold:';
+const GOLDEN_ODDS=0.0025; // 0.25% of existing 5-star spawn cycles.
+const GOLD_TITLES={sansam:'천년약사',songi:'금송선인',sanghwang:'금광도인',
+  neungi:'영산도인',kkotsongi:'화령선인',seogi:'석벽도인'};
+const GOLD_FIVE_BASES=[...HERB_KEYS,...MUSH_KEYS].filter(k=>itemInfo(k)?.rar===5);
+function isGoldenKey(key){return typeof key==='string'&&key.startsWith(GOLD_PREFIX)&&GOLD_FIVE_BASES.includes(key.slice(GOLD_PREFIX.length))}
+function goldBase(key){return isGoldenKey(key)?key.slice(GOLD_PREFIX.length):key}
+function goldenKey(key){return GOLD_PREFIX+key}
+function goldTitle(key){const base=goldBase(key);return GOLD_TITLES[base]||('황금 '+itemInfo(base).name+'의 수호자')}
+const VALID_SPECIAL_TITLES=new Set(GOLD_FIVE_BASES.map(goldTitle));
+function validSpecialTitle(name){return typeof name==='string'&&VALID_SPECIAL_TITLES.has(name)?name:''}
+function goldenSpawn(slotId,cycle=0){
+  let h=2166136261;const token='bygs-gold-5|'+slotId+'|'+cycle;
+  for(let i=0;i<token.length;i++)h=Math.imul(h^token.charCodeAt(i),16777619);
+  h^=h>>>16;return (h>>>0)/4294967296<GOLDEN_ODDS;
+}
+// Recolour the original meshes without replacing their geometry or changing
+// the silhouette. Source materials are cloned to avoid tinting ordinary plants.
+function tintGoldenObject(root){
+  root.traverse(obj=>{if(!obj.isMesh||obj.userData.goldTinted)return;
+    const mats=Array.isArray(obj.material)?obj.material:[obj.material];
+    obj.material=mats.map(src=>{
+      const mat=src.clone();mat.flatShading=true;
+      const light=src.color?(src.color.r*.32+src.color.g*.52+src.color.b*.16):.5;
+      mat.color.setHSL(.119,.68,Math.min(.69,Math.max(.40,.43+light*.16)));
+      if(mat.vertexColors){ // Existing native-herb vertex hues would otherwise remain green.
+        mat.vertexColors=false;
+      }
+      if(mat.emissive)mat.emissive.setHex(0x221304);
+      if('shininess' in mat)mat.shininess=4;
+      mat.needsUpdate=true;return mat;
+    });
+    if(!Array.isArray(obj.userData?.goldSources))obj.userData.goldSources=mats;
+    if(!Array.isArray(obj.material))obj.material=obj.material[0];
+    obj.userData.goldTinted=true;
+  });
+  return root;
+}
+function applyGoldenVariants(chunk){
+  for(const it of chunk.items){
+    if(!it.mesh||!GOLD_FIVE_BASES.includes(it.type)||itemInfo(it.type)?.rar!==5)continue;
+    const cycle=rareMoves.get(it.id)?.cycle||0;
+    if(!goldenSpawn(it.id,cycle))continue;
+    it.golden=true;tintGoldenObject(it.mesh);
+  }
+}
+function setSpecialTitle(saveTitle){
+  save.specialTitles=save.specialTitles||{unlocked:[],equipped:''};
+  const v=validSpecialTitle(saveTitle);
+  if(v&&!save.specialTitles.unlocked.includes(v))return false;
+  save.specialTitles.equipped=v;persist();sendPresence(true);return true;
+}
+function addSpecialTitle(key){
+  if(!isGoldenKey(key))return '';
+  const name=goldTitle(key);
+  save.specialTitles=save.specialTitles||{unlocked:[],equipped:''};
+  if(!save.specialTitles.unlocked.includes(name))save.specialTitles.unlocked.push(name);
+  save.specialTitles.equipped=name;
+  return name;
+}
+function activeSpecialTitle(){return validSpecialTitle(save.specialTitles?.equipped)&&
+  save.specialTitles?.unlocked?.includes(save.specialTitles.equipped)?save.specialTitles.equipped:''}
+function setTitleTag(el,title,level,nick){
+  el.replaceChildren();
+  if(title){const gold=document.createElement('span');gold.className='special-title';gold.textContent='✦ '+title+' ✦';el.appendChild(gold)}
+  const base=document.createElement('span');base.className='rank-and-name';base.textContent=rankLabel(level)+'\n'+nick;el.appendChild(base);
+}
 /* ---------- 계곡(물길) ---------- */
 function sX1(z){return pathX(z)-26+Math.sin(z*.017)*9}
 function sX2(z){return pathX(z)+30+Math.sin(z*.013+2)*11}
@@ -1860,8 +1939,10 @@ function hive3D(type){
  return g;
 }
 function renderIcon(kind,type){
+  const gilded=isGoldenKey(type);type=goldBase(type);
   iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
   let obj;if(kind==='herb'){obj=new THREE.Mesh(plantGeo(SPI[type],0),plantMat)}else if(kind==='fruit'){obj=fruit3D(type)}else if(kind==='honey'){obj=hive3D(type)}else{obj=mush3D(type);obj.rotation.y=-Math.PI/2}
+  if(gilded)tintGoldenObject(obj);
   const grp=new THREE.Group();grp.add(obj);
   const box=new THREE.Box3().setFromObject(grp),sz=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
   if(kind==='herb'&&SPI[type].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);
@@ -2520,6 +2601,7 @@ function buildChunk(cx,cz){
     putFruit('wildberry',c.key+':berry'+i,x,z,false);
   }
   relocateRareInChunk(c);
+  applyGoldenVariants(c);
   // Check all genuine collectibles after five-star relocation and before display.
   repairChunkResources(c);
   scene.add(grp);chunks.set(c.key,c);return c;
@@ -2547,6 +2629,7 @@ function rescueTrailChunk(key,cx,cz){
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
+    applyGoldenVariants(c);
     repairChunkResources(c);
     scene.add(grp);chunks.set(key,c);chunkFailures.delete(key);
     return true;
@@ -2704,6 +2787,7 @@ let joyT=0;
 const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
+  if(inSecretCave)return;
   if(Date.now()<faintUntil||cooking||climbing||me.mode==='joy'||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;
@@ -2783,11 +2867,16 @@ function showInfoCard(kind,type,fromBag){
   foundTimer=fromBag?0:(info.rar>=4?3.8:2.6);
 }
 function collect(kind,type,pos,it){
+  const originalType=type;
+  const golden=!!(it?.golden)||(GOLD_FIVE_BASES.includes(type)&&!it&&goldenSpawn('ground:'+Math.floor(pos.x*3)+','+Math.floor(pos.z*3),0));
+  if(golden)type=goldenKey(type);
   const info=itemInfo(type);
   if(it&&takenUntil(it.id))return;
   if(totalCount()>=bagLimit()){ floatMsg(pos,'가방이 가득 찼다'); toast(`등산가방은 현재 ${bagLimit()}개까지 담을 수 있습니다. 텐트에서 판매하거나 가방을 확장하세요.`); tone(220,.24,'triangle',.055,.85); return; }
-  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,type);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[type];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
-  save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[type]=1; recordHerbHarvest(type,info,(kind==='herb'||kind==='honey')&&!!it);persist();
+  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[type];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
+  save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
+  if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
+  recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
   me.mode='joy';me.t=0;joyT=2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));
   chime(info.rar);setGreens(me,totalCount());
@@ -2819,7 +2908,7 @@ canvas.addEventListener('pointermove',e=>{if(!ptr||ptr.id!==e.pointerId)return;c
   if(ptr.drag){camYaw-=dx*.006;camPitch=clamp(camPitch+dy*.004,.05,1.1);lastDrag=clock}ptr.x=e.clientX;ptr.y=e.clientY});
 canvas.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const wasDrag=ptr.drag;ptr=null;if(wasDrag||mode!=='game')return;clickAt(e.clientX,e.clientY)});
 canvas.addEventListener('wheel',e=>{camDist=clamp(camDist+e.deltaY*.005,4,15);e.preventDefault()},{passive:false});
-function clickAt(sx,sy){if(Date.now()<faintUntil||inTent||cooking)return;
+function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)return;
   ndc.set(sx/W*2-1,-(sy/Hh)*2+1);ray.setFromCamera(ndc,camera);
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
@@ -2861,6 +2950,17 @@ function buildBag(){
   host.appendChild(meta);
   const twigs=document.createElement('div');twigs.className='bagMeta';twigs.textContent=`🪵 나뭇가지 ${save.inv[TWIG_KEY]||0}개 · 빈 나무를 두드려 획득 · 도감 제외 · 캠프파이어 6개 필요`;
   host.appendChild(twigs);
+  const goldHave=GOLD_FIVE_BASES.filter(k=>(save.inv[goldenKey(k)]||0)>0);
+  const goldFound=GOLD_FIVE_BASES.filter(k=>save.goldKnown?.[k]);
+  const goldHead=document.createElement('h4');goldHead.textContent='✦ 황금 5성 · '+goldFound.length+'/'+GOLD_FIVE_BASES.length+'종 발견 · 판매 불가';host.appendChild(goldHead);
+  const goldGrid=document.createElement('div');goldGrid.className='grid';host.appendChild(goldGrid);
+  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),known=!!save.goldKnown?.[base],have=save.inv[key]||0;
+    const c=document.createElement('div');c.className='card golden-card'+(known?'':' unk');
+    const img=document.createElement('img');img.src=iconURL(itemKindOf(key),key);img.alt='';c.appendChild(img);
+    const name=document.createElement('div');name.className='n';name.textContent=known?'황금 '+itemInfo(base).name:'???';
+    const meta=document.createElement('div');meta.className='c';meta.textContent=known?have+'개 보유 · 공양 전용':'★★★★★ · 미발견';
+    c.append(name,meta);if(known){c.classList.add('click');c.onclick=()=>showInfoCard(itemKindOf(key),key,true)}goldGrid.appendChild(c);
+  }
   const groups=[['root','뿌리·덩이 약초 (땅속)'],['leaf','산나물'],['herb','약초'],['mush','산속 버섯'],['fruit','숲에서 떨어지는 열매'],['honey','야생 벌꿀']];
   for(const [cat,title] of groups){
     const keys=cat==='fruit'?Object.keys(FRUITS):cat==='mush'?MUSH_KEYS:cat==='honey'?HONEY_KEYS:HERB_KEYS.filter(k=>HERBS[k].cat===cat);
@@ -2968,7 +3068,7 @@ function drawCompassOn(g,cx,cy,r,bd){
   g.fillStyle='#1f2b28';g.beginPath();g.arc(cx,cy,2.5,0,7);g.fill();g.textBaseline='alphabetic';
   g.font='11px "Gowun Dodum",sans-serif';g.fillStyle='rgba(244,239,227,.92)';const t=`${dirName(bd)} ${Math.round(bd)}°`,tw=g.measureText(t).width;g.fillRect(cx-tw/2-4,cy+r+4,tw+8,15);g.fillStyle='#1f2b28';g.fillText(t,cx,cy+r+15);
 }
-function toggleMap(open){mapOpen=open===undefined?!mapOpen:open;$('mapView').classList.toggle('hide',!mapOpen);if(mapOpen){mapBaseAt=null;drawMap()}}
+function toggleMap(open){if(inSecretCave&&open!==false){toast('동굴 안에서는 지도를 펼칠 수 없습니다.');return}mapOpen=open===undefined?!mapOpen:open;$('mapView').classList.toggle('hide',!mapOpen);if(mapOpen){mapBaseAt=null;drawMap()}}
 $('mapBtn').onclick=()=>toggleMap(true);$('mapClose').onclick=()=>toggleMap(false);
 $('mapView').addEventListener('pointerdown',e=>{if(e.target.id==='mapView')toggleMap(false)});
 addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||mode!=='game')return;if(e.code==='KeyM')toggleMap();if(e.code==='Escape')toggleMap(false)});
@@ -3010,8 +3110,8 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   const packet=Object.assign({id:myId,type,joined:netJoinTime,t:Date.now()},extra||{});
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
-function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='cook'?'c':'i';
-  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:''};}
+function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
+  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle()};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
   peopleCount=count;
@@ -3083,6 +3183,7 @@ function connectRoom(){
        return;
       }
       if(d.type==='radio'){if(typeof d.msg==='string'&&d.msg.length<=180)showRadioLine(cleanNick(d.name)||'산객',d.msg);return}
+      if(d.type==='caveOffer'){if(d.cv===1&&inSecretCave&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&Math.hypot(d.x-caveBuddhaPoint.x,d.z-caveBuddhaPoint.z)<9)glowSecretCaveCandles();return}
       if(d.type==='boarDisperse'){
         const peer=others.get(d.id);
         if(peer&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&
@@ -3113,9 +3214,11 @@ function upOther(p){
     lampLens.position.set(0,1.77,.13);av.root.add(lampLens);
     o={av,el,headLamp,lampLens,x:s.x,y:s.y||H(s.x,s.z),z:s.z,h:s.h||0,tx:s.x,ty:s.y,tz:s.z,th:s.h||0,mode:'idle',nick:''};others.set(p.peer,o)}
   o.tx=+s.x;o.tz=+s.z;o.ty=Number.isFinite(+s.y)?+s.y:H(o.tx,o.tz);o.th=+s.h||0;
-  o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;setGreens(o.av,+s.g|0);
-  const md=s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
-  o.el.textContent=rankLabel(o.rank)+'\n'+(o.mode==='faint'?'💤 ':'')+(o.nick||'산객');
+  o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);
+  o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
+  setGreens(o.av,+s.g|0);
+  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
+  setTitleTag(o.el,o.specialTitle,o.rank,(o.mode==='faint'?'💤 ':'')+(o.nick||'산객'));
 }
 let presT=0;
 function sendPresence(force){
@@ -3127,7 +3230,7 @@ function sendPresence(force){
 }
 function updateMyRankTag(){
  if(mode!=='game'||inTent){myRankTag.style.display='none';return}
- myRankTag.textContent=rankLabel()+'\n'+(cleanNick(save.nick)||'산객');
+ setTitleTag(myRankTag,activeSpecialTitle(),playerRank,cleanNick(save.nick)||'산객');
  const p=myRankTagPos.set(P.x,P.y+2.28,P.z).project(camera);
  if(p.z<=-1||p.z>=1||Math.abs(p.x)>1.05||Math.abs(p.y)>1.05){myRankTag.style.display='none';return}
  myRankTag.style.display='';myRankTag.style.transform=`translate(${(p.x*.5+.5)*W}px,${(-p.y*.5+.5)*Hh}px) translate(-50%,-100%)`;
@@ -3139,20 +3242,20 @@ function updOthers(dt){
     o.av.root.position.set(o.x,o.y+(down?.28:0),o.z);o.av.root.rotation.y=o.h;
     o.av.root.rotation.x=lerp(o.av.root.rotation.x,down?-Math.PI/2:0,Math.min(1,dt*12));
     poseHiker(o.av,dt,down?0:1);
-    const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent;
+    const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent&&!!o.inCave===!!inSecretCave;
     const night=skyAtHour(gameMin/60).night;
     const nearEnough=far<55;
     const tier=LANTERN_SPECS[o.lanternLevel||1];
-    o.headLamp.intensity=nearEnough&&!down&&!o.tent?night*tier.intensity:0;
+    o.headLamp.intensity=nearEnough&&!down&&!o.tent&&!inSecretCave?night*tier.intensity:0;
     o.headLamp.distance=tier.range;o.headLamp.angle=tier.angle;o.headLamp.decay=tier.decay;
     o.headLamp.position.set(o.x+Math.sin(o.h)*.12,o.y+1.75,o.z+Math.cos(o.h)*.12);
     o.headLamp.target.position.set(o.x+Math.sin(o.h)*tier.aim,o.y-.6,o.z+Math.cos(o.h)*tier.aim);
     o.av.backLantern.visible=o.lanternLevel===3;
-    o.av.rearLight.intensity=nearEnough&&!down&&!o.tent&&o.lanternLevel===3?night*.72:0;
+    o.av.rearLight.intensity=nearEnough&&!down&&!o.tent&&!inSecretCave&&o.lanternLevel===3?night*.72:0;
     o.headLamp.target.updateMatrixWorld();
     o.lampLens.material.opacity=night*.95;
-    o.lampLens.visible=o.av.root.visible&&!down&&!o.tent&&night>.05;
-    v3.set(o.x,o.y+2.15,o.z).project(camera);if(v3.z>1||far>8||inTent){o.el.style.display='none'}else{o.el.style.display='';o.el.style.transform=`translate(${(v3.x*.5+.5)*W}px,${(-v3.y*.5+.5)*Hh}px) translate(-50%,-100%)`}}
+    o.lampLens.visible=o.av.root.visible&&!down&&!o.tent&&!inSecretCave&&night>.05;
+    v3.set(o.x,o.y+2.15,o.z).project(camera);if(v3.z>1||far>8||inTent||!!o.inCave!==!!inSecretCave){o.el.style.display='none'}else{o.el.style.display='';o.el.style.transform=`translate(${(v3.x*.5+.5)*W}px,${(-v3.y*.5+.5)*Hh}px) translate(-50%,-100%)`}}
 }
 setInterval(()=>{if(mode!=='game')return;netCleanup();if(mqttOnline&&!netJoined&&!netChecking)tryNetJoin();if(netJoined)sendPresence(false)},2000);
 addEventListener('pagehide',()=>{if(netJoined)netPublish('bye')});
@@ -4019,7 +4122,7 @@ function climbFail(){
  $('climbPanel').classList.add('hide');
  faintAnimal({name:'바위 추락',fall:true,durationMs:2*60*1000});
 }
-function climbAct(){
+function climbAct(){if(inSecretCave)return;
  if(Date.now()<faintUntil||inTent||cooking)return;
  if(onRock){
    const rock=onRock,dx=P.x-rock.x,dz=P.z-rock.z,len=Math.hypot(dx,dz)||1;
@@ -4061,9 +4164,398 @@ function updateRockClimbing(dt){
  btn.textContent=rock?'오르기':'점프';btn.classList.toggle('climbAvailable',!!rock);
  $('climbPanel').classList.add('hide');
 }
+/* ================= SECRET CAVE WORLD =================
+ * Visual guide: forest-overgrown rock opening, rough natural stone, seated
+ * rock Buddha shrine. All geometry is original low-poly Three.js primitives.
+ * The private, seeded site is selected at runtime. Nothing is drawn on the map.
+ * Interior uses camera layer 1, exterior scene uses layer 0: no terrain edits.
+ */
+const SECRET_CAVE_SEED=0x6bbd7409;
+const CAVE_FLOOR=0;
+let caveSite=null,caveEntrance=null,caveInterior=null,caveReturnPos=null,inSecretCave=false;
+let caveReturnCameraYaw=0,cavePreviousFog=null,cavePreviousBackground=null,caveEntryLock=0;
+let caveCandles=[],caveLightPulse=0,caveInteractionElapsed=0;
+const caveBuddhaPoint={x:0,z:-32.8};
+function caveCurve(z){return Math.sin((5-z)*.13)*1.25+Math.sin((5-z)*.063)*.45}
+function caveWidth(z){return 1.37+Math.sin((5-z)*.09)*.14}
+function caveStoneMaterial(col){return new THREE.MeshLambertMaterial({color:col,flatShading:true,side:THREE.DoubleSide})}
+function caveMesh(group,geo,mat,x,y,z,sx=1,sy=1,sz=1){
+  const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);
+  o.castShadow=false;o.receiveShadow=true;group.add(o);return o;
+}
+function chooseSecretCaveSite(){
+  // The same seed, noise and terrain make the chosen candidate deterministic
+  // across devices and sessions. No location, coordinate or gameplay hint is shown.
+  const r=rngOf(SECRET_CAVE_SEED);let best=null;
+  for(let i=0;i<210;i++){
+    const z=-500-r()*3540,side=r()>.5?1:-1,x=pathX(z)+side*(28+r()*19);
+    const y=H(x,z),dx=Math.abs(H(x+1.2,z)-H(x-1.2,z)),dz=Math.abs(H(x,z+1.2)-H(x,z-1.2));
+    const incline=Math.hypot(dx,dz),water=streamD(x,z),alt=y*ALT_K;
+    if(!Number.isFinite(y)||water<8||alt<230||alt>2050||incline>3.8)continue;
+    const shade=fbm(x*.11+9,z*.11-7),score=.6+Math.abs(incline-.85)*-.3+shade*.5+r()*.8;
+    if(!best||score>best.score)best={x,z,y,score};
+  }
+  if(!best){const z=-1830,x=pathX(z)+35;best={x,z,y:H(x,z),score:0}}
+  return best;
+}
+function makeCaveEntrance(){
+  const site=caveSite,g=new THREE.Group();g.position.set(site.x,site.y,site.z);
+  const stone=[0x575b4d,0x525747,0x656557,0x484d42].map(caveStoneMaterial),moss=caveStoneMaterial(0x3b5635);
+  const rock=new THREE.IcosahedronGeometry(1,1),bush=new THREE.IcosahedronGeometry(1,0);
+  const greenMats=[0x42683c,0x355b31,0x52703b].map(caveStoneMaterial);
+  // Slightly recessed dark opening (one hiker wide), with stone shoulders.
+  caveMesh(g,new THREE.PlaneGeometry(1.28,2.22),new THREE.MeshBasicMaterial({color:0x090c09,side:THREE.DoubleSide}),0,1.19,-.6);
+  for(let i=0;i<18;i++){
+    const a=Math.PI*(i/17),sx=Math.cos(a)*1.18,sy=1.22+Math.sin(a)*1.3;
+    const o=caveMesh(g,rock,stone[i%stone.length],sx,sy,-.18,.55,.53,.65);
+    o.rotation.set(i*.21,i*.31,i*.19);
+  }
+  for(let i=0;i<10;i++){
+    const dir=i%2?-1:1,o=caveMesh(g,rock,stone[(i+1)%4],dir*(.88+(i%4)*.28),.25+(i%3)*.50,-.3+(i%4)*.43,.5,.39,.72);
+    o.rotation.y=i*.75;
+  }
+  // Thick vegetation and moss obscure roughly half of the narrow opening.
+  for(let i=0;i<26;i++){
+    const side=i%3===0?-1:1,a=i*2.399,wide=.6+(i%6)*.18;
+    const x=side*(.44+wide*.55),y=.25+(i%7)*.29,z=.13+(i%3)*.18;
+    const leaf=caveMesh(g,bush,i%4===0?moss:greenMats[i%3],x+Math.sin(a)*.22,y,z,.29+(i%4)*.07,.21,.33);
+    leaf.rotation.set(i*.21,i*.3,Math.sin(a)*.6);
+  }
+  const trunk=caveStoneMaterial(0x4b3d2e);
+  for(let i=0;i<4;i++){
+    const stem=caveMesh(g,new THREE.CylinderGeometry(.045,.075,1.8,5),trunk,(i%2?-1:1)*(.75+i*.13),1,.35,.8,1,.8);
+    stem.rotation.z=(i%2?-1:1)*.40;
+  }
+  caveEntrance=g;scene.add(g);
+}
+function makeCaveTunnel(){
+  const group=new THREE.Group(),wall=caveStoneMaterial(0x4b4a40),floor=caveStoneMaterial(0x434337);
+  const ringCount=44,segments=14,positions=[],unders=[];
+  for(let i=0;i<ringCount;i++){
+    const z=7-i,xx=caveCurve(z),w=caveWidth(z),h=1.45;
+    for(let j=0;j<segments;j++){
+      const a=2*Math.PI*j/segments,rough=1+Math.sin(i*2.13+j*3.1)*.06;
+      const x=xx+Math.cos(a)*w*rough,y=h+Math.sin(a)*1.54*rough;
+      positions.push(x,y,z);
+    }
+    if(i<ringCount-1){
+      const zn=z-1,cx=caveCurve(z),cxNext=caveCurve(zn),ww=caveWidth(z);
+      unders.push(cx-ww,-.16,z,cx+ww,-.16,z,cxNext-ww,-.16,zn,
+        cx+ww,-.16,z,cxNext+ww,-.16,zn,cxNext-ww,-.16,zn);
+    }
+  }
+  const faces=[];
+  for(let i=0;i<ringCount-1;i++)for(let j=0;j<segments;j++){
+    const a=i*segments+j,b=i*segments+(j+1)%segments,c=(i+1)*segments+j,d=(i+1)*segments+(j+1)%segments;
+    faces.push(a,b,c,b,d,c);
+  }
+  const wallGeo=new THREE.BufferGeometry();wallGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));wallGeo.setIndex(faces);wallGeo.computeVertexNormals();
+  caveMesh(group,wallGeo,wall,0,0,0);
+  const floorGeo=new THREE.BufferGeometry();floorGeo.setAttribute('position',new THREE.Float32BufferAttribute(unders,3));floorGeo.computeVertexNormals();
+  caveMesh(group,floorGeo,floor,0,0,0);
+  // Stone chips on either side, kept clear of the 1-person walking corridor.
+  const chip=new THREE.IcosahedronGeometry(1,0);
+  const colors=[0x535247,0x585649,0x45473d,0x676353].map(caveStoneMaterial);
+  const r=rngOf(0xa38bc144);
+  for(let i=0;i<140;i++){
+    const z=5-r()*40,side=r()>.5?1:-1,w=caveWidth(z),x=caveCurve(z)+side*(w*.87+r()*.18);
+    const d=.11+r()*.19,m=caveMesh(group,chip,colors[i%4],x,-.08+r()*.26,z,d,d*.65,d*1.7);m.rotation.y=r()*6.28;
+  }
+  // The shrine chamber is deliberately wider than the winding passage.
+  const shrineRock=caveStoneMaterial(0x514e44),halo=caveStoneMaterial(0x555449);
+  for(let i=0;i<13;i++){
+    const a=i/13*Math.PI*2;
+    const m=caveMesh(group,chip,i%3?shrineRock:halo,
+      caveBuddhaPoint.x+Math.cos(a)*2.0,.72+Math.sin(i*2.4)*.65,
+      caveBuddhaPoint.z-.7+Math.sin(a)*1.5,.84,.9,1.0);
+    m.rotation.set(i*.21,i*.33,i*.10);
+  }
+  makeCaveBuddha(group);
+  makeCaveCandles(group);
+  // Light is allowed on interior layer only; exterior lighting stays unchanged.
+  const ambient=new THREE.AmbientLight(0xc5b7a0,.12);group.add(ambient);
+  group.traverse(obj=>obj.layers.set(1));caveInterior=group;scene.add(group);
+}
+function makeCaveBuddha(group){
+  const g=new THREE.Group(),stone=caveStoneMaterial(0xa29b88),robe=caveStoneMaterial(0x8e897b),shadow=caveStoneMaterial(0x706c60);
+  const ico=(c,x,y,z,sx,sy,sz,detail=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detail),c,x,y,z,sx,sy,sz);
+  caveMesh(g,new THREE.CylinderGeometry(.88,.99,.32,9),shadow,0,.02,0);
+  caveMesh(g,new THREE.CylinderGeometry(.70,.84,.26,9),stone,0,.28,0);
+  ico(robe,0,.65,0,.76,.30,.58,1); // cross-legged draped lap
+  ico(stone,0,1.34,0,.59,.83,.43,1); // broad carved torso
+  ico(robe,-.35,1.40,.07,.25,.66,.37,0); // robe from left shoulder
+  ico(stone,0,2.25,.02,.36,.45,.34,1); // head
+  ico(stone,0,2.66,.04,.24,.12,.25,0); // hair knot
+  for(const side of [-1,1])ico(stone,side*.34,2.28,.02,.07,.13,.10,0);
+  const eyes=caveStoneMaterial(0x67665e);
+  for(const s of [-1,1]){
+    caveMesh(g,new THREE.BoxGeometry(.11,.016,.013),eyes,s*.125,2.28,.323);
+  }
+  ico(stone,0,2.14,.36,.08,.13,.08,0); // nose
+  const mouth=caveMesh(g,new THREE.BoxGeometry(.15,.013,.018),eyes,0,2.05,.324);mouth.rotation.z=.03;
+  // One upright palm (traditional reassuring gesture), other hand rests on lap.
+  const arm=caveMesh(g,new THREE.CylinderGeometry(.15,.18,.68,6),stone,.55,1.56,.05);arm.rotation.z=-.38;
+  ico(stone,.64,1.90,.10,.17,.25,.11,0);
+  for(let i=0;i<4;i++)caveMesh(g,new THREE.CylinderGeometry(.031,.037,.20,5),stone,.53+i*.07,2.10,.11);
+  const left=caveMesh(g,new THREE.CylinderGeometry(.13,.17,.70,6),robe,-.55,1.18,.23);left.rotation.z=-.88;
+  ico(stone,-.17,.76,.49,.24,.09,.17,0);
+  g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.8);
+  group.add(g);
+  // Shallow stone offering tray in front of the Buddha.
+  const stand=caveMesh(group,new THREE.CylinderGeometry(.52,.65,.24,8),stone,caveBuddhaPoint.x,.16,caveBuddhaPoint.z+1.1);
+  stand.userData.isOfferingTray=true;
+}
+function makeCaveCandles(group){
+  const ivory=caveStoneMaterial(0xe1d5ad),wick=caveStoneMaterial(0x4a3525);
+  const flameMat=new THREE.MeshBasicMaterial({color:0xffac45,transparent:true,opacity:.92});
+  const flameGeo=new THREE.ConeGeometry(.065,.20,5),waxGeo=new THREE.CylinderGeometry(.085,.10,.27,7);
+  const places=[];
+  for(let z=2;z>=-29;z-=5.2){const w=caveWidth(z);places.push([caveCurve(z)-w*.76,z],[caveCurve(z)+w*.76,z])}
+  for(const [dx,dz] of [[-1.1,0],[1.1,0],[-1.1,1.25],[1.1,1.25]])places.push([caveBuddhaPoint.x+dx,caveBuddhaPoint.z+dz]);
+  caveCandles=[];
+  for(let i=0;i<places.length;i++){
+    const [x,z]=places[i],s=new THREE.Group();s.position.set(x,.07,z);group.add(s);
+    caveMesh(s,waxGeo,ivory,0,.13,0);
+    caveMesh(s,new THREE.CylinderGeometry(.011,.011,.07,4),wick,0,.30,0);
+    const f=caveMesh(s,flameGeo,flameMat.clone(),0,.43,0);
+    caveCandles.push({flame:f,phase:i*2.33});
+  }
+  for(const z of [0,-12,-24,-32]){
+    const light=new THREE.PointLight(0xff9f4e,z===-32?1.0:.71,7.3,2.0);
+    light.position.set(caveCurve(z),1.15,z);group.add(light);
+    caveCandles.push({light,phase:z*1.8,base:light.intensity});
+  }
+}
+function ensureSecretCave(){
+  if(caveSite)return;
+  caveSite=chooseSecretCaveSite();
+  caveBuddhaPoint.x=caveCurve(caveBuddhaPoint.z);
+  makeCaveEntrance();makeCaveTunnel();
+  caveEntrance.visible=false;
+}
+function glowSecretCaveCandles(){caveLightPulse=Math.max(caveLightPulse,2.8)}
+function animateSecretCaveCandles(dt){
+  caveInteractionElapsed+=dt;caveLightPulse=Math.max(0,caveLightPulse-dt);
+  const bright=caveLightPulse>0?Math.min(1,caveLightPulse)*.75:0;
+  for(const c of caveCandles){
+    const flicker=1+Math.sin(caveInteractionElapsed*7.3+c.phase)*.085+Math.sin(caveInteractionElapsed*11+c.phase*.5)*.035;
+    if(c.light)c.light.intensity=c.base*(flicker+bright);
+    if(c.flame){c.flame.scale.y=flicker+.14*bright;c.flame.rotation.z=Math.sin(caveInteractionElapsed*8+c.phase)*.11;
+      c.flame.material.opacity=Math.min(1,.88+.11*bright)}
+  }
+}
+function showCaveAction(which){
+  const ids=['secretCaveEnterBtn','secretCaveLeaveBtn','secretOfferOpenBtn'];
+  $('secretCaveActions').classList.toggle('hide',!which);
+  for(const id of ids)$(id).classList.toggle('hide',which!==id);
+}
+function enterSecretCave(){
+  if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
+    Math.hypot(P.x-caveSite.x,P.z-caveSite.z)>3.3||me.mode==='dig'||P.air)return;
+  caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
+  inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
+  target=null;pending=null;curAct=null;queued=null;
+  cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;
+  scene.fog=null;scene.background=new THREE.Color(0x090a08);camera.layers.set(1);
+  camera.position.set(caveCurve(6),1.86,6.0);camera.lookAt(P.x,1.25,P.z);
+  me.root.traverse(o=>o.layers.enable(1));
+  $('jumpBtn').classList.add('hide');$('mapView').classList.add('hide');mapOpen=false;
+  showCaveAction('');toast('희미한 촛불이 바위 틈 깊숙이 이어진다…');sendPresence(true);
+}
+function leaveSecretCave(){
+  if(!inSecretCave||caveOffering)return;
+  inSecretCave=false;
+  scene.fog=cavePreviousFog;scene.background=cavePreviousBackground;camera.layers.set(0);
+  me.root.traverse(o=>o.layers.set(0));
+  const p=caveReturnPos||{x:pathX(24),z:24,h:Math.PI};
+  P.x=p.x;P.z=p.z;P.y=H(P.x,P.z);P.h=p.h;camYaw=caveReturnCameraYaw;
+  P.air=false;P.vy=0;caveReturnPos=null;caveEntryLock=Date.now()+3500;
+  camera.position.set(P.x-Math.sin(camYaw)*5,P.y+3,P.z-Math.cos(camYaw)*5);
+  if(IS_TOUCH)$('jumpBtn').classList.remove('hide');
+  showCaveAction('');sendPresence(true);
+}
+function updateSecretCaveExterior(dt){
+  if(!caveSite||mode!=='game'||inTent){showCaveAction('');return}
+  const d=Math.hypot(P.x-caveSite.x,P.z-caveSite.z);
+  caveEntrance.visible=d<175;
+  showCaveAction(d<3.3&&Date.now()>caveEntryLock&&!P.air?'secretCaveEnterBtn':'');
+}
+function updateSecretCaveInterior(dt){
+  syncKST();animateSecretCaveCandles(dt);
+  const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0;
+  const lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
+  const fwd=up-dn-joy.y,str=rt-lf+joy.x;
+  const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);camYaw+=rot*dt*1.6;
+  let move=0;
+  if(!caveOffering&&$('secretOfferingPanel').classList.contains('hide')&&
+      $('secretTitlePanel').classList.contains('hide')&&Math.hypot(fwd,str)>.08){
+    const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
+    const v=Math.max(1,Math.hypot(fwd,str)),vx=(fx*fwd+rx*str)/v,vz=(fz*fwd+rz*str)/v;
+    move=1;P.z=clamp(P.z+vz*dt*2.7,-33,5.6);
+    P.x=clamp(P.x+vx*dt*2.7,caveCurve(P.z)-.62,caveCurve(P.z)+.62);
+    P.h=Math.atan2(vx,vz);
+  }
+  P.y=CAVE_FLOOR;P.speed=move;
+  me.mode=caveOffering?'bow':move?'walk':'idle';me.root.position.set(P.x,P.y,P.z);
+  const diff=Math.atan2(Math.sin(P.h-me.root.rotation.y),Math.cos(P.h-me.root.rotation.y));
+  me.root.rotation.y+=diff*Math.min(1,dt*11);
+  poseHiker(me,dt,P.speed);
+  updateSecretOffering(dt);
+  // Camera cannot pass through the narrow tunnel walls; it stays close and
+  // centred on the bent passage instead of using the exterior occlusion engine.
+  const cd=Math.min(camDist,2.55),cz=P.z-Math.cos(camYaw)*cd*.8;
+  const cx=clamp(P.x-Math.sin(camYaw)*cd*.8,caveCurve(cz)-.60,caveCurve(cz)+.60);
+  camera.position.lerp(v3.set(cx,1.88,clamp(cz,-35.8,6.2)),1-Math.exp(-dt*10));
+  camera.lookAt(P.x,P.y+1.30,P.z);
+  updOthers(dt);updateMyRankTag();
+  if(P.z>3.6)showCaveAction('secretCaveLeaveBtn');
+  else if(Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)<4.1&&!caveOffering){
+    showCaveAction('secretOfferOpenBtn');
+  }else showCaveAction('');
+  presT+=dt;if(presT>.25){presT=0;sendPresence(false)}
+  hudT+=dt;if(hudT>.35){hudT=0;updHud();$('alt').innerHTML='<small>장소</small>비밀 동굴';}
+  saveT+=dt;if(saveT>3){saveT=0;persist()}
+  if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('on')}
+  if(foundTimer>0){foundTimer-=dt;if(foundTimer<=0)$('found').classList.remove('on')}
+}
+$('secretCaveEnterBtn').addEventListener('click',enterSecretCave);
+$('secretCaveLeaveBtn').addEventListener('click',leaveSecretCave);
+/* ================= BUDDHA OFFERING / SPECIAL TITLES =================
+ * A local, single-session offering transaction finishes only after a bow. It
+ * guards double clicks, cancel and premature page close. The existing game
+ * uses browser-local profiles and anonymous MQTT; a trusted server would be
+ * required for tamper-proof cross-device ownership and atomic transactions.
+ */
+let caveOffering=null,offeringSelectedKey='',achievementTimeout=0;
+function validOfferingKey(key){
+  return isGoldenKey(key)||([ ...HERB_KEYS,...MUSH_KEYS].includes(key)&&itemInfo(key)?.rar===5);
+}
+function currentOfferingKeys(){
+  return [...HERB_KEYS,...MUSH_KEYS,...GOLD_FIVE_BASES.map(goldenKey)]
+    .filter(k=>validOfferingKey(k)&&(save.inv[k]||0)>0);
+}
+function closeOffering(){
+  if(caveOffering)return;
+  $('secretOfferingPanel').classList.add('hide');offeringSelectedKey='';
+}
+function renderOfferingItems(){
+  const host=$('secretOfferingItems');host.replaceChildren();
+  const keys=currentOfferingKeys();
+  if(!keys.length){const p=document.createElement('p');p.textContent='가방에 공양할 5성 채집물이 없습니다.';host.appendChild(p)}
+  for(const key of keys){
+    const info=itemInfo(key),gold=isGoldenKey(key),b=document.createElement('button');
+    b.type='button';b.className='secret-choice'+(gold?' golden':'')+(key===offeringSelectedKey?' on':'');
+    b.textContent=(gold?'✦ ':'')+info.name+' · '+(save.inv[key]||0)+'개'+(gold?' · 특별 칭호 공양':'');
+    b.onclick=()=>{offeringSelectedKey=key;renderOfferingItems();};host.appendChild(b);
+  }
+  $('secretOfferingConfirm').disabled=!keys.includes(offeringSelectedKey);
+  $('secretOfferingConfirmText').textContent=offeringSelectedKey?
+    `${itemInfo(offeringSelectedKey).name} 1개를 소모합니다. 공양 후 되돌릴 수 없습니다.`:
+    '공양할 5성 채집물을 선택해 주세요.';
+}
+function openSecretOffering(){
+  if(!inSecretCave||caveOffering||Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)>4.1)return;
+  offeringSelectedKey='';renderOfferingItems();$('secretOfferingPanel').classList.remove('hide');
+}
+function makeCaveOfferModel(key){
+  const base=goldBase(key),kind=itemKindOf(key),group=new THREE.Group();
+  if(kind==='herb'){
+    const plant=new THREE.Mesh(plantGeo(SPI[base],0),plantMat);
+    group.add(plant);
+  }else if(kind==='mush')group.add(mush3D(base));
+  if(isGoldenKey(key))tintGoldenObject(group);
+  const bounds=new THREE.Box3().setFromObject(group),sz=bounds.getSize(new THREE.Vector3());
+  const size=Math.max(sz.x,sz.y,sz.z,.01);
+  group.scale.setScalar(Math.min(1.6,.65/size));
+  group.position.set(caveBuddhaPoint.x,.38,caveBuddhaPoint.z+1.1);
+  group.traverse(o=>o.layers.set(1));scene.add(group);
+  return group;
+}
+function startSecretOffering(){
+  const key=offeringSelectedKey;
+  // One guarded action checks distance, stock, valid species and current UI.
+  if(caveOffering||!inSecretCave||!validOfferingKey(key)||!(save.inv[key]>0)||
+    Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)>4.1){
+    toast('공양할 재료 또는 위치를 확인해 주세요.');return;
+  }
+  const item=makeCaveOfferModel(key);
+  caveOffering={key,elapsed:0,item};
+  $('secretOfferingPanel').classList.add('hide');showCaveAction('');
+  me.mode='bow';me.t=0;
+  P.h=Math.atan2(caveBuddhaPoint.x-P.x,caveBuddhaPoint.z-P.z);
+  sendPresence(true);
+  netPublish('caveOffer',{cv:1,x:caveBuddhaPoint.x,z:caveBuddhaPoint.z});
+}
+function showCaveAchievement(title,key){
+  const host=$('secretAchievement');host.replaceChildren();
+  const prose=document.createElement('div');
+  prose.textContent='산의 깊은 곳에서 발견한 귀한 영약이\n오랜 세월 잠들어 있던 불상 앞에 놓입니다.\n\n고요한 동굴에 황금빛이 번져갑니다.\n\n새로운 칭호를 획득했습니다.';
+  const name=document.createElement('strong');name.textContent='「'+title+'」';
+  host.append(prose,name);host.classList.remove('hide');
+  clearTimeout(achievementTimeout);achievementTimeout=setTimeout(()=>host.classList.add('hide'),4900);
+}
+function completeSecretOffering(){
+  const offer=caveOffering;if(!offer)return;
+  try{
+    // No inventory is deducted until the full animation completes.
+    const key=offer.key;if(!validOfferingKey(key)||!(save.inv[key]>0)){
+      toast('공양 재료를 찾을 수 없어 취소되었습니다.');return;
+    }
+    save.inv[key]--;
+    if(!save.inv[key])delete save.inv[key];
+    const title=isGoldenKey(key)?addSpecialTitle(key):'';
+    persist();setGreens(me,totalCount());hudKey='';
+    glowSecretCaveCandles();
+    if(title){showCaveAchievement(title,key);tone(587,.5,'sine',.055,1,.18)}
+    else {toast('바친 영약 앞에 촛불이 조용히 흔들립니다.');tone(392,.3,'sine',.035)}
+    if(!$('bag').classList.contains('hide'))buildBag();
+    sendPresence(true);
+  }catch(error){
+    console.warn('공양을 완료하지 못했습니다:',error);
+    toast('공양 처리 중 문제가 발생했습니다. 저장 기록을 확인하세요.');
+  }finally{
+    if(offer.item?.parent)offer.item.parent.remove(offer.item);
+    caveOffering=null;me.mode='idle';me.t=0;sendPresence(true);
+  }
+}
+function updateSecretOffering(dt){
+  if(!caveOffering)return;
+  caveOffering.elapsed+=dt;
+  if(caveOffering.item){
+    const s=Math.max(0,Math.min(1,caveOffering.elapsed/.9));
+    caveOffering.item.position.y=.38+Math.sin(s*Math.PI)*.2;
+  }
+  if(caveOffering.elapsed>=3.3)completeSecretOffering();
+}
+function renderSpecialTitlePanel(){
+  const host=$('secretTitleList');host.replaceChildren();
+  const titles=save.specialTitles?.unlocked||[],equipped=activeSpecialTitle();
+  if(!titles.length){const p=document.createElement('p');p.textContent='아직 획득한 칭호가 없습니다. 황금 5성 채집물을 공양하면 얻을 수 있습니다.';host.appendChild(p)}
+  const none=document.createElement('button');none.type='button';none.className='secret-title-choice'+(!equipped?' on':'');none.textContent='장착 해제 · 기존 레벨 칭호만 표시';
+  none.onclick=()=>{setSpecialTitle('');renderSpecialTitlePanel()};host.appendChild(none);
+  for(const title of titles){
+    if(!validSpecialTitle(title))continue;
+    const b=document.createElement('button');b.type='button';b.className='secret-title-choice golden'+(equipped===title?' on':'');
+    b.textContent='✦ '+title+(equipped===title?' · 장착 중':'');
+    b.onclick=()=>{setSpecialTitle(title);renderSpecialTitlePanel()};host.appendChild(b);
+  }
+}
+function openSpecialTitles(){renderSpecialTitlePanel();$('secretTitlePanel').classList.remove('hide')}
+$('secretOfferOpenBtn').addEventListener('click',openSecretOffering);
+$('secretOfferingConfirm').addEventListener('click',startSecretOffering);
+$('secretOfferingCancel').addEventListener('click',closeOffering);
+$('secretOfferingPanel').addEventListener('click',e=>{if(e.target===$('secretOfferingPanel'))closeOffering()});
+$('specialTitlesBtn').addEventListener('click',openSpecialTitles);
+$('secretTitleClose').addEventListener('click',()=>$('secretTitlePanel').classList.add('hide'));
+$('secretTitlePanel').addEventListener('click',e=>{if(e.target===$('secretTitlePanel'))$('secretTitlePanel').classList.add('hide')});
+addEventListener('keydown',e=>{if(e.key==='Escape'){
+  if(!$('secretOfferingPanel').classList.contains('hide'))closeOffering();
+  if(!$('secretTitlePanel').classList.contains('hide'))$('secretTitlePanel').classList.add('hide');
+}});
 /* ================= GAME LOOP ================= */
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
 function updateGame(dt){
+  if(inSecretCave){updateSecretCaveInterior(dt);return}
   syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);
   const fainted=updFaint();if(!fainted&&!inTent)updateAnimals(dt);else if(boarAlertActive){$('boarWarning').classList.add('hide');boarAlertActive=false;}
   for(const c of chunks.values())for(const it of c.items)if(it.kind==='fruit'&&it.mesh&&it.fall!==false){
@@ -4128,6 +4620,7 @@ function updateGame(dt){
   camera.position.lerp(v3.set(cxp,cyp,czp),1-Math.exp(-dt*10));camera.lookAt(tx+Math.sin(cy)*3,ty+1.1,tz+Math.cos(cy)*3);
   updateChunks(P.x,P.z,false,dt);
   for(let i=pulls.length-1;i>=0;i--){const p=pulls[i];p.t+=dt;const k=clamp(p.t/.7,0,1);p.m.position.y=p.y0+ease(k)*p.d;p.m.rotation.z=Math.sin(p.t*9)*.15*(1-k);if(p.t>1.1)p.m.scale.setScalar(Math.max(.001,1-(p.t-1.1)/.4));if(p.t>1.5){p.m.parent&&p.m.parent.remove(p.m);pulls.splice(i,1)}}
+  updateSecretCaveExterior(dt);
   updateRareSense(dt);
   updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
   updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);
@@ -4199,13 +4692,19 @@ function validProfileDoc(doc,cred){return !!doc&&doc.app===PROFILE_APP&&doc.form
   doc.profile.verifier===cred.verifier&&doc.progress&&typeof doc.progress==='object'}
 function readProfileDoc(cred){try{const doc=JSON.parse(localStorage.getItem(cred.key)||'null');return validProfileDoc(doc,cred)?doc:null}catch(e){return null}}
 function normalizeRecord(raw){
-  const inv={};const allow=new Set([...Object.keys(HERBS),...Object.keys(MUSH),...Object.keys(FRUITS),...HONEY_KEYS,TWIG_KEY]);
+  const inv={};const allow=new Set([...Object.keys(HERBS),...Object.keys(MUSH),...Object.keys(FRUITS),...HONEY_KEYS,TWIG_KEY,...GOLD_FIVE_BASES.map(goldenKey)]);
   if(raw&&raw.inv&&typeof raw.inv==='object'&&!Array.isArray(raw.inv))for(const [k,v] of Object.entries(raw.inv)){
     if(allow.has(k)&&Number.isFinite(v)&&v>=0)inv[k]=Math.min(100000,Math.floor(v));
   }
+  const goldKnown={};
+  if(raw?.goldKnown&&typeof raw.goldKnown==='object')for(const key of GOLD_FIVE_BASES){if(raw.goldKnown[key])goldKnown[key]=1}
+  for(const key of Object.keys(inv))if(isGoldenKey(key))goldKnown[goldBase(key)]=1;
+  const unlocked=Array.isArray(raw?.specialTitles?.unlocked)?[...new Set(raw.specialTitles.unlocked.filter(validSpecialTitle))]:[];
+  const requested=validSpecialTitle(raw?.specialTitles?.equipped);
+  const specialTitles={unlocked,equipped:unlocked.includes(requested)?requested:''};
   const known={};
   if(raw&&raw.known&&typeof raw.known==='object'&&!Array.isArray(raw.known))for(const [k,v] of Object.entries(raw.known)){ if(allow.has(k)&&v)known[k]=1; }
-  for(const k of Object.keys(inv))if(k!==TWIG_KEY) known[k]=1;
+  for(const k of Object.keys(inv))if(k!==TWIG_KEY&&!isGoldenKey(k)) known[k]=1;
   const wonValue=Number.isFinite(raw?.won)?Math.max(0,Math.floor(raw.won)):0;
   const color=Number.isInteger(raw?.color)?clamp(raw.color,0,JACKETS.length-1):0;
   let pos=null;const p=raw?.pos;
@@ -4220,7 +4719,7 @@ function normalizeRecord(raw){
   if(old&&old.harvestedTypes&&typeof old.harvestedTypes==='object')for(const k of Object.keys(old.harvestedTypes))if(allow.has(k)&&old.harvestedTypes[k])harvestedTypes[k]=1;
   // Old saves recorded discoveries but not lifetime harvests: discovered species
   // prove at least one earlier successful harvest; previous sold quantities cannot be recovered.
-  for(const k of Object.keys(known))if(k!==TWIG_KEY)harvestedTypes[k]=1;
+  for(const k of Object.keys(known))if(k!==TWIG_KEY&&!isGoldenKey(k))harvestedTypes[k]=1;
   const held=Object.entries(inv).reduce((sum,[k,n])=>sum+(k===TWIG_KEY?0:n),0);
   const statNumber=(v,minimum)=>Number.isFinite(v)?Math.max(minimum,Math.min(10000000,Math.floor(v))):minimum;
   const stats={
@@ -4231,12 +4730,12 @@ function normalizeRecord(raw){
   };
   const highestRank=Number.isInteger(raw?.highestRank)?clamp(raw.highestRank,1,RANKS.length):1;
   const mealBuffUntil=Number.isFinite(raw?.mealBuffUntil)?clamp(raw.mealBuffUntil,0,Date.now()+20*60*1000):0;
-  return {inv,known,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
+  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;
@@ -4435,7 +4934,7 @@ function takeMemorialPhoto(){
     const ctx=photo.getContext('2d');if(!ctx)throw new Error('캔버스 만들기 실패');
     const sky=skyAtHour(gameMin/60),gradient=ctx.createLinearGradient(0,0,0,photo.height);
     gradient.addColorStop(0,inTent?sky.top:_skyFogTop.getStyle());gradient.addColorStop(1,inTent?sky.bot:_skyFogBottom.getStyle());
-    ctx.fillStyle=inTent?'#050505':gradient;ctx.fillRect(0,0,photo.width,photo.height);
+    ctx.fillStyle=inTent||inSecretCave?'#090a08':gradient;ctx.fillRect(0,0,photo.width,photo.height);
     ctx.drawImage(source,0,0,photo.width,photo.height);
     const image=photo.toDataURL('image/png'),a=document.createElement('a');
     const now=new Date(),day=now.toISOString().slice(0,10);
@@ -4476,6 +4975,7 @@ function beginGame(){
   setTimeout(()=>{
     if(mode!=='game')return;
     try{ensureTents()}catch(e){console.warn('텐트 생성 오류',e)}
+    try{ensureSecretCave()}catch(e){console.warn('동굴 생성 오류',e)}
     try{ensureSummit()}catch(e){console.warn('정상 조형물 생성 오류',e)}
     try{updateTents()}catch(e){console.warn('텐트 표시 오류',e)}
   },450);
@@ -4499,7 +4999,7 @@ function frame(now){requestAnimationFrame(frame);
   }}
 addEventListener('resize',onResize);addEventListener('resize',()=>{if(inTent)syncTentChestButton()});applyPerf();requestAnimationFrame(frame);
 $('ecoBtn').onclick=()=>{PERF.eco=!PERF.eco;applyPerf();chunkKey='';toast(PERF.eco?'절전 모드: 화질과 시야를 줄여 가볍게 돌립니다':'절전 모드 해제')};
-function jump(){if(mode==='game'&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
+function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(!AMB)return;if(document.hidden)AMB.a.suspend();else AMB.a.resume()});

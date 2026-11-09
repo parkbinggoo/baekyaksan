@@ -17,6 +17,17 @@ function buildBag(){
   host.appendChild(meta);
   const twigs=document.createElement('div');twigs.className='bagMeta';twigs.textContent=`🪵 나뭇가지 ${save.inv[TWIG_KEY]||0}개 · 빈 나무를 두드려 획득 · 도감 제외 · 캠프파이어 6개 필요`;
   host.appendChild(twigs);
+  const goldHave=GOLD_FIVE_BASES.filter(k=>(save.inv[goldenKey(k)]||0)>0);
+  const goldFound=GOLD_FIVE_BASES.filter(k=>save.goldKnown?.[k]);
+  const goldHead=document.createElement('h4');goldHead.textContent='✦ 황금 5성 · '+goldFound.length+'/'+GOLD_FIVE_BASES.length+'종 발견 · 판매 불가';host.appendChild(goldHead);
+  const goldGrid=document.createElement('div');goldGrid.className='grid';host.appendChild(goldGrid);
+  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),known=!!save.goldKnown?.[base],have=save.inv[key]||0;
+    const c=document.createElement('div');c.className='card golden-card'+(known?'':' unk');
+    const img=document.createElement('img');img.src=iconURL(itemKindOf(key),key);img.alt='';c.appendChild(img);
+    const name=document.createElement('div');name.className='n';name.textContent=known?'황금 '+itemInfo(base).name:'???';
+    const meta=document.createElement('div');meta.className='c';meta.textContent=known?have+'개 보유 · 공양 전용':'★★★★★ · 미발견';
+    c.append(name,meta);if(known){c.classList.add('click');c.onclick=()=>showInfoCard(itemKindOf(key),key,true)}goldGrid.appendChild(c);
+  }
   const groups=[['root','뿌리·덩이 약초 (땅속)'],['leaf','산나물'],['herb','약초'],['mush','산속 버섯'],['fruit','숲에서 떨어지는 열매'],['honey','야생 벌꿀']];
   for(const [cat,title] of groups){
     const keys=cat==='fruit'?Object.keys(FRUITS):cat==='mush'?MUSH_KEYS:cat==='honey'?HONEY_KEYS:HERB_KEYS.filter(k=>HERBS[k].cat===cat);

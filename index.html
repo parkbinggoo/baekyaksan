@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="./styles/09-markup-refinements.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<link rel="stylesheet" href="./styles/10-secret-cave-and-titles.css">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -52,6 +53,7 @@
   <div class="btns">
     <button class="btn" id="ecoBtn">절전</button>
     <button class="btn" id="mapBtn">지도</button><button class="btn" id="rankBtn" type="button">등급 안내</button><button class="btn" id="photoBtn" type="button" title="UI 없이 기념사진 저장">📷 사진</button><button class="btn" id="radioBtn">📻 무전기</button>
+    <button class="btn" id="specialTitlesBtn" type="button">✦ 특별 칭호</button>
     <button class="btn" id="bagBtn">가방 · 도감</button>
     <button class="btn" id="hudSaveBtn" title="지금 기록을 파일로 저장">기록 저장</button>
   </div>
@@ -157,6 +159,32 @@
   <div class="mwrap"><canvas id="mapC" width="680" height="680"></canvas>
   </div>
 </div></div>
+<div id="secretCaveActions" class="hide" role="group" aria-label="비밀 동굴 행동">
+  <button id="secretCaveEnterBtn" class="btn hide" type="button">동굴로 들어가기</button>
+  <button id="secretCaveLeaveBtn" class="btn hide" type="button">동굴 밖으로 나가기</button>
+  <button id="secretOfferOpenBtn" class="btn hide" type="button">🙏 공양하기</button>
+</div>
+<div id="secretOfferingPanel" class="hide" role="dialog" aria-modal="true" aria-labelledby="secretOfferingTitle">
+  <div class="secret-sheet">
+    <h3 id="secretOfferingTitle">불상에 공양하기</h3>
+    <p>가방에 보유한 5성 채집물을 바칠 수 있습니다. 황금 5성은 특별 칭호를 남깁니다.</p>
+    <div id="secretOfferingItems" class="secret-offer-items"></div>
+    <p id="secretOfferingConfirmText">공양할 재료를 선택해 주세요.</p>
+    <div class="secret-buttons">
+      <button class="btn" id="secretOfferingConfirm" type="button" disabled>선택한 재료 공양</button>
+      <button class="btn" id="secretOfferingCancel" type="button">취소</button>
+    </div>
+  </div>
+</div>
+<div id="secretTitlePanel" class="hide" role="dialog" aria-modal="true" aria-labelledby="secretTitleHeading">
+  <div class="secret-sheet">
+    <h3 id="secretTitleHeading">✦ 공양으로 얻은 특별 칭호</h3>
+    <p>기존 레벨 칭호와 별개로 누적되며, 하나를 장착할 수 있습니다.</p>
+    <div id="secretTitleList" class="secret-title-list"></div>
+    <div class="secret-buttons"><button class="btn" id="secretTitleClose" type="button">닫기</button></div>
+  </div>
+</div>
+<div id="secretAchievement" class="hide" role="status" aria-live="polite"></div>
 <div id="fade"></div>
 <script src="./dist/game.bundle.js"></script>
 </body>

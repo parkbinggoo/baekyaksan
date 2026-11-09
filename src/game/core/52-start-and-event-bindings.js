@@ -56,7 +56,7 @@ function takeMemorialPhoto(){
     const ctx=photo.getContext('2d');if(!ctx)throw new Error('캔버스 만들기 실패');
     const sky=skyAtHour(gameMin/60),gradient=ctx.createLinearGradient(0,0,0,photo.height);
     gradient.addColorStop(0,inTent?sky.top:_skyFogTop.getStyle());gradient.addColorStop(1,inTent?sky.bot:_skyFogBottom.getStyle());
-    ctx.fillStyle=inTent?'#050505':gradient;ctx.fillRect(0,0,photo.width,photo.height);
+    ctx.fillStyle=inTent||inSecretCave?'#090a08':gradient;ctx.fillRect(0,0,photo.width,photo.height);
     ctx.drawImage(source,0,0,photo.width,photo.height);
     const image=photo.toDataURL('image/png'),a=document.createElement('a');
     const now=new Date(),day=now.toISOString().slice(0,10);
@@ -97,6 +97,7 @@ function beginGame(){
   setTimeout(()=>{
     if(mode!=='game')return;
     try{ensureTents()}catch(e){console.warn('텐트 생성 오류',e)}
+    try{ensureSecretCave()}catch(e){console.warn('동굴 생성 오류',e)}
     try{ensureSummit()}catch(e){console.warn('정상 조형물 생성 오류',e)}
     try{updateTents()}catch(e){console.warn('텐트 표시 오류',e)}
   },450);
@@ -120,7 +121,7 @@ function frame(now){requestAnimationFrame(frame);
   }}
 addEventListener('resize',onResize);addEventListener('resize',()=>{if(inTent)syncTentChestButton()});applyPerf();requestAnimationFrame(frame);
 $('ecoBtn').onclick=()=>{PERF.eco=!PERF.eco;applyPerf();chunkKey='';toast(PERF.eco?'절전 모드: 화질과 시야를 줄여 가볍게 돌립니다':'절전 모드 해제')};
-function jump(){if(mode==='game'&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
+function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(!AMB)return;if(document.hidden)AMB.a.suspend();else AMB.a.resume()});

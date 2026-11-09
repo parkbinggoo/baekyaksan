@@ -11,6 +11,7 @@ let joyT=0;
 const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
+  if(inSecretCave)return;
   if(Date.now()<faintUntil||cooking||climbing||me.mode==='joy'||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;
@@ -90,11 +91,16 @@ function showInfoCard(kind,type,fromBag){
   foundTimer=fromBag?0:(info.rar>=4?3.8:2.6);
 }
 function collect(kind,type,pos,it){
+  const originalType=type;
+  const golden=!!(it?.golden)||(GOLD_FIVE_BASES.includes(type)&&!it&&goldenSpawn('ground:'+Math.floor(pos.x*3)+','+Math.floor(pos.z*3),0));
+  if(golden)type=goldenKey(type);
   const info=itemInfo(type);
   if(it&&takenUntil(it.id))return;
   if(totalCount()>=bagLimit()){ floatMsg(pos,'가방이 가득 찼다'); toast(`등산가방은 현재 ${bagLimit()}개까지 담을 수 있습니다. 텐트에서 판매하거나 가방을 확장하세요.`); tone(220,.24,'triangle',.055,.85); return; }
-  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,type);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[type];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
-  save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[type]=1; recordHerbHarvest(type,info,(kind==='herb'||kind==='honey')&&!!it);persist();
+  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[type];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
+  save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
+  if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
+  recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
   me.mode='joy';me.t=0;joyT=2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));
   chime(info.rar);setGreens(me,totalCount());

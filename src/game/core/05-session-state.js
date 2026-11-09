@@ -2,13 +2,13 @@
 const SAVE3='baekyaksan3d-v1'; // Old single-browser record; kept for one-time migration.
 const TWIG_KEY='fallenTwig',MEAL_SPEED_MULT=1.32,MEAL_JUMP_MULT=1.175;
 const PROFILE_STORE_PREFIX='baekyaksan-profile-v2:', PROFILE_APP='baekyaksan3d', PROFILE_FORMAT=2;
-let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{}};
+let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''}};
 try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.inv)save=Object.assign(save,s)}catch(e){}
 const legacySave=JSON.parse(JSON.stringify(save));
 let activeProfileKey='',activeCredential=null;
 function profileProgress(){
-  const pos=(typeof P!=='undefined'&&mode==='game')?{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}:save.pos;
-  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0};
+  const pos=(typeof P!=='undefined'&&mode==='game')?(inSecretCave&&caveReturnPos?{x:caveReturnPos.x,z:caveReturnPos.z}:{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}):save.pos;
+  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''}};
 }
 function profileDocument(cred,progress){return {app:PROFILE_APP,format:PROFILE_FORMAT,profile:{name:cred.nick,verifier:cred.verifier},progress,updatedAt:Date.now()}}
 function persist(){

@@ -7,8 +7,8 @@ const root=resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest=JSON.parse(await readFile(join(root,'src/game/manifest.json'),'utf8'));
 let prevEnd=0;
 for (const [index,part] of manifest.files.entries()){
-  if(prevEnd && part.originalLines[0]!==prevEnd+1) throw new Error(`원본 줄 범위 불연속: ${part.file}`);
-  prevEnd=part.originalLines[1];
+  if(part.originalLines && prevEnd && part.originalLines[0]!==prevEnd+1) throw new Error(`원본 줄 범위 불연속: ${part.file}`);
+  if(part.originalLines)prevEnd=part.originalLines[1];
   const code=await readFile(join(root,'src/game',part.file),'utf8');
   try {
     const piece = index === 0 ? code + '\n})();' : (index === manifest.files.length-1 ? '(()=>{\n' + code : code);

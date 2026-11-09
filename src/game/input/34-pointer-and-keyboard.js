@@ -13,7 +13,7 @@ canvas.addEventListener('pointermove',e=>{if(!ptr||ptr.id!==e.pointerId)return;c
   if(ptr.drag){camYaw-=dx*.006;camPitch=clamp(camPitch+dy*.004,.05,1.1);lastDrag=clock}ptr.x=e.clientX;ptr.y=e.clientY});
 canvas.addEventListener('pointerup',e=>{if(!ptr||ptr.id!==e.pointerId)return;const wasDrag=ptr.drag;ptr=null;if(wasDrag||mode!=='game')return;clickAt(e.clientX,e.clientY)});
 canvas.addEventListener('wheel',e=>{camDist=clamp(camDist+e.deltaY*.005,4,15);e.preventDefault()},{passive:false});
-function clickAt(sx,sy){if(Date.now()<faintUntil||inTent||cooking)return;
+function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)return;
   ndc.set(sx/W*2-1,-(sy/Hh)*2+1);ray.setFromCamera(ndc,camera);
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}

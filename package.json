@@ -1,12 +1,13 @@
 {
   "name": "baekyaksan-modular",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/build.mjs && node scripts/check.mjs",
-    "dev": "node scripts/build.mjs && node scripts/dev.mjs"
+    "dev": "node scripts/build.mjs && node scripts/dev.mjs",
+    "test": "node scripts/test-features.mjs"
   },
   "description": "백약산 3D 프로젝트: 기능별 JS 소스 + CSS + 원본 HTML 구조"
 }
