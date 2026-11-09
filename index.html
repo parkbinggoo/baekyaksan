@@ -19,6 +19,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <link rel="stylesheet" href="./styles/10-secret-cave-and-titles.css">
+<link rel="stylesheet" href="./styles/11-five-star-sense.css">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -75,7 +76,17 @@
 </div>
 
 <div id="boarWarning" class="hide" role="status" aria-live="polite"><strong>⚠ 야생동물 주의</strong>어디선가 고약한 냄새가 난다…<br>멧돼지가 가까이 있을지도 모른다!</div>
-<div id="rareSense" class="hide" role="status" aria-live="polite"><strong>🌿 약초꾼의 눈썰미</strong>산을 읽는 눈이 속삭인다…<br>이 근처에 예사롭지 않은 산의 보물이 숨어 있다.</div>
+<div id="rareSense" class="hide" role="status" aria-live="polite">
+  <strong>🌿 약초꾼의 눈썰미</strong>
+  <div id="rareSense20" class="rare-sense-tier hide">
+    <span class="rare-sense-range">20m 탐지</span>
+    <span>산을 읽는 눈이 속삭인다…<br>이 근처에 예사롭지 않은 산의 보물이 숨어 있다.</span>
+  </div>
+  <div id="rareSense10" class="rare-sense-tier hide">
+    <span class="rare-sense-range">10m 탐지</span>
+    <span>한층 가까이에서 귀한 산의 기운이 느껴진다.</span>
+  </div>
+</div>
 <div id="toast"></div>
 <div id="campPanel" class="hide" role="dialog" aria-label="캠프파이어 요리">
   <h3>🔥 산속의 화덕</h3><div id="campDetail"></div>

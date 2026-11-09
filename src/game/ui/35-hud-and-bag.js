@@ -21,9 +21,10 @@ function buildBag(){
   const goldFound=GOLD_FIVE_BASES.filter(k=>save.goldKnown?.[k]);
   const goldHead=document.createElement('h4');goldHead.textContent='✦ 황금 5성 · '+goldFound.length+'/'+GOLD_FIVE_BASES.length+'종 발견 · 판매 불가';host.appendChild(goldHead);
   const goldGrid=document.createElement('div');goldGrid.className='grid';host.appendChild(goldGrid);
-  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),known=!!save.goldKnown?.[base],have=save.inv[key]||0;
+  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),have=save.inv[key]||0,known=!!save.goldKnown?.[base]||have>0;
     const c=document.createElement('div');c.className='card golden-card'+(known?'':' unk');
-    const img=document.createElement('img');img.src=iconURL(itemKindOf(key),key);img.alt='';c.appendChild(img);
+    // 미발견: 일반 도감과 동일한 원본 식물·버섯 아이콘의 회색 실루엣. 발견 후에만 황금 모델 표시.
+    const img=document.createElement('img');img.src=iconURL(itemKindOf(base),known?key:base);img.alt=known?'황금 '+itemInfo(base).name+' 3D 도감 이미지':'';c.appendChild(img);
     const name=document.createElement('div');name.className='n';name.textContent=known?'황금 '+itemInfo(base).name:'???';
     const meta=document.createElement('div');meta.className='c';meta.textContent=known?have+'개 보유 · 공양 전용':'★★★★★ · 미발견';
     c.append(name,meta);if(known){c.classList.add('click');c.onclick=()=>showInfoCard(itemKindOf(key),key,true)}goldGrid.appendChild(c);

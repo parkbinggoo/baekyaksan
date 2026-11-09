@@ -239,6 +239,14 @@
       "purpose": "희귀 채집물 위치 이동·재생성"
     },
     {
+      "file": "world/28a-five-star-population.js",
+      "purpose": "산삼·천마 희귀 5성 개체수 제한, 지형별 분산 배치 및 재생성"
+    },
+    {
+      "file": "world/28b-ecology-populations.js",
+      "purpose": "실제 적합 지형에서 희귀종 개체수 분산 제한, 도감 미출현 7종 복구, 황금 개체 보호"
+    },
+    {
       "file": "world/29-chunks-and-ground.js",
       "originalLines": [
         2703,
@@ -285,6 +293,10 @@
         3308
       ],
       "purpose": "마우스·터치·키보드 조작"
+    },
+    {
+      "file": "input/34a-forage-hit-assist.js",
+      "purpose": "작은 약초·버섯·채집물의 화면 터치 오차범위 보정 (모델/난이도 불변)"
     },
     {
       "file": "ui/35-hud-and-bag.js",
@@ -388,7 +400,11 @@
         4184,
         4319
       ],
-      "purpose": "동물 움직임·위협·기절·희귀 감지"
+      "purpose": "동물 움직임·위협·기절·멧돼지 경고"
+    },
+    {
+      "file": "gameplay/47b-five-star-sense.js",
+      "purpose": "레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림"
     },
     {
       "file": "world/48-wildlife-update.js",

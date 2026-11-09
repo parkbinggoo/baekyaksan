@@ -10,7 +10,7 @@ function placeFlora(c,r,ox,oz,grp){
     // An unavailable slot still counts: harvesting must not change the
     // seeded number/species of future plants in this or neighboring chunks.
     if(Math.abs(x-pathX(z))<19)c.trailSeedCount=(c.trailSeedCount||0)+1;
-    if(takenUntil(id))continue;
+    if(isTargetedFiveStar(sp.id)||takenUntil(id))continue;
     const m=makePlantMesh(sp,v);m.position.set(x,H(x,z)-.02,z);m.rotation.y=rotation;
     const it={kind:'herb',type:sp.id,id,hits:0,need:sp.need,mesh:m};m.userData.item=it;grp.add(m);c.items.push(it);
   }
@@ -37,7 +37,7 @@ function ensureTrailFlora(c,r,ox,oz,grp){
     for(const entry of options){roll-=entry[1];if(roll<=0){sp=entry[0];break}}
     const id=`${c.key}:trail${n}`,variant=Math.floor(r()*3),rotation=r()*Math.PI*2;
     added++; // reserve this slot even while its harvested item is absent
-    if(takenUntil(id))continue;
+    if(isTargetedFiveStar(sp.id)||takenUntil(id))continue;
     const m=makePlantMesh(sp,variant);m.position.set(x,H(x,z)-.02,z);m.rotation.y=rotation;
     const item={kind:'herb',type:sp.id,id,hits:0,need:sp.need,mesh:m};
     m.userData.item=item;grp.add(m);c.items.push(item);

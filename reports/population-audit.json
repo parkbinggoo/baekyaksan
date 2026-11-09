@@ -1,0 +1,746 @@
+{
+  "version": "1.2.5",
+  "mode": "initial_seeded_chunk_simulation",
+  "scannedChunks": 546,
+  "registeredSpecies": 92,
+  "zeroSpecies": 0,
+  "errors": [],
+  "records": [
+    {
+      "key": "sansam",
+      "name": "산삼",
+      "rar": 5,
+      "quantity": 3,
+      "reachable": 3,
+      "golden": 1
+    },
+    {
+      "key": "doraji",
+      "name": "도라지",
+      "rar": 1,
+      "quantity": 20,
+      "reachable": 19,
+      "golden": 0
+    },
+    {
+      "key": "deodeok",
+      "name": "더덕",
+      "rar": 2,
+      "quantity": 31,
+      "reachable": 31,
+      "golden": 0
+    },
+    {
+      "key": "dunggule",
+      "name": "둥굴레",
+      "rar": 1,
+      "quantity": 58,
+      "reachable": 55,
+      "golden": 0
+    },
+    {
+      "key": "cheonma",
+      "name": "천마",
+      "rar": 5,
+      "quantity": 5,
+      "reachable": 5,
+      "golden": 1
+    },
+    {
+      "key": "keunjorong",
+      "name": "백하수오(큰조롱)",
+      "rar": 4,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "chik",
+      "name": "칡",
+      "rar": 1,
+      "quantity": 26,
+      "reachable": 26,
+      "golden": 0
+    },
+    {
+      "key": "ma",
+      "name": "마",
+      "rar": 3,
+      "quantity": 9,
+      "reachable": 9,
+      "golden": 0
+    },
+    {
+      "key": "jandae",
+      "name": "잔대",
+      "rar": 2,
+      "quantity": 12,
+      "reachable": 12,
+      "golden": 0
+    },
+    {
+      "key": "danggwi",
+      "name": "참당귀",
+      "rar": 3,
+      "quantity": 10,
+      "reachable": 10,
+      "golden": 0
+    },
+    {
+      "key": "siho",
+      "name": "시호",
+      "rar": 4,
+      "quantity": 2,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "sapju",
+      "name": "삽주(백출)",
+      "rar": 3,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "jichi",
+      "name": "지치",
+      "rar": 4,
+      "quantity": 3,
+      "reachable": 3,
+      "golden": 0
+    },
+    {
+      "key": "dokhwal",
+      "name": "독활(땅두릅)",
+      "rar": 3,
+      "quantity": 32,
+      "reachable": 32,
+      "golden": 0
+    },
+    {
+      "key": "useul",
+      "name": "쇠무릎(우슬)",
+      "rar": 1,
+      "quantity": 47,
+      "reachable": 46,
+      "golden": 0
+    },
+    {
+      "key": "maekmun",
+      "name": "맥문동",
+      "rar": 2,
+      "quantity": 40,
+      "reachable": 39,
+      "golden": 0
+    },
+    {
+      "key": "dallae",
+      "name": "달래",
+      "rar": 1,
+      "quantity": 15,
+      "reachable": 15,
+      "golden": 0
+    },
+    {
+      "key": "naengi",
+      "name": "냉이",
+      "rar": 1,
+      "quantity": 19,
+      "reachable": 18,
+      "golden": 0
+    },
+    {
+      "key": "godeul",
+      "name": "고들빼기",
+      "rar": 2,
+      "quantity": 12,
+      "reachable": 12,
+      "golden": 0
+    },
+    {
+      "key": "sanmaneul",
+      "name": "산마늘(명이)",
+      "rar": 4,
+      "quantity": 14,
+      "reachable": 14,
+      "golden": 0
+    },
+    {
+      "key": "gosari",
+      "name": "고사리",
+      "rar": 1,
+      "quantity": 29,
+      "reachable": 29,
+      "golden": 0
+    },
+    {
+      "key": "gobi",
+      "name": "고비",
+      "rar": 2,
+      "quantity": 55,
+      "reachable": 55,
+      "golden": 0
+    },
+    {
+      "key": "chamchwi",
+      "name": "참취",
+      "rar": 1,
+      "quantity": 93,
+      "reachable": 93,
+      "golden": 0
+    },
+    {
+      "key": "gomchwi",
+      "name": "곰취",
+      "rar": 3,
+      "quantity": 55,
+      "reachable": 55,
+      "golden": 0
+    },
+    {
+      "key": "gondre",
+      "name": "곤드레",
+      "rar": 2,
+      "quantity": 7,
+      "reachable": 6,
+      "golden": 0
+    },
+    {
+      "key": "dureup",
+      "name": "두릅",
+      "rar": 2,
+      "quantity": 9,
+      "reachable": 8,
+      "golden": 0
+    },
+    {
+      "key": "eumnamu",
+      "name": "음나무순(개두릅)",
+      "rar": 4,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "ogapi",
+      "name": "오가피순",
+      "rar": 3,
+      "quantity": 21,
+      "reachable": 21,
+      "golden": 0
+    },
+    {
+      "key": "darae",
+      "name": "다래순",
+      "rar": 2,
+      "quantity": 35,
+      "reachable": 35,
+      "golden": 0
+    },
+    {
+      "key": "wonchuri",
+      "name": "원추리",
+      "rar": 2,
+      "quantity": 25,
+      "reachable": 25,
+      "golden": 0
+    },
+    {
+      "key": "meowi",
+      "name": "머위",
+      "rar": 2,
+      "quantity": 9,
+      "reachable": 9,
+      "golden": 0
+    },
+    {
+      "key": "minari",
+      "name": "돌미나리",
+      "rar": 1,
+      "quantity": 12,
+      "reachable": 11,
+      "golden": 0
+    },
+    {
+      "key": "ssuk",
+      "name": "쑥",
+      "rar": 1,
+      "quantity": 35,
+      "reachable": 35,
+      "golden": 0
+    },
+    {
+      "key": "sanbuchu",
+      "name": "산부추",
+      "rar": 3,
+      "quantity": 5,
+      "reachable": 5,
+      "golden": 0
+    },
+    {
+      "key": "bibichu",
+      "name": "비비추",
+      "rar": 2,
+      "quantity": 80,
+      "reachable": 79,
+      "golden": 0
+    },
+    {
+      "key": "usan",
+      "name": "우산나물",
+      "rar": 2,
+      "quantity": 44,
+      "reachable": 44,
+      "golden": 0
+    },
+    {
+      "key": "chamnamul",
+      "name": "참나물",
+      "rar": 2,
+      "quantity": 32,
+      "reachable": 32,
+      "golden": 0
+    },
+    {
+      "key": "danpung",
+      "name": "단풍취",
+      "rar": 3,
+      "quantity": 29,
+      "reachable": 29,
+      "golden": 0
+    },
+    {
+      "key": "nungae",
+      "name": "눈개승마(삼나물)",
+      "rar": 4,
+      "quantity": 16,
+      "reachable": 16,
+      "golden": 0
+    },
+    {
+      "key": "eosuri",
+      "name": "어수리",
+      "rar": 4,
+      "quantity": 10,
+      "reachable": 10,
+      "golden": 0
+    },
+    {
+      "key": "surichwi",
+      "name": "수리취",
+      "rar": 3,
+      "quantity": 2,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "eolleji",
+      "name": "얼레지",
+      "rar": 3,
+      "quantity": 2,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "bakjwi",
+      "name": "박쥐나물",
+      "rar": 4,
+      "quantity": 16,
+      "reachable": 16,
+      "golden": 0
+    },
+    {
+      "key": "samji",
+      "name": "삼지구엽초",
+      "rar": 4,
+      "quantity": 2,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "ikmo",
+      "name": "익모초",
+      "rar": 2,
+      "quantity": 3,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "ijil",
+      "name": "이질풀",
+      "rar": 2,
+      "quantity": 8,
+      "reachable": 7,
+      "golden": 0
+    },
+    {
+      "key": "jipsin",
+      "name": "짚신나물",
+      "rar": 2,
+      "quantity": 50,
+      "reachable": 48,
+      "golden": 0
+    },
+    {
+      "key": "gujeol",
+      "name": "구절초",
+      "rar": 2,
+      "quantity": 5,
+      "reachable": 5,
+      "golden": 0
+    },
+    {
+      "key": "omija",
+      "name": "오미자",
+      "rar": 3,
+      "quantity": 11,
+      "reachable": 11,
+      "golden": 0
+    },
+    {
+      "key": "buchoson",
+      "name": "부처손",
+      "rar": 3,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "kkulpul",
+      "name": "꿀풀",
+      "rar": 2,
+      "quantity": 11,
+      "reachable": 11,
+      "golden": 0
+    },
+    {
+      "key": "oipul",
+      "name": "오이풀",
+      "rar": 2,
+      "quantity": 12,
+      "reachable": 12,
+      "golden": 0
+    },
+    {
+      "key": "eonggeong",
+      "name": "엉겅퀴",
+      "rar": 3,
+      "quantity": 2,
+      "reachable": 2,
+      "golden": 0
+    },
+    {
+      "key": "miyeokchwi",
+      "name": "미역취",
+      "rar": 2,
+      "quantity": 11,
+      "reachable": 11,
+      "golden": 0
+    },
+    {
+      "key": "baechohyang",
+      "name": "배초향",
+      "rar": 3,
+      "quantity": 5,
+      "reachable": 5,
+      "golden": 0
+    },
+    {
+      "key": "sanbakha",
+      "name": "산박하",
+      "rar": 2,
+      "quantity": 39,
+      "reachable": 39,
+      "golden": 0
+    },
+    {
+      "key": "kkothyangyu",
+      "name": "꽃향유",
+      "rar": 3,
+      "quantity": 14,
+      "reachable": 14,
+      "golden": 0
+    },
+    {
+      "key": "soetteugi",
+      "name": "쇠뜨기",
+      "rar": 2,
+      "quantity": 42,
+      "reachable": 41,
+      "golden": 0
+    },
+    {
+      "key": "seokchangpo",
+      "name": "석창포",
+      "rar": 4,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "doldanpung",
+      "name": "돌단풍",
+      "rar": 4,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "bawichwi",
+      "name": "바위취",
+      "rar": 4,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "gorancho",
+      "name": "고란초",
+      "rar": 4,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "bawichaesong",
+      "name": "바위채송화",
+      "rar": 3,
+      "quantity": 3,
+      "reachable": 3,
+      "golden": 0
+    },
+    {
+      "key": "aegigirin",
+      "name": "애기기린초",
+      "rar": 4,
+      "quantity": 3,
+      "reachable": 3,
+      "golden": 0
+    },
+    {
+      "key": "gureumgukhwa",
+      "name": "구름국화",
+      "rar": 4,
+      "quantity": 40,
+      "reachable": 38,
+      "golden": 0
+    },
+    {
+      "key": "dolyangji",
+      "name": "돌양지꽃",
+      "rar": 4,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "bawitteokpul",
+      "name": "바위떡풀",
+      "rar": 4,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "siromi",
+      "name": "시로미",
+      "rar": 4,
+      "quantity": 20,
+      "reachable": 20,
+      "golden": 0
+    },
+    {
+      "key": "gyeousari",
+      "name": "겨우살이",
+      "rar": 4,
+      "quantity": 30,
+      "reachable": 11,
+      "golden": 0
+    },
+    {
+      "key": "gyeousolip",
+      "name": "겨울 솔잎",
+      "rar": 3,
+      "quantity": 567,
+      "reachable": 196,
+      "golden": 0
+    },
+    {
+      "key": "gobawiikke",
+      "name": "고산 바위지의류",
+      "rar": 4,
+      "quantity": 1,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "pyogo",
+      "name": "표고버섯",
+      "rar": 2,
+      "quantity": 553,
+      "reachable": 218,
+      "golden": 0
+    },
+    {
+      "key": "neutari",
+      "name": "느타리버섯",
+      "rar": 1,
+      "quantity": 544,
+      "reachable": 231,
+      "golden": 0
+    },
+    {
+      "key": "mogi",
+      "name": "목이버섯",
+      "rar": 1,
+      "quantity": 508,
+      "reachable": 196,
+      "golden": 0
+    },
+    {
+      "key": "yeongji",
+      "name": "영지버섯",
+      "rar": 4,
+      "quantity": 22,
+      "reachable": 22,
+      "golden": 0
+    },
+    {
+      "key": "sanghwang",
+      "name": "상황버섯",
+      "rar": 5,
+      "quantity": 8,
+      "reachable": 8,
+      "golden": 1
+    },
+    {
+      "key": "songi",
+      "name": "송이",
+      "rar": 5,
+      "quantity": 12,
+      "reachable": 12,
+      "golden": 1
+    },
+    {
+      "key": "neungi",
+      "name": "능이",
+      "rar": 5,
+      "quantity": 7,
+      "reachable": 7,
+      "golden": 1
+    },
+    {
+      "key": "norugung",
+      "name": "노루궁뎅이버섯",
+      "rar": 4,
+      "quantity": 15,
+      "reachable": 10,
+      "golden": 0
+    },
+    {
+      "key": "kkotsongi",
+      "name": "꽃송이버섯",
+      "rar": 5,
+      "quantity": 8,
+      "reachable": 8,
+      "golden": 1
+    },
+    {
+      "key": "seogi",
+      "name": "석이버섯",
+      "rar": 5,
+      "quantity": 6,
+      "reachable": 6,
+      "golden": 1
+    },
+    {
+      "key": "ipsae",
+      "name": "잎새버섯",
+      "rar": 4,
+      "quantity": 4,
+      "reachable": 1,
+      "golden": 0
+    },
+    {
+      "key": "acorn",
+      "name": "도토리",
+      "rar": 1,
+      "quantity": 204,
+      "reachable": 132,
+      "golden": 0
+    },
+    {
+      "key": "chestnut",
+      "name": "밤",
+      "rar": 2,
+      "quantity": 84,
+      "reachable": 61,
+      "golden": 0
+    },
+    {
+      "key": "pinecone",
+      "name": "솔방울",
+      "rar": 1,
+      "quantity": 1898,
+      "reachable": 1109,
+      "golden": 0
+    },
+    {
+      "key": "wildberry",
+      "name": "산딸기",
+      "rar": 2,
+      "quantity": 87,
+      "reachable": 84,
+      "golden": 0
+    },
+    {
+      "key": "ginkgo",
+      "name": "은행 열매",
+      "rar": 2,
+      "quantity": 4,
+      "reachable": 4,
+      "golden": 0
+    },
+    {
+      "key": "jat",
+      "name": "잣",
+      "rar": 3,
+      "quantity": 130,
+      "reachable": 71,
+      "golden": 0
+    },
+    {
+      "key": "mixedHoney",
+      "name": "잡화꿀",
+      "rar": 2,
+      "quantity": 25,
+      "reachable": 25,
+      "golden": 0
+    },
+    {
+      "key": "acaciaHoney",
+      "name": "아카시아꿀",
+      "rar": 3,
+      "quantity": 9,
+      "reachable": 9,
+      "golden": 0
+    },
+    {
+      "key": "chestnutHoney",
+      "name": "밤꿀",
+      "rar": 4,
+      "quantity": 12,
+      "reachable": 12,
+      "golden": 0
+    },
+    {
+      "key": "nativeHoney",
+      "name": "토종벌꿀",
+      "rar": 5,
+      "quantity": 5,
+      "reachable": 5,
+      "golden": 0
+    }
+  ]
+}

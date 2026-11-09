@@ -131,10 +131,22 @@ function recordHerbHarvest(type,info,wasCarefulDig){
  if(type==='sansam')st.sansamCollected=(st.sansamCollected||0)+1;
  const next=earnedRank();if(next>playerRank){playerRank=next;save.highestRank=playerRank;toast('🌿 승급! '+rankLabel());tone(659,.3,'sine',.065);sendPresence(true)}
 }
+// These are skill effects, not additional advancement requirements.
+const FIVE_STAR_SENSE_RANK_TEXT={
+  6:'5성 채집물 20m 탐지 · 일시적 알림',
+  7:'5성 채집물 20m 탐지 · 알림 유지',
+  8:'5성 채집물 20m 탐지 유지 · 10m 일시적 알림',
+  9:'5성 채집물 20m 탐지 유지 · 10m 알림 유지'
+};
+function fiveStarSenseRankText(level){
+ return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
+}
 function renderRankGuide(){
  const progress=$('rankProgress'),guide=$('rankGuide');progress.replaceChildren();guide.replaceChildren();
  const current=document.createElement('strong');current.textContent=rankLabel();progress.appendChild(current);
  const desc=document.createElement('div');desc.textContent='도감 '+discoveredCount()+'종 · 누적 채집 '+(rankStats().totalCollected||0)+'개';progress.appendChild(desc);
+ const currentSense=fiveStarSenseRankText(playerRank);
+ if(currentSense){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+currentSense;progress.appendChild(sense)}
  if(playerRank>=RANKS.length){const done=document.createElement('div');done.textContent='백약산 최고 등급에 도달했습니다!';progress.appendChild(done)}
  else{const next=document.createElement('div');next.style.marginTop='5px';next.textContent='다음 목표: Lv.'+(playerRank+1)+' '+RANKS[playerRank].name;progress.appendChild(next);
   for(const g of rankGoals(playerRank+1)){const line=document.createElement('div');line.className='rankGoal '+(g.now>=g.required?'done':'pending');line.textContent=(g.now>=g.required?'✓ ':'○ ')+g.label+' '+g.now+'/'+g.required+g.unit;progress.appendChild(line)}
@@ -151,7 +163,9 @@ function renderRankGuide(){
  for(let l=1;l<=RANKS.length;l++){
   const section=document.createElement('div');section.className='rankTier'+(l===playerRank?' current':'');
   const label=document.createElement('strong');label.textContent='Lv.'+l+' · '+RANKS[l-1].name;section.appendChild(label);
-  const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);guide.appendChild(section);
+  const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);
+  if(l>=6&&l<=9){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+fiveStarSenseRankText(l);section.appendChild(sense)}
+  guide.appendChild(section);
  }
 }
 function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
@@ -1557,10 +1571,20 @@ const starOf=ab=>ab>=6?1:ab>=2.5?2:ab>=1?3:ab>=.3?4:5;
 for(const s of SPECIES){HERBS[s.id]={name:s.n,w:s.ab,need:s.need,rar:starOf(s.ab),root:!!s.root,under:!!s.root&&s.cat==='root',desc:s.d,part:s.part,hab:s.hab,cat:s.cat,sp:s};HERB_KEYS.push(s.id)}
 const SPI={};SPECIES.forEach(s=>SPI[s.id]=s);
 /* ================= GOLDEN FIVE-STAR VARIANTS ================= */
-// Same species and resource slot as the ordinary 5-star item, with a rare
-// deterministic gilded appearance. No golden variant is ever sellable.
+// A single deterministic, reachable slot per currently supported five-star
+// species. Never add an extra resource: gild the chosen ordinary slot only.
+// Harvested golden slots follow the existing five-star respawn/relocation cycle.
 const GOLD_PREFIX='gold:';
-const GOLDEN_ODDS=0.0025; // 0.25% of existing 5-star spawn cycles.
+const GOLDEN_SINGLETON_SLOTS=Object.freeze({
+  sanghwang:"0,-34:m41",
+  songi:"-2,-39:xm31",
+  neungi:"0,-8:xm17",
+  kkotsongi:"-1,-53:xm21",
+  seogi:"-1,-29:rock1",
+  sansam:"0,-25:fiveStar-sansam-0",
+  cheonma:"-2,-16:fiveStar-cheonma-0"
+});
+const GOLDEN_SINGLETON_IDS=new Set(Object.values(GOLDEN_SINGLETON_SLOTS));
 const GOLD_TITLES={sansam:'천년약사',songi:'금송선인',sanghwang:'금광도인',
   neungi:'영산도인',kkotsongi:'화령선인',seogi:'석벽도인'};
 const GOLD_FIVE_BASES=[...HERB_KEYS,...MUSH_KEYS].filter(k=>itemInfo(k)?.rar===5);
@@ -1571,9 +1595,9 @@ function goldTitle(key){const base=goldBase(key);return GOLD_TITLES[base]||('황
 const VALID_SPECIAL_TITLES=new Set(GOLD_FIVE_BASES.map(goldTitle));
 function validSpecialTitle(name){return typeof name==='string'&&VALID_SPECIAL_TITLES.has(name)?name:''}
 function goldenSpawn(slotId,cycle=0){
-  let h=2166136261;const token='bygs-gold-5|'+slotId+'|'+cycle;
-  for(let i=0;i<token.length;i++)h=Math.imul(h^token.charCodeAt(i),16777619);
-  h^=h>>>16;return (h>>>0)/4294967296<GOLDEN_ODDS;
+  // One reserved slot for each species; do not roll new gold on every cycle
+  // or from random ground digging, which could exceed the one-per-species cap.
+  return GOLDEN_SINGLETON_IDS.has(slotId);
 }
 // Recolour the original meshes without replacing their geometry or changing
 // the silhouette. Source materials are cloned to avoid tinting ordinary plants.
@@ -1803,7 +1827,7 @@ function placeFlora(c,r,ox,oz,grp){
     // An unavailable slot still counts: harvesting must not change the
     // seeded number/species of future plants in this or neighboring chunks.
     if(Math.abs(x-pathX(z))<19)c.trailSeedCount=(c.trailSeedCount||0)+1;
-    if(takenUntil(id))continue;
+    if(isTargetedFiveStar(sp.id)||takenUntil(id))continue;
     const m=makePlantMesh(sp,v);m.position.set(x,H(x,z)-.02,z);m.rotation.y=rotation;
     const it={kind:'herb',type:sp.id,id,hits:0,need:sp.need,mesh:m};m.userData.item=it;grp.add(m);c.items.push(it);
   }
@@ -1830,7 +1854,7 @@ function ensureTrailFlora(c,r,ox,oz,grp){
     for(const entry of options){roll-=entry[1];if(roll<=0){sp=entry[0];break}}
     const id=`${c.key}:trail${n}`,variant=Math.floor(r()*3),rotation=r()*Math.PI*2;
     added++; // reserve this slot even while its harvested item is absent
-    if(takenUntil(id))continue;
+    if(isTargetedFiveStar(sp.id)||takenUntil(id))continue;
     const m=makePlantMesh(sp,variant);m.position.set(x,H(x,z)-.02,z);m.rotation.y=rotation;
     const item={kind:'herb',type:sp.id,id,hits:0,need:sp.need,mesh:m};
     m.userData.item=item;grp.add(m);c.items.push(item);
@@ -2151,7 +2175,7 @@ function placeRockPlants(c,r,grp){
    const ang=r()*Math.PI*2,rr=rock.r*(.13+r()*.25);
    const px=x+Math.cos(ang)*rr,pz=z+Math.sin(ang)*rr,py=rock.topY-.04;
    const id=`${c.key}:rock${i}`,variant=Math.floor(r()*3),rotation=r()*Math.PI*2;
-   if(takenUntil(id))continue;
+   if(takenUntil(id)||!ecologyAllowsResource(type,id))continue;
    const isMush=type==='seogi';
    const mesh=isMush?mush3D(type):makePlantMesh(spec,variant);
    mesh.position.set(px,py,pz);mesh.rotation.y=rotation;
@@ -2163,7 +2187,7 @@ function placeRockPlants(c,r,grp){
 function placeExtraMushrooms(c,r,grp,nearStart){
  const mk=(type,id,x,y,z,sc=1)=>{
    const rotation=r()*6.28;
-   if(takenUntil(id)||nearStart(x,z,4))return;
+   if(takenUntil(id)||nearStart(x,z,4)||!ecologyAllowsResource(type,id))return;
    const m=mush3D(type);m.position.set(x,y,z);m.rotation.y=rotation;m.scale.setScalar(sc);
    const it={kind:'mush',type,id,hits:0,need:MUSH[type].need,mesh:m};m.userData.item=it;grp.add(m);c.items.push(it);
  };
@@ -2316,6 +2340,132 @@ function relocateRareInChunk(c){
      if(it.tree)it.tree=null; // moved item no longer linked to its old host
    }
  }
+}
+/* ===== Fixed population quotas for the two exceptionally rare root herbs =====
+   Count is map-wide, not per loaded chunk. Original habitat, plant models and
+   twenty-minute rare-slot respawn remain unchanged. Coordinates are intentionally
+   excluded from the public UI, map and documentation. */
+const TARGETED_FIVE_STAR_LIMITS=Object.freeze({sansam:3,cheonma:5});
+const TARGETED_FIVE_STAR_SITES=Object.freeze({
+  sansam: Object.freeze([
+    Object.freeze({chunk:"0,-25",x:6.109,z:-1177.673,index:0}),
+    Object.freeze({chunk:"-1,-40",x:-12.98,z:-1916.171,index:1}),
+    Object.freeze({chunk:"-1,-46",x:-15.657,z:-2192.871,index:2}),
+  ]),
+  cheonma: Object.freeze([
+    Object.freeze({chunk:"-2,-16",x:-52.108,z:-733.835,index:0}),
+    Object.freeze({chunk:"-1,-11",x:-3.713,z:-506.37,index:1}),
+    Object.freeze({chunk:"-2,-27",x:-64.541,z:-1266.353,index:2}),
+    Object.freeze({chunk:"0,-35",x:8.011,z:-1646.007,index:3}),
+    Object.freeze({chunk:"1,-20",x:64.727,z:-948.174,index:4}),
+  ]),
+});
+function isTargetedFiveStar(type){return Object.hasOwn(TARGETED_FIVE_STAR_LIMITS,type)}
+function addTargetedFiveStarResources(c){
+  // Seeded geometry is identical for all players; species comes from the same
+  // native flora database. Never create a new plant model or change difficulty.
+  for(const type of Object.keys(TARGETED_FIVE_STAR_LIMITS)){
+    const sp=SPI[type],sites=TARGETED_FIVE_STAR_SITES[type];
+    for(const site of sites){
+      if(site.chunk!==c.key)continue;
+      const id=`${c.key}:fiveStar-${type}-${site.index}`;
+      if(takenUntil(id))continue;
+      const x=site.x,z=site.z;
+      if(!resourceSiteOK(c,x,z,{type},true)){
+        // Protect habitat constraints, do not silently place in an invalid
+        // location if a future terrain edit changes an audited spawning site.
+        console.warn('희귀 약초 서식지 재검증 필요',type,id);
+        continue;
+      }
+      const variant=rareSlotSeed(id,0)%3;
+      const mesh=makePlantMesh(sp,variant);
+      mesh.position.set(x,H(x,z)-.02,z);
+      mesh.rotation.y=(rareSlotSeed(id,17)%6283)/1000;
+      const item={kind:'herb',type,id,hits:0,need:sp.need,mesh};
+      mesh.userData.item=item;c.grp.add(mesh);c.items.push(item);
+    }
+  }
+}
+/* ==== BAEKYAKSAN v1.2.5: ecologically balanced, deterministic populations ====
+   Existing habitat generation remains the source of plant models and locations.
+   Chosen five-star slots are separated across the mountain and retain their
+   stable IDs for multiplayer, golden singletons and 20-minute regeneration.
+   None of these data are exposed in the game map or player UI. */
+const ECOLOGY_QUOTA_SLOTS=Object.freeze({
+  sanghwang:Object.freeze(["-1,-2:m0","-2,-74:m27","0,-18:m24","0,-26:m14","0,-34:m41","0,-54:m30","0,-64:m25","1,-43:m24"]),
+  songi:Object.freeze(["-1,-11:xm31","-1,-16:xm11","-1,-20:xm11","-1,-25:xm20","-2,-1:xm29","-2,-39:xm31","-2,-52:xm7","-2,-7:xm56","0,-29:xm36","1,-35:xm3","1,-47:xm16","1,-56:xm27"]),
+  neungi:Object.freeze(["-1,-14:xm18","-1,-22:xm31","-1,-36:xm44","-1,-42:xm48","-1,-53:xm6","0,-45:xm35","0,-8:xm17"]),
+  kkotsongi:Object.freeze(["-1,-42:xm52","-1,-53:xm21","-2,-14:xm34","0,-31:xm5","0,-37:xm5","0,-48:xm7","0,-9:xm3","1,-20:xm20"]),
+  seogi:Object.freeze(["-1,-29:rock1","-1,-60:rock1","-1,-73:rock0","0,-42:rock3","0,-89:rock1","1,0:rock4"]),
+  nativeHoney:Object.freeze(["-1,-12:honeyT5","-1,-42:honeyT15","0,-34:honeyR0","0,-37:honeyR0","1,-21:honeyR0"]),
+  yeongji:Object.freeze(["-1,-15:m60","-1,-30:m12","-1,-38:m4","-1,-42:m24","-1,-60:m21","-1,-65:m14","-1,-70:m17","-2,-12:m23","-2,-49:m52","-2,-4:m47","-2,-76:m22","0,-19:m24","0,-23:m39","0,-33:m21","0,-45:m60","0,-53:m53","0,-73:m29","0,-81:m15","0,-8:m56","0,0:m7","1,-56:m47","1,-68:m27"]),
+});
+const ECOLOGY_QUOTA_SETS=Object.fromEntries(Object.entries(ECOLOGY_QUOTA_SLOTS).map(([k,v])=>[k,new Set(v)]));
+function ecologyAllowsResource(type,id){const quota=ECOLOGY_QUOTA_SETS[type];return !quota||quota.has(id)}
+/* Protected real habitats: these species existed in the journal but the
+   original random draw gave them zero initial visible instances. The preselected
+   anchors are real natural rock structures or suitable open ground. They are
+   widely dispersed between habitat regions, not a new central herb cluster. */
+const ECOLOGY_RECOVERY_SITES=Object.freeze({
+  aegigirin:Object.freeze([{"chunk":"-1,-49","rockIndex":1},{"chunk":"0,-20","rockIndex":0},{"chunk":"-1,-41","rockIndex":0}]),
+  bawichaesong:Object.freeze([{"chunk":"-1,-41","rockIndex":0},{"chunk":"0,-20","rockIndex":0},{"chunk":"1,-57","rockIndex":3}]),
+  sanbuchu:Object.freeze([{"chunk":"-1,-39","x":-27.64,"z":-1835.575},{"chunk":"0,-20","rockIndex":0},{"chunk":"-1,-57","x":-15.463,"z":-2719.381},{"chunk":"-1,-49","rockIndex":1},{"chunk":"0,-23","x":34.846,"z":-1098.556}]),
+  dolyangji:Object.freeze([{"chunk":"0,-81","rockIndex":0},{"chunk":"1,-57","rockIndex":2},{"chunk":"0,-69","rockIndex":0},{"chunk":"-1,-88","rockIndex":0}]),
+  bawitteokpul:Object.freeze([{"chunk":"-1,-72","rockIndex":0},{"chunk":"-1,-53","rockIndex":6},{"chunk":"-1,-84","rockIndex":0},{"chunk":"-1,-63","rockIndex":1}]),
+  bawichwi:Object.freeze([{"chunk":"-1,-41","rockIndex":0},{"chunk":"1,-9","rockIndex":0},{"chunk":"-2,-27","rockIndex":0},{"chunk":"1,-19","rockIndex":0}]),
+  doldanpung:Object.freeze([{"chunk":"-1,-39","rockIndex":5},{"chunk":"1,-9","rockIndex":0},{"chunk":"-1,-26","rockIndex":0},{"chunk":"-1,-49","rockIndex":0}]),
+});
+function addMissingJournalSpecies(chunk){
+  for(const [type,sites] of Object.entries(ECOLOGY_RECOVERY_SITES)){
+    const sp=SPI[type];if(!sp)continue;
+    for(let si=0;si<sites.length;si++){
+      const site=sites[si];if(site.chunk!==chunk.key)continue;
+      const id=`${chunk.key}:habitat-${type}-${si}`;
+      if(takenUntil(id))continue;
+      let x,z,y,rock=null;
+      if(Number.isInteger(site.rockIndex)){
+        rock=chunk.rocks[site.rockIndex];
+        if(!rock?.mesh||!rock.climbable)continue;
+        const e=envAt(rock.x,rock.z,chunk);
+        const alt=H(rock.x,rock.z)*ALT_K,light=1-canopyAt(rock.x,rock.z);
+        if(alt<sp.alt[0]||alt>sp.alt[1])continue;
+        if(sp.L==='sun'&&light<=.33||sp.L==='shade'&&light>=.74)continue;
+        if(sp.W==='dry'?e.moist>=.62:e.moist<=.22)continue;
+        // Place on a different exposed sector of the existing real rock.
+        let best=null;
+        for(let j=0;j<8;j++){
+          const a=(j*2.39996323+rareSlotSeed(id,j)%113*.012);
+          const rad=rock.r*.22;
+          const xx=rock.x+Math.cos(a)*rad,zz=rock.z+Math.sin(a)*rad;
+          const separation=Math.min(100,...chunk.items.filter(it=>it.mesh&&it.rock===rock)
+            .map(it=>Math.hypot(it.mesh.position.x-xx,it.mesh.position.z-zz)));
+          if(!best||separation>best.separation)best={x:xx,z:zz,separation};
+        }
+        if(!best)continue;
+        x=best.x;z=best.z;y=rock.topY-.04;
+      }else{
+        x=site.x;z=site.z;
+        // Ground resources must still obey their original sun/shade, altitude,
+        // soil moisture, stream, slope, tree and obstacle habitat conditions.
+        if(!resourceSiteOK(chunk,x,z,{type},true)||fitOf(sp,envAt(x,z,chunk))<.045)continue;
+        y=H(x,z)-.02;
+      }
+      const variant=rareSlotSeed(id,0)%3;
+      const mesh=makePlantMesh(sp,variant);mesh.position.set(x,y,z);
+      mesh.rotation.y=(rareSlotSeed(id,7)%6283)/1000;
+      const item={kind:'herb',type,id,hits:0,need:sp.need,mesh};
+      if(rock)item.rock=rock;
+      mesh.userData.item=item;chunk.grp.add(mesh);chunk.items.push(item);
+    }
+  }
+}
+function enforceForestPopulationQuota(c){
+  // Guard all resource-generating routes, even if a later update adds another.
+  c.items=c.items.filter(it=>{
+    if(ecologyAllowsResource(it.type,it.id))return true;
+    if(it.mesh){c.grp.remove(it.mesh);it.mesh.userData.item=null;}
+    return false;
+  });
 }
 /* ---------- world chunks ---------- */
 const CH=48,RES=IOS_CLOUD_SAFE?24:32;let VIEW=3;
@@ -2528,7 +2678,7 @@ function buildChunk(cx,cz){
     if(t.s>.5&&r()<.24){const mt=pickW(MUSH,COMMON_MUSH_KEYS,r(),1+altHere/600);const a=r()*6.28,trunkR=(t.kind==='pine'?.20:.24)*t.s + .06,rr=trunkR+.045;
       const it={kind:'mush',type:mt,id:`${c.key}:m${i}`,hits:0,need:MUSH[mt].need,tree:t};
       const placeY=t.y+.48+r()*.52;
-      if(!takenUntil(it.id)){const m=mush3D(mt);m.position.set(x+Math.cos(a)*rr,placeY,z+Math.sin(a)*rr);m.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));m.scale.setScalar(1.6);it.mesh=m;t.mush=m;m.userData.item=it;grp.add(m);c.items.push(it)}}}
+      if(!takenUntil(it.id)&&ecologyAllowsResource(mt,it.id)){const m=mush3D(mt);m.position.set(x+Math.cos(a)*rr,placeY,z+Math.sin(a)*rr);m.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));m.scale.setScalar(1.6);it.mesh=m;t.mush=m;m.userData.item=it;grp.add(m);c.items.push(it)}}}
   const snowy=altHere>1550;
   const inst=(geo,mat,list,colFn)=>{if(!list.length)return;const im=new THREE.InstancedMesh(geo,mat,list.length);im.frustumCulled=false;const o=new THREE.Object3D();
     list.forEach((t,i)=>{o.position.set(t.x,t.y,t.z);o.rotation.set(t.lean,t.rot,0);o.scale.setScalar(t.s);o.updateMatrix();im.setMatrixAt(i,o.matrix);(t.inst||(t.inst=[])).push({im,i,m:o.matrix.clone()});if(colFn)im.setColorAt(i,colFn(t,i))});
@@ -2600,6 +2750,9 @@ function buildChunk(cx,cz){
     if(e.alt>1250||e.light<.43||e.moist<.16||e.moist>.89||e.nearTree>12||e.nearTree<1.3||e.slope>2.0||r()>.52)continue;
     putFruit('wildberry',c.key+':berry'+i,x,z,false);
   }
+  addTargetedFiveStarResources(c);
+  addMissingJournalSpecies(c);
+  enforceForestPopulationQuota(c);
   relocateRareInChunk(c);
   applyGoldenVariants(c);
   // Check all genuine collectibles after five-star relocation and before display.
@@ -2629,6 +2782,9 @@ function rescueTrailChunk(key,cx,cz){
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
+    addTargetedFiveStarResources(c);
+    addMissingJournalSpecies(c);
+    enforceForestPopulationQuota(c);
     applyGoldenVariants(c);
     repairChunkResources(c);
     scene.add(grp);chunks.set(key,c);chunkFailures.delete(key);
@@ -2873,7 +3029,7 @@ function collect(kind,type,pos,it){
   const info=itemInfo(type);
   if(it&&takenUntil(it.id))return;
   if(totalCount()>=bagLimit()){ floatMsg(pos,'가방이 가득 찼다'); toast(`등산가방은 현재 ${bagLimit()}개까지 담을 수 있습니다. 텐트에서 판매하거나 가방을 확장하세요.`); tone(220,.24,'triangle',.055,.85); return; }
-  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[type];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
+  if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[originalType];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp?.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
   save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
   if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
   recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
@@ -2912,8 +3068,13 @@ function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)
   ndc.set(sx/W*2-1,-(sy/Hh)*2+1);ray.setFromCamera(ndc,camera);
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
-  const hits=ray.intersectObjects(objs,true);if(!hits.length)return;
+  const hits=ray.intersectObjects(objs,true);
   for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire)o=o.parent;if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
+  // If the tap narrowly misses a small collectible, check its projected
+  // silhouette before treating the tap as terrain or an ordinary tree.
+  // Real ray hits on items, tents and campfires always take priority.
+  const assisted=findForageTapAssist(sx,sy,hits);
+  if(assisted){act({kind:assisted.kind,item:assisted,pos:assisted.mesh.position.clone()});hideHint();return}
   for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.trees&&!o.userData.terrain)o=o.parent;if(!o)continue;
     if(o.userData.tent){const t=o.userData.tent,pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return}
     if(o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}
@@ -2931,6 +3092,66 @@ const joy={x:0,y:0,id:null};
   const end=e=>{if(joy.id!==e.pointerId)return;joy.id=null;joy.x=joy.y=0;knob.style.transform=''};pad.addEventListener('pointerup',end);pad.addEventListener('pointercancel',end)}
 function hideHint(){}
 /* ---------- sky by altitude ---------- */
+/* ---------- Small forage selection tolerance (screen space only) ---------- */
+// The mesh size, 3D silhouette, interaction distance, collection hit count,
+// rarity, failure chances, and movement remain untouched. This is exclusively
+// a fallback when the original ray misses a small collectible by a few pixels.
+const FORAGE_TAP_PAD_MOUSE=16;
+const FORAGE_TAP_PAD_TOUCH=22;
+const FORAGE_TAP_MAX_RADIUS=48;
+const FORAGE_TAP_MAX_WORLD_DISTANCE=35;
+const FORAGE_TAP_OCCLUSION_SLACK=1.35;
+const forageTapBounds=new THREE.Box3();
+const forageTapSphere=new THREE.Sphere();
+const forageTapRoot=new THREE.Vector3();
+const forageTapProjected=new THREE.Vector3();
+const forageTapOffset=new THREE.Vector3();
+
+function forageTapPixelRadius(meshRadius,depth,focalPixels,touch){
+  // Cap the added target area even for unusually large meshes or a close camera.
+  const silhouette=Math.min(32,Math.max(0,meshRadius)*focalPixels/Math.max(.1,depth));
+  return Math.min(FORAGE_TAP_MAX_RADIUS,silhouette+(touch?FORAGE_TAP_PAD_TOUCH:FORAGE_TAP_PAD_MOUSE));
+}
+
+function findForageTapAssist(sx,sy,rayHits){
+  const coarse=typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches;
+  const firstObstacle=rayHits.length?rayHits[0].distance:Infinity;
+  const focalPixels=Hh*.5/Math.tan(camera.fov*Math.PI/360);
+  const maxDistanceSq=FORAGE_TAP_MAX_WORLD_DISTANCE**2;
+  let chosen=null,bestScore=Infinity;
+  for(const chunk of chunks.values())for(const item of chunk.items){
+    // Decoy plants and scenery are deliberately not given a larger hit area.
+    if(!item.mesh||!item.mesh.parent||!item.mesh.visible||takenUntil(item.id)||
+      !['herb','mush','honey','fruit'].includes(item.kind))continue;
+    item.mesh.getWorldPosition(forageTapRoot);
+    if(camera.position.distanceToSquared(forageTapRoot)>maxDistanceSq)continue;
+    forageTapProjected.copy(forageTapRoot).project(camera);
+    if(forageTapProjected.z<=-1||forageTapProjected.z>=1)continue;
+    const rootX=(forageTapProjected.x+1)*W*.5;
+    const rootY=(1-forageTapProjected.y)*Hh*.5;
+    // Avoid an expensive bounding-box traversal for off-target resources.
+    if(Math.abs(sx-rootX)>120||Math.abs(sy-rootY)>145)continue;
+    forageTapBounds.setFromObject(item.mesh);
+    if(forageTapBounds.isEmpty())continue;
+    forageTapBounds.getBoundingSphere(forageTapSphere);
+    const center=forageTapSphere.center;
+    const rayDepth=forageTapOffset.subVectors(center,ray.ray.origin).dot(ray.ray.direction);
+    // Do not harvest through hills, rocks, trees or other nearer geometry.
+    if(rayDepth<=0||rayDepth>firstObstacle+FORAGE_TAP_OCCLUSION_SLACK)continue;
+    forageTapProjected.copy(center).project(camera);
+    if(forageTapProjected.z<=-1||forageTapProjected.z>=1)continue;
+    const px=(forageTapProjected.x+1)*W*.5;
+    const py=(1-forageTapProjected.y)*Hh*.5;
+    const radius=forageTapPixelRadius(forageTapSphere.radius,
+      camera.position.distanceTo(center),focalPixels,coarse);
+    const distance=Math.hypot(sx-px,sy-py);
+    if(distance>radius)continue;
+    // When two plants are close together, prioritize the one tapped nearest.
+    const score=distance/radius+rayDepth*.0001;
+    if(score<bestScore){bestScore=score;chosen=item}
+  }
+  return chosen;
+}
 /* ---------- HUD ---------- */
 const MILES=['솔바람이 등을 민다','능선 너머로 다른 산들이 내려앉는다','구름이 가까워진다','구름 위로 올라섰다. 산들이 섬처럼 떠 있다','공기가 차갑다. 귀한 것들의 기운이 짙다','노을이 산을 물들인다','별이 머리 위로 쏟아진다','아무도 와 본 적 없는 높이'];
 let lastMile=-1,toastT=0;
@@ -2954,9 +3175,10 @@ function buildBag(){
   const goldFound=GOLD_FIVE_BASES.filter(k=>save.goldKnown?.[k]);
   const goldHead=document.createElement('h4');goldHead.textContent='✦ 황금 5성 · '+goldFound.length+'/'+GOLD_FIVE_BASES.length+'종 발견 · 판매 불가';host.appendChild(goldHead);
   const goldGrid=document.createElement('div');goldGrid.className='grid';host.appendChild(goldGrid);
-  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),known=!!save.goldKnown?.[base],have=save.inv[key]||0;
+  for(const base of GOLD_FIVE_BASES){const key=goldenKey(base),have=save.inv[key]||0,known=!!save.goldKnown?.[base]||have>0;
     const c=document.createElement('div');c.className='card golden-card'+(known?'':' unk');
-    const img=document.createElement('img');img.src=iconURL(itemKindOf(key),key);img.alt='';c.appendChild(img);
+    // 미발견: 일반 도감과 동일한 원본 식물·버섯 아이콘의 회색 실루엣. 발견 후에만 황금 모델 표시.
+    const img=document.createElement('img');img.src=iconURL(itemKindOf(base),known?key:base);img.alt=known?'황금 '+itemInfo(base).name+' 3D 도감 이미지':'';c.appendChild(img);
     const name=document.createElement('div');name.className='n';name.textContent=known?'황금 '+itemInfo(base).name:'???';
     const meta=document.createElement('div');meta.className='c';meta.textContent=known?have+'개 보유 · 공양 전용':'★★★★★ · 미발견';
     c.append(name,meta);if(known){c.classList.add('click');c.onclick=()=>showInfoCard(itemKindOf(key),key,true)}goldGrid.appendChild(c);
@@ -3911,50 +4133,84 @@ function updateBoarWarning(){
   if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!')}
   boarAlertActive=close;
 }
-// Lv.6~11 can sense five-star collectibles, but never their direction or exact position.
-// Scan loaded, genuine collectibles (not scenery/decoys) at a low rate on phones.
-// Show a rare-plant hint only once when entering a 20m zone.
-// Leave the zone entirely to re-arm the hint; do not keep it on-screen.
-let rareSenseTime=0,rareSenseInside=false,rareSensePending=false,rareSenseUntil=0;
-function updateRareSense(dt){
-  const el=$('rareSense');
-  if(mode!=='game'||inTent||playerRank<6||Date.now()<faintUntil){
-    el.classList.add('hide');rareSenseTime=0;rareSenseUntil=0;
-    // Clear the pending hint outside gameplay without changing the game data.
-    rareSenseInside=false;rareSensePending=false;return;
+// Five-star perception is a local HUD skill; it never reveals coordinates or
+// changes resource generation, harvest results, networking, or save records.
+const RARE_SENSE_SCAN_SECONDS=.25,RARE_SENSE_TEMP_MS=3000;
+let rareSenseScanTime=0;
+const rareSenseBands={
+  20:{inside:false,mode:'off',pending:false,until:0},
+  10:{inside:false,mode:'off',pending:false,until:0}
+};
+// Lv.10+ inherit the fully persistent Lv.9 abilities.
+function rareSenseMode(level,metres){
+  if(level<6)return 'off';
+  if(metres===20)return level===6?'timed':'persistent';
+  if(metres===10)return level<8?'off':level===8?'timed':'persistent';
+  return 'off';
+}
+function clearRareSense(){
+  rareSenseScanTime=0;
+  for(const range of [20,10]){
+    const band=rareSenseBands[range];
+    band.inside=false;band.mode='off';band.pending=false;band.until=0;
+    $('rareSense'+range).classList.add('hide');
   }
-  const now=performance.now();
-  // Hide immediately when the short appearance has expired, even between scans.
-  if(rareSenseUntil&&now>=rareSenseUntil){rareSenseUntil=0;el.classList.add('hide')}
-  rareSenseTime-=dt;
-  if(rareSenseTime>0){
-    // Dangerous boars always take visual priority over this hint.
-    if(!$('boarWarning').classList.contains('hide'))el.classList.add('hide');
+  $('rareSense').classList.add('hide');
+}
+function updateRareSenseBand(range,near,rank,now,boarNearby){
+  const band=rareSenseBands[range],mode=rareSenseMode(rank,range);
+  if(mode==='off'||!near){
+    band.inside=false;band.mode=mode;band.pending=false;band.until=0;
     return;
   }
-  rareSenseTime=.25;
-  let near=false;
-  for(const c of chunks.values()){
-    if(near)break;
-    for(const it of c.items){
-      if(!it.mesh||!it.mesh.parent||!it.mesh.visible||itemInfo(it.type)?.rar!==5||takenUntil(it.id))continue;
-      const pos=it.mesh.position;
-      if(Math.abs(pos.y-P.y)>6)continue;
-      if(Math.hypot(pos.x-P.x,pos.z-P.z)<=20){near=true;break}
-    }
+  // A level change also arms a newly earned 10m sense while already in range.
+  if(!band.inside||band.mode!==mode){
+    band.inside=true;band.mode=mode;band.pending=mode==='timed';band.until=0;
   }
-  if(!near){
-    // Moving beyond the 20m boundary is the only way to arm a new notification.
-    rareSenseInside=false;rareSensePending=false;rareSenseUntil=0;el.classList.add('hide');return;
+  if(mode==='timed'&&boarNearby&&band.until>0){
+    // A danger warning interrupts the one-shot hint without replaying it.
+    band.until=0;
   }
-  if(!rareSenseInside){rareSenseInside=true;rareSensePending=true}
+  if(mode==='timed'&&band.pending&&!boarNearby){
+    band.pending=false;band.until=now+RARE_SENSE_TEMP_MS;
+  }
+}
+function updateRareSense(dt){
+  if(mode!=='game'||inTent||inSecretCave||playerRank<6||Date.now()<faintUntil){
+    clearRareSense();return;
+  }
+  const now=performance.now();
   const boarNearby=!$('boarWarning').classList.contains('hide');
-  // Once interrupted by a danger warning, do not replay this rare hint.
-  if(boarNearby&&rareSenseUntil){rareSenseUntil=0;el.classList.add('hide')}
-  if(rareSensePending&&!boarNearby){
-    rareSensePending=false;rareSenseUntil=now+3000;
+  rareSenseScanTime-=dt;
+  if(rareSenseScanTime<=0){
+    rareSenseScanTime=RARE_SENSE_SCAN_SECONDS;
+    let closestSquared=Infinity;
+    // Only loaded, real and currently harvestable 5-star resources count.
+    // Keep the old vertical tolerance and scan frequency for mobile.
+    for(const c of chunks.values()){
+      if(closestSquared<=100)break;
+      for(const it of c.items){
+        if(!it.mesh||!it.mesh.parent||!it.mesh.visible||itemInfo(it.type)?.rar!==5||takenUntil(it.id))continue;
+        const pos=it.mesh.position,dy=pos.y-P.y;
+        if(Math.abs(dy)>6)continue;
+        const dx=pos.x-P.x,dz=pos.z-P.z,d2=dx*dx+dz*dz;
+        if(d2<closestSquared)closestSquared=d2;
+        if(closestSquared<=100)break;
+      }
+    }
+    updateRareSenseBand(20,closestSquared<=400,playerRank,now,boarNearby);
+    updateRareSenseBand(10,closestSquared<=100,playerRank,now,boarNearby);
   }
-  el.classList.toggle('hide',boarNearby||rareSenseUntil<=now);
+  let anyVisible=false;
+  for(const range of [20,10]){
+    const band=rareSenseBands[range];
+    const visible=!boarNearby&&band.inside&&(
+      band.mode==='persistent'||(band.mode==='timed'&&band.until>now)
+    );
+    $('rareSense'+range).classList.toggle('hide',!visible);
+    anyVisible=anyVisible||visible;
+  }
+  $('rareSense').classList.toggle('hide',!anyVisible);
 }
 function updateAnimals(dt){
  animalBuildT+=dt;if(animalBuildT>5){animalBuildT=0;refreshAnimals()}
@@ -4353,6 +4609,7 @@ function enterSecretCave(){
   if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
     Math.hypot(P.x-caveSite.x,P.z-caveSite.z)>3.3||me.mode==='dig'||P.air)return;
   caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
+  clearRareSense();
   inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
   target=null;pending=null;curAct=null;queued=null;
   cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;

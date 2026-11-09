@@ -188,7 +188,7 @@ function placeRockPlants(c,r,grp){
    const ang=r()*Math.PI*2,rr=rock.r*(.13+r()*.25);
    const px=x+Math.cos(ang)*rr,pz=z+Math.sin(ang)*rr,py=rock.topY-.04;
    const id=`${c.key}:rock${i}`,variant=Math.floor(r()*3),rotation=r()*Math.PI*2;
-   if(takenUntil(id))continue;
+   if(takenUntil(id)||!ecologyAllowsResource(type,id))continue;
    const isMush=type==='seogi';
    const mesh=isMush?mush3D(type):makePlantMesh(spec,variant);
    mesh.position.set(px,py,pz);mesh.rotation.y=rotation;
@@ -200,7 +200,7 @@ function placeRockPlants(c,r,grp){
 function placeExtraMushrooms(c,r,grp,nearStart){
  const mk=(type,id,x,y,z,sc=1)=>{
    const rotation=r()*6.28;
-   if(takenUntil(id)||nearStart(x,z,4))return;
+   if(takenUntil(id)||nearStart(x,z,4)||!ecologyAllowsResource(type,id))return;
    const m=mush3D(type);m.position.set(x,y,z);m.rotation.y=rotation;m.scale.setScalar(sc);
    const it={kind:'mush',type,id,hits:0,need:MUSH[type].need,mesh:m};m.userData.item=it;grp.add(m);c.items.push(it);
  };

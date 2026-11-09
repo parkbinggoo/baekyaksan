@@ -187,6 +187,7 @@ function enterSecretCave(){
   if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
     Math.hypot(P.x-caveSite.x,P.z-caveSite.z)>3.3||me.mode==='dig'||P.air)return;
   caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
+  clearRareSense();
   inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
   target=null;pending=null;curAct=null;queued=null;
   cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;

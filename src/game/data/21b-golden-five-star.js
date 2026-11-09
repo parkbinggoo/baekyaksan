@@ -1,8 +1,18 @@
 /* ================= GOLDEN FIVE-STAR VARIANTS ================= */
-// Same species and resource slot as the ordinary 5-star item, with a rare
-// deterministic gilded appearance. No golden variant is ever sellable.
+// A single deterministic, reachable slot per currently supported five-star
+// species. Never add an extra resource: gild the chosen ordinary slot only.
+// Harvested golden slots follow the existing five-star respawn/relocation cycle.
 const GOLD_PREFIX='gold:';
-const GOLDEN_ODDS=0.0025; // 0.25% of existing 5-star spawn cycles.
+const GOLDEN_SINGLETON_SLOTS=Object.freeze({
+  sanghwang:"0,-34:m41",
+  songi:"-2,-39:xm31",
+  neungi:"0,-8:xm17",
+  kkotsongi:"-1,-53:xm21",
+  seogi:"-1,-29:rock1",
+  sansam:"0,-25:fiveStar-sansam-0",
+  cheonma:"-2,-16:fiveStar-cheonma-0"
+});
+const GOLDEN_SINGLETON_IDS=new Set(Object.values(GOLDEN_SINGLETON_SLOTS));
 const GOLD_TITLES={sansam:'천년약사',songi:'금송선인',sanghwang:'금광도인',
   neungi:'영산도인',kkotsongi:'화령선인',seogi:'석벽도인'};
 const GOLD_FIVE_BASES=[...HERB_KEYS,...MUSH_KEYS].filter(k=>itemInfo(k)?.rar===5);
@@ -13,9 +23,9 @@ function goldTitle(key){const base=goldBase(key);return GOLD_TITLES[base]||('황
 const VALID_SPECIAL_TITLES=new Set(GOLD_FIVE_BASES.map(goldTitle));
 function validSpecialTitle(name){return typeof name==='string'&&VALID_SPECIAL_TITLES.has(name)?name:''}
 function goldenSpawn(slotId,cycle=0){
-  let h=2166136261;const token='bygs-gold-5|'+slotId+'|'+cycle;
-  for(let i=0;i<token.length;i++)h=Math.imul(h^token.charCodeAt(i),16777619);
-  h^=h>>>16;return (h>>>0)/4294967296<GOLDEN_ODDS;
+  // One reserved slot for each species; do not roll new gold on every cycle
+  // or from random ground digging, which could exceed the one-per-species cap.
+  return GOLDEN_SINGLETON_IDS.has(slotId);
 }
 // Recolour the original meshes without replacing their geometry or changing
 // the silhouette. Source materials are cloned to avoid tinting ordinary plants.

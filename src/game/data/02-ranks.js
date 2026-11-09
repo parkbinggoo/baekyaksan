@@ -60,10 +60,22 @@ function recordHerbHarvest(type,info,wasCarefulDig){
  if(type==='sansam')st.sansamCollected=(st.sansamCollected||0)+1;
  const next=earnedRank();if(next>playerRank){playerRank=next;save.highestRank=playerRank;toast('🌿 승급! '+rankLabel());tone(659,.3,'sine',.065);sendPresence(true)}
 }
+// These are skill effects, not additional advancement requirements.
+const FIVE_STAR_SENSE_RANK_TEXT={
+  6:'5성 채집물 20m 탐지 · 일시적 알림',
+  7:'5성 채집물 20m 탐지 · 알림 유지',
+  8:'5성 채집물 20m 탐지 유지 · 10m 일시적 알림',
+  9:'5성 채집물 20m 탐지 유지 · 10m 알림 유지'
+};
+function fiveStarSenseRankText(level){
+ return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
+}
 function renderRankGuide(){
  const progress=$('rankProgress'),guide=$('rankGuide');progress.replaceChildren();guide.replaceChildren();
  const current=document.createElement('strong');current.textContent=rankLabel();progress.appendChild(current);
  const desc=document.createElement('div');desc.textContent='도감 '+discoveredCount()+'종 · 누적 채집 '+(rankStats().totalCollected||0)+'개';progress.appendChild(desc);
+ const currentSense=fiveStarSenseRankText(playerRank);
+ if(currentSense){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+currentSense;progress.appendChild(sense)}
  if(playerRank>=RANKS.length){const done=document.createElement('div');done.textContent='백약산 최고 등급에 도달했습니다!';progress.appendChild(done)}
  else{const next=document.createElement('div');next.style.marginTop='5px';next.textContent='다음 목표: Lv.'+(playerRank+1)+' '+RANKS[playerRank].name;progress.appendChild(next);
   for(const g of rankGoals(playerRank+1)){const line=document.createElement('div');line.className='rankGoal '+(g.now>=g.required?'done':'pending');line.textContent=(g.now>=g.required?'✓ ':'○ ')+g.label+' '+g.now+'/'+g.required+g.unit;progress.appendChild(line)}
@@ -80,7 +92,9 @@ function renderRankGuide(){
  for(let l=1;l<=RANKS.length;l++){
   const section=document.createElement('div');section.className='rankTier'+(l===playerRank?' current':'');
   const label=document.createElement('strong');label.textContent='Lv.'+l+' · '+RANKS[l-1].name;section.appendChild(label);
-  const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);guide.appendChild(section);
+  const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);
+  if(l>=6&&l<=9){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+fiveStarSenseRankText(l);section.appendChild(sense)}
+  guide.appendChild(section);
  }
 }
 function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}

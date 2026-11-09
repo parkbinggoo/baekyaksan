@@ -209,7 +209,7 @@ function buildChunk(cx,cz){
     if(t.s>.5&&r()<.24){const mt=pickW(MUSH,COMMON_MUSH_KEYS,r(),1+altHere/600);const a=r()*6.28,trunkR=(t.kind==='pine'?.20:.24)*t.s + .06,rr=trunkR+.045;
       const it={kind:'mush',type:mt,id:`${c.key}:m${i}`,hits:0,need:MUSH[mt].need,tree:t};
       const placeY=t.y+.48+r()*.52;
-      if(!takenUntil(it.id)){const m=mush3D(mt);m.position.set(x+Math.cos(a)*rr,placeY,z+Math.sin(a)*rr);m.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));m.scale.setScalar(1.6);it.mesh=m;t.mush=m;m.userData.item=it;grp.add(m);c.items.push(it)}}}
+      if(!takenUntil(it.id)&&ecologyAllowsResource(mt,it.id)){const m=mush3D(mt);m.position.set(x+Math.cos(a)*rr,placeY,z+Math.sin(a)*rr);m.rotation.y=Math.atan2(Math.cos(a),Math.sin(a));m.scale.setScalar(1.6);it.mesh=m;t.mush=m;m.userData.item=it;grp.add(m);c.items.push(it)}}}
   const snowy=altHere>1550;
   const inst=(geo,mat,list,colFn)=>{if(!list.length)return;const im=new THREE.InstancedMesh(geo,mat,list.length);im.frustumCulled=false;const o=new THREE.Object3D();
     list.forEach((t,i)=>{o.position.set(t.x,t.y,t.z);o.rotation.set(t.lean,t.rot,0);o.scale.setScalar(t.s);o.updateMatrix();im.setMatrixAt(i,o.matrix);(t.inst||(t.inst=[])).push({im,i,m:o.matrix.clone()});if(colFn)im.setColorAt(i,colFn(t,i))});
@@ -281,6 +281,9 @@ function buildChunk(cx,cz){
     if(e.alt>1250||e.light<.43||e.moist<.16||e.moist>.89||e.nearTree>12||e.nearTree<1.3||e.slope>2.0||r()>.52)continue;
     putFruit('wildberry',c.key+':berry'+i,x,z,false);
   }
+  addTargetedFiveStarResources(c);
+  addMissingJournalSpecies(c);
+  enforceForestPopulationQuota(c);
   relocateRareInChunk(c);
   applyGoldenVariants(c);
   // Check all genuine collectibles after five-star relocation and before display.
@@ -310,6 +313,9 @@ function rescueTrailChunk(key,cx,cz){
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
+    addTargetedFiveStarResources(c);
+    addMissingJournalSpecies(c);
+    enforceForestPopulationQuota(c);
     applyGoldenVariants(c);
     repairChunkResources(c);
     scene.add(grp);chunks.set(key,c);chunkFailures.delete(key);
