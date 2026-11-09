@@ -1,0 +1,429 @@
+{
+  "notes": "서로 참조하는 기존 전역 스코프 보존을 위해 반드시 manifest 순서대로 동일 IIFE에 연결합니다.",
+  "files": [
+    {
+      "file": "core/00-bootstrap.js",
+      "originalLines": [
+        465,
+        468
+      ],
+      "purpose": "런타임 검사·iOS 화면 효과"
+    },
+    {
+      "file": "data/01-item-catalog.js",
+      "originalLines": [
+        469,
+        535
+      ],
+      "purpose": "약초·버섯·꿀 데이터, 가방·랜턴 단계, 판매 가격"
+    },
+    {
+      "file": "data/02-ranks.js",
+      "originalLines": [
+        536,
+        628
+      ],
+      "purpose": "약초꾼 등급·승급 조건·가격 조회"
+    },
+    {
+      "file": "core/03-utils.js",
+      "originalLines": [
+        629,
+        645
+      ],
+      "purpose": "DOM 선택·수학·난수 유틸·승급 UI 이벤트"
+    },
+    {
+      "file": "audio/04-audio-core.js",
+      "originalLines": [
+        646,
+        677
+      ],
+      "purpose": "WebAudio 마스터·효과음·톤"
+    },
+    {
+      "file": "core/05-session-state.js",
+      "originalLines": [
+        678,
+        749
+      ],
+      "purpose": "인벤토리·프로필 상태·채집 재생성·희귀 공유 상태"
+    },
+    {
+      "file": "world/06-terrain-height.js",
+      "originalLines": [
+        750,
+        768
+      ],
+      "purpose": "지형 높이·능선·산길 수학"
+    },
+    {
+      "file": "graphics/07-renderer-and-textures.js",
+      "originalLines": [
+        769,
+        788
+      ],
+      "purpose": "Three.js 렌더러·카메라·재질·캔버스 텍스처"
+    },
+    {
+      "file": "graphics/08-tent-mesh.js",
+      "originalLines": [
+        789,
+        844
+      ],
+      "purpose": "텐트 외부 3D 모델"
+    },
+    {
+      "file": "gameplay/09-campfire-cooking.js",
+      "originalLines": [
+        845,
+        1130
+      ],
+      "purpose": "모닥불·불쏘시개·조리·버프·애니메이션"
+    },
+    {
+      "file": "world/10-tent-placement.js",
+      "originalLines": [
+        1131,
+        1220
+      ],
+      "purpose": "산속 텐트 배치·분홍 리본 길 안내"
+    },
+    {
+      "file": "gameplay/11-tent-occupancy.js",
+      "originalLines": [
+        1221,
+        1268
+      ],
+      "purpose": "텐트 출입·수용 인원·점유 동기화"
+    },
+    {
+      "file": "gameplay/12-tent-upgrades.js",
+      "originalLines": [
+        1269,
+        1308
+      ],
+      "purpose": "가방 확장·랜턴 업그레이드·구매 금액"
+    },
+    {
+      "file": "gameplay/13-market.js",
+      "originalLines": [
+        1309,
+        1361
+      ],
+      "purpose": "채집물 판매·필터·정렬·정산"
+    },
+    {
+      "file": "graphics/14-tent-interior.js",
+      "originalLines": [
+        1362,
+        1460
+      ],
+      "purpose": "텐트 내부 3D·조명·다른 플레이어 착석"
+    },
+    {
+      "file": "graphics/15-far-mountains.js",
+      "originalLines": [
+        1461,
+        1479
+      ],
+      "purpose": "먼 산 배경 모델"
+    },
+    {
+      "file": "graphics/16-intro-scene.js",
+      "originalLines": [
+        1480,
+        1508
+      ],
+      "purpose": "인트로 카메라 및 연출"
+    },
+    {
+      "file": "graphics/17-world-and-night-sky.js",
+      "originalLines": [
+        1509,
+        1642
+      ],
+      "purpose": "게임 씬 구성·별·별똥별"
+    },
+    {
+      "file": "graphics/18-geometry-helpers.js",
+      "originalLines": [
+        1643,
+        1657
+      ],
+      "purpose": "공유 도형·잎·줄기·구체 프리미티브"
+    },
+    {
+      "file": "graphics/19-herb-and-mushroom-mesh.js",
+      "originalLines": [
+        1658,
+        1700
+      ],
+      "purpose": "기존 저폴리곤 약초·버섯 3D 모델"
+    },
+    {
+      "file": "graphics/20-hiker-avatar.js",
+      "originalLines": [
+        1701,
+        1823
+      ],
+      "purpose": "플레이어 3D 모델·동작·소지물 표시"
+    },
+    {
+      "file": "data/21-native-flora-database.js",
+      "originalLines": [
+        1824,
+        2013
+      ],
+      "purpose": "국내 자생 식물 종·서식 특성 데이터"
+    },
+    {
+      "file": "world/22-streams-and-habitats.js",
+      "originalLines": [
+        2014,
+        2038
+      ],
+      "purpose": "계곡·토양·그늘·서식지 적합도"
+    },
+    {
+      "file": "graphics/23-low-poly-flora-builders.js",
+      "originalLines": [
+        2039,
+        2178
+      ],
+      "purpose": "식물 저폴리곤 빌더·형상 최적화"
+    },
+    {
+      "file": "world/24-flora-population.js",
+      "originalLines": [
+        2179,
+        2235
+      ],
+      "purpose": "지형·고도별 식생 분포·물가"
+    },
+    {
+      "file": "graphics/25-collection-icons.js",
+      "originalLines": [
+        2236,
+        2346
+      ],
+      "purpose": "도감 아이콘 렌더·열매·벌집·땅속 채집"
+    },
+    {
+      "file": "world/26-decoy-flora.js",
+      "originalLines": [
+        2347,
+        2566
+      ],
+      "purpose": "배경 야생화·나무·바위 식생·야생버섯"
+    },
+    {
+      "file": "world/27-wild-honey.js",
+      "originalLines": [
+        2567,
+        2607
+      ],
+      "purpose": "벌집 생성·꿀 채집 서식지"
+    },
+    {
+      "file": "world/28-rare-placement.js",
+      "originalLines": [
+        2608,
+        2702
+      ],
+      "purpose": "희귀 채집물 위치 이동·재생성"
+    },
+    {
+      "file": "world/29-chunks-and-ground.js",
+      "originalLines": [
+        2703,
+        3080
+      ],
+      "purpose": "청크 지형·식물 배치·충돌·로드/언로드"
+    },
+    {
+      "file": "world/30-summit-and-gate.js",
+      "originalLines": [
+        3081,
+        3143
+      ],
+      "purpose": "2,500m 정상·태극기·일주문"
+    },
+    {
+      "file": "graphics/31-particles.js",
+      "originalLines": [
+        3144,
+        3157
+      ],
+      "purpose": "흙·하트·채집 이펙트"
+    },
+    {
+      "file": "gameplay/32-harvest.js",
+      "originalLines": [
+        3158,
+        3262
+      ],
+      "purpose": "이동 상태·채집·아이템 획득·도감 팝업"
+    },
+    {
+      "file": "ui/33-world-labels.js",
+      "originalLines": [
+        3263,
+        3270
+      ],
+      "purpose": "캐릭터·채집 세계 좌표 라벨"
+    },
+    {
+      "file": "input/34-pointer-and-keyboard.js",
+      "originalLines": [
+        3271,
+        3308
+      ],
+      "purpose": "마우스·터치·키보드 조작"
+    },
+    {
+      "file": "ui/35-hud-and-bag.js",
+      "originalLines": [
+        3309,
+        3345
+      ],
+      "purpose": "상단 상태 HUD·가방·도감 UI"
+    },
+    {
+      "file": "ui/36-map.js",
+      "originalLines": [
+        3346,
+        3438
+      ],
+      "purpose": "지도·나침반·위치 표기"
+    },
+    {
+      "file": "network/37-radio.js",
+      "originalLines": [
+        3439,
+        3461
+      ],
+      "purpose": "무전기 UI·상태 메시지"
+    },
+    {
+      "file": "network/38-multiplayer.js",
+      "originalLines": [
+        3462,
+        3622
+      ],
+      "purpose": "MQTT 접속·플레이어 동기화·랭크 표시"
+    },
+    {
+      "file": "world/39-collisions-and-camera.js",
+      "originalLines": [
+        3623,
+        3643
+      ],
+      "purpose": "바위·나무 충돌 및 카메라 가림 처리"
+    },
+    {
+      "file": "core/40-performance.js",
+      "originalLines": [
+        3644,
+        3659
+      ],
+      "purpose": "기기별 FPS·화질·절전 설정"
+    },
+    {
+      "file": "world/41-shared-day-clock.js",
+      "originalLines": [
+        3660,
+        3676
+      ],
+      "purpose": "한국 시간 동기화·게임 하루·하늘색"
+    },
+    {
+      "file": "world/42-weather.js",
+      "originalLines": [
+        3677,
+        3820
+      ],
+      "purpose": "공유 날씨·비·눈·안개·하늘 변화"
+    },
+    {
+      "file": "graphics/43-fireflies.js",
+      "originalLines": [
+        3821,
+        3909
+      ],
+      "purpose": "야간 반딧불 무리·발광"
+    },
+    {
+      "file": "audio/44-forest-ambience.js",
+      "originalLines": [
+        3910,
+        3968
+      ],
+      "purpose": "숲 소리·시각별 환경음"
+    },
+    {
+      "file": "gameplay/45-careful-harvest.js",
+      "originalLines": [
+        3969,
+        3987
+      ],
+      "purpose": "조심스러운 캐기 실패·벌 공격"
+    },
+    {
+      "file": "world/46-wildlife-models.js",
+      "originalLines": [
+        3988,
+        4183
+      ],
+      "purpose": "동물 유형·멧돼지 상태·3D 형상"
+    },
+    {
+      "file": "world/47-wildlife-states.js",
+      "originalLines": [
+        4184,
+        4319
+      ],
+      "purpose": "동물 움직임·위협·기절·희귀 감지"
+    },
+    {
+      "file": "world/48-wildlife-update.js",
+      "originalLines": [
+        4320,
+        4435
+      ],
+      "purpose": "동물 AI 및 이름표 갱신"
+    },
+    {
+      "file": "gameplay/49-rock-climbing.js",
+      "originalLines": [
+        4436,
+        4527
+      ],
+      "purpose": "바위 등반 타이밍·기절·점프 연결"
+    },
+    {
+      "file": "core/50-game-update.js",
+      "originalLines": [
+        4528,
+        4605
+      ],
+      "purpose": "프레임별 게임 로직·물리·상태 갱신"
+    },
+    {
+      "file": "save/51-profile-and-files.js",
+      "originalLines": [
+        4606,
+        4843
+      ],
+      "purpose": "프로필 키·JSON 저장·복원·기록 내보내기"
+    },
+    {
+      "file": "core/52-start-and-event-bindings.js",
+      "originalLines": [
+        4844,
+        4970
+      ],
+      "purpose": "시작·버튼 이벤트·메인 렌더 루프"
+    }
+  ]
+}
