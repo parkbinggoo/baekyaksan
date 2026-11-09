@@ -1,0 +1,63 @@
+#tentView{position:fixed;inset:0;z-index:45;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:16px}
+#tentView .tentExitBtn{position:absolute;top:16px;right:16px;z-index:3}
+#tentStatus{position:absolute;top:18px;left:18px;z-index:3;color:#efe7d4;background:rgba(0,0,0,.28);padding:7px 11px;border:1px solid rgba(255,255,255,.15);border-radius:999px;font-size:12px;letter-spacing:.04em}
+#tentChest{position:absolute;left:50%;transform:translateX(-50%);bottom:18%;width:72px;height:52px;border-radius:8px;background:linear-gradient(180deg,#a66453,#7d4135);border:2px solid #4e2a20;box-shadow:0 8px 18px rgba(0,0,0,.18);cursor:pointer}
+#tentChest:before{content:"";position:absolute;left:0;right:0;top:8px;height:12px;background:rgba(255,255,255,.12);border-bottom:2px solid rgba(78,42,32,.8)}
+#tentChest:after{content:"상자";position:absolute;left:0;right:0;bottom:-24px;text-align:center;color:#f0e5cf;font-size:12px;letter-spacing:.16em}
+#tentCash{position:absolute;left:50%;transform:translateX(-50%);bottom:6%;font-size:14px;color:#f2e7d5;background:rgba(0,0,0,.22);padding:7px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12)}
+#sellPanel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,94vw);background:rgba(244,239,227,.98);border:1.5px solid #1f2b28;border-radius:12px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.3);z-index:4;color:#1f2b28}
+#sellPanel h3{font-family:"Nanum Myeongjo",serif;letter-spacing:.18em;margin-bottom:6px}
+#sellHelp{font-size:12px;opacity:.74;line-height:1.6;margin-bottom:10px}
+#sellGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:34vh;overflow:auto}
+.sellItem{background:#ece4d0;border:1px solid rgba(31,43,40,.16);border-radius:8px;padding:8px;cursor:pointer;text-align:center}
+.sellItem.on{outline:2px solid #4c6b3c;background:#f4efe3}
+.sellItem .name{font-size:13px;font-family:"Nanum Myeongjo",serif;font-weight:700}
+.sellItem .meta{font-size:11px;opacity:.76;line-height:1.45;margin-top:2px}
+#sellDetail{margin-top:12px;padding-top:12px;border-top:1px solid rgba(31,43,40,.14);display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+#sellInfo{font-size:13px;line-height:1.7}
+#sellQtyControls{display:flex;align-items:center;gap:6px}
+#sellQtyControls button,#sellDoBtn,#sellCloseBtn{min-height:40px}
+#sellQty{width:78px;text-align:center;border:1px solid rgba(31,43,40,.25);border-radius:8px;padding:9px;background:#fff}
+#sellSummary{grid-column:1 / -1;font-size:13px;opacity:.82}
+#photoBtn{border-color:rgba(42,86,69,.5);white-space:nowrap}
+@media(max-width:760px){#photoBtn{font-size:12px;padding:9px 10px}}
+@media (max-width:760px),(pointer:coarse){#tentChest{bottom:20%}
+#sellPanel{padding:14px}
+#sellDetail{grid-template-columns:1fr}
+#sellQtyControls{justify-content:flex-start;flex-wrap:wrap}}
+.tentNameTag{position:absolute;z-index:1;pointer-events:none;transform:translate(-50%,-100%);background:rgba(31,43,40,.82);color:#f4efe3;border-radius:999px;font:12px "Gowun Dodum",sans-serif;padding:4px 9px;white-space:nowrap;text-shadow:none;box-shadow:0 4px 10px #0003}
+#tentView{height:100vh;height:100dvh;min-height:0;overflow:hidden}
+#tentExitBtn{min-height:44px}
+#tentStatus{top:calc(14px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));right:auto}
+#tentExitBtn{top:calc(14px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right))}
+#tentCash{bottom:calc(16px + env(safe-area-inset-bottom))}
+#sellPanel{width:min(560px,94vw);max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overscroll-behavior:contain}
+@media (max-width:760px){#tentStatus{font-size:11px;max-width:58vw;line-height:1.5}
+#tentExitBtn{font-size:12px;padding:8px 10px}
+#tentChest{min-height:44px;min-width:104px}
+#sellPanel{max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}}
+#tentView{background:transparent;pointer-events:none;z-index:45;padding:0;display:block}
+#tentView .tentExitBtn,#tentStatus,#tentChest,#tentCash,#sellPanel,#bagUpgradeBtn,#bagUpgradePanel,#lanternUpgradeBtn,#lanternUpgradePanel{pointer-events:auto}
+#tentStatus{max-width:65vw;font-weight:700;background:rgba(27,31,25,.8)}
+#tentChest{position:absolute;z-index:2;bottom:auto;left:50%;top:60%;transform:translate(-50%,-50%);width:auto;min-width:104px;height:auto;min-height:43px;padding:9px 12px;border:1px solid #e5ce94;border-radius:20px;white-space:nowrap;background:rgba(31,43,40,.9);color:#fff3d6;font:700 13px "Gowun Dodum",sans-serif;box-shadow:0 6px 20px #0006}
+#tentChest:before,#tentChest:after{display:none}
+#tentCash{bottom:calc(20px + env(safe-area-inset-bottom));background:rgba(21,26,21,.88);white-space:nowrap}
+#sellPanel{max-height:90vh;overflow:auto;border:1.5px solid #5d6b4c;background:#f4efe3}
+.sellTools{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:9px 0}
+#sellTabs{display:flex;gap:5px;flex-wrap:wrap}
+#sellTabs button{font:inherit;font-size:12px;min-height:36px;padding:7px 9px;border:1px solid #c6bea7;border-radius:7px;background:#e5ddca;color:#29372b;cursor:pointer}
+#sellTabs button.on{background:#3b6243;color:#fff;border-color:#3b6243}
+#sellSort{min-height:36px;max-width:136px;background:#fffaf0;border:1px solid #c6bea7;padding:7px;border-radius:7px;font:inherit;font-size:12px;color:#29372b}
+#sellGrid{max-height:36vh;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:7px}
+.sellItem{transition:background .13s,border-color .13s}
+.sellItem:focus-visible,#tentChest:focus-visible{outline:3px solid #c9a24a;outline-offset:2px}
+.sellItem.on{outline:none;border:2px solid #426748}
+#sellSummary{font-weight:700;color:#3c6945}
+#tentTransition{position:fixed;inset:0;z-index:70;background:#050605;opacity:0;pointer-events:none;transition:opacity .34s ease}
+#tentTransition.on{opacity:1;pointer-events:auto}
+@media (max-width:760px),(pointer:coarse){#sellPanel{width:94vw;max-height:80vh;padding:12px}
+#sellGrid{max-height:31vh}
+#sellTabs button{font-size:11px;min-height:38px}
+#tentStatus{font-size:11px;top:calc(14px + env(safe-area-inset-top))}
+#tentChest{font-size:12px}
+#tentView .tentExitBtn{top:calc(12px + env(safe-area-inset-top));right:12px}}

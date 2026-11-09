@@ -1,0 +1,47 @@
+/* Mobile-only: 55% see-through control surfaces; preserve full opacity of text/icons. */
+@media (max-width:760px), (pointer:coarse){
+  #hud .plate,
+  #hud .btn,
+  #hud .btn:hover,
+  #pad button,
+  #pad button:active{
+    background:rgba(244,239,227,.45);
+    color:#17251e;
+    border-color:rgba(27,43,34,.6);
+    text-shadow:0 1px 2px rgba(255,255,255,.85);
+  }
+  #hud .plate #alt,
+  #hud .plate #clock,
+  #hud .plate #weather,
+  #hud .plate #count,
+  #hud .plate #people{
+    color:#17251e;
+    text-shadow:0 1px 2px rgba(255,255,255,.9);
+  }
+  #joy{
+    background:rgba(244,239,227,.45);
+    border-color:rgba(244,239,227,.7);
+  }
+  #knob{
+    background:rgba(244,239,227,.45);
+    border:1.5px solid rgba(24,41,32,.55);
+  }
+  #jumpBtn,
+  #jumpBtn:active{
+    background:rgba(244,239,227,.45);
+    border-color:rgba(31,43,40,.65);
+    color:#16271d;
+    text-shadow:0 1px 2px rgba(255,255,255,.85);
+  }
+  #jumpBtn.climbAvailable,
+  #jumpBtn.climbAvailable:active{
+    background:rgba(212,161,86,.45);
+    color:#30210d;
+    border-color:rgba(78,53,25,.7);
+  }
+  #ecoBtn.on{
+    background:rgba(112,154,107,.45);
+    border-color:rgba(37,85,49,.7);
+    color:#14291e;
+  }
+}

@@ -1,0 +1,33 @@
+:root{--ink:#1f2b28;--paper:#f4efe3;--hanji:#ece4d0;--moss:#4c6b3c;--clay:#8a5a3c;--gold:#c9a24a;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#cfdcdc;font-family:"Gowun Dodum",system-ui,sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none;touch-action:none}
+canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
+.hide{display:none!important}
+#iosClouds{position:fixed;inset:0;z-index:4;pointer-events:none;overflow:hidden;display:none}
+#iosClouds .cloud-side{position:absolute;top:-12%;height:124%;width:82%;opacity:.9;will-change:transform,opacity;background:radial-gradient(ellipse 45% 23% at 25% 22%,rgba(255,255,255,.90),transparent 94%),
+               radial-gradient(ellipse 54% 30% at 58% 45%,rgba(255,255,255,.85),transparent 96%),
+               radial-gradient(ellipse 56% 24% at 35% 73%,rgba(255,255,255,.82),transparent 95%),
+               radial-gradient(ellipse 55% 30% at 68% 94%,rgba(255,255,255,.75),transparent 98%)}
+#iosClouds .left{left:-30%}
+#iosClouds .right{right:-30%;transform:scaleX(-1)}
+#radioPanel{position:fixed;right:14px;top:75px;width:min(360px,calc(100vw - 28px));max-height:70vh;overflow:auto;background:rgba(244,239,227,.97);border:1px solid #4c6b3c;border-radius:12px;padding:13px;z-index:14;box-shadow:0 12px 32px #0003;pointer-events:auto}
+.radioHead{font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+#radioChoices{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+#radioChoices button{background:#e9e2cf;border:1px solid #b3ad95;border-radius:8px;padding:10px 5px;color:#24342b;font-family:inherit;cursor:pointer}
+#radioLog{margin-top:10px;max-height:125px;overflow:auto;font-size:12px;line-height:1.65}
+.radioLine{padding:5px;border-bottom:1px solid #c9c2ab}
+#radioToast{position:fixed;left:50%;bottom:18%;transform:translateX(-50%);min-width:min(350px,90vw);max-width:90vw;background:#263a31ed;color:#f5f1da;border:1px solid #bcb590;border-radius:12px;padding:12px 18px;text-align:center;z-index:15;font-size:14px;pointer-events:none;transition:opacity .4s}
+#radioToast.hide{display:none!important}
+#faintOverlay{position:fixed;inset:0;background:rgba(0,0,0,.97);color:#e5e4dc;z-index:90;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;text-align:center;padding:25px}
+#faintOverlay h2{font-size:23px;font-family:"Nanum Myeongjo",serif}
+#faintOverlay p{font-size:15px;opacity:.8}
+#faintCountdown{font-size:40px;font-weight:bold;font-variant-numeric:tabular-nums}
+#faintOverlay small{opacity:.55}
+#boarWarning{position:fixed;left:50%;bottom:calc(135px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:min(380px,90vw);width:max-content;padding:11px 15px;border-radius:10px;border:1px solid #8f5e3d;background:rgba(58,43,32,.91);color:#fff0d7;box-shadow:0 6px 22px #0005;text-align:center;font-size:14px;line-height:1.5;pointer-events:none;z-index:13}
+#boarWarning strong{display:block;font-size:15px;font-weight:700;margin-bottom:2px}
+#rareSense{position:fixed;left:50%;bottom:calc(135px + env(safe-area-inset-bottom));transform:translateX(-50%);width:max-content;max-width:min(380px,90vw);padding:11px 15px;border-radius:10px;border:1px solid rgba(107,123,74,.75);background:rgba(35,55,38,.91);color:#f2f2d4;box-shadow:0 6px 22px #0004;text-align:center;font-size:13px;line-height:1.55;pointer-events:none;z-index:12}
+#rareSense strong{display:block;font-size:15px;margin-bottom:2px;color:#e4ebad}
+
+@media (max-width:760px){#boarWarning{bottom:calc(168px + env(safe-area-inset-bottom));font-size:12px}}
+@media (max-width:760px){#rareSense{bottom:calc(168px + env(safe-area-inset-bottom));font-size:12px}#rareSense strong{font-size:14px}}
+.faintSymbol{font-size:45px;opacity:.4}

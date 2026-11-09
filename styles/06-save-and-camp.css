@@ -1,0 +1,18 @@
+#saveConfirm{position:fixed;inset:0;z-index:80;background:rgba(20,28,26,.62);display:flex;align-items:center;justify-content:center;padding:20px;pointer-events:auto}
+#saveConfirm .saveConfirmSheet{width:min(350px,92vw);padding:24px 20px;background:var(--paper);border:1.5px solid var(--ink);border-radius:12px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.28);font-family:"Gowun Dodum",sans-serif}
+#saveConfirm h3{font-family:"Nanum Myeongjo",serif;font-size:21px;margin:0 0 12px;color:var(--ink)}
+#saveConfirm p{font-size:14px;line-height:1.7;color:var(--ink);margin:0 0 20px}
+#saveConfirm .saveConfirmActions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#saveConfirm .saveConfirmActions button{min-height:44px;padding:9px 7px;border:1px solid #53654e;border-radius:8px;background:#ece4d0;color:var(--ink);font:inherit;font-size:13px;cursor:pointer;touch-action:manipulation}
+#saveConfirm #saveConfirmYes{grid-column:1/-1;background:#3b623b;color:#fff;border-color:#3b623b;font-size:15px}
+#saveConfirm .saveConfirmActions button:focus-visible{outline:3px solid #c9a24a;outline-offset:2px}
+#saveConfirm .saveLocationTip{font-size:11px;color:#5d6856;line-height:1.7;margin:13px 0 0;word-break:keep-all}
+.bagMeta{margin:8px 0 14px;font-size:13px;opacity:.78;line-height:1.7}
+#campPanel{position:fixed;bottom:calc(144px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(356px,calc(100vw - 28px));z-index:15;background:rgba(35,42,34,.94);color:#f5ead4;border:1px solid rgba(224,187,121,.66);border-radius:14px;padding:14px 15px;box-shadow:0 8px 25px #0008;text-align:center;pointer-events:auto}
+#campPanel h3{font-family:"Nanum Myeongjo",serif;font-size:19px;margin:0 0 8px}
+#campDetail{font-size:13px;line-height:1.7;white-space:pre-line;margin:6px 0 11px}
+#campPanel .campActions{display:flex;justify-content:center;flex-wrap:wrap;gap:7px}
+#campPanel button{padding:9px 12px;border-radius:8px;min-height:42px;font:700 13px "Gowun Dodum",sans-serif;border:1px solid #bbaa84;color:#27342a;background:#efe5cc;cursor:pointer}
+#campPanel button:disabled{opacity:.45;cursor:not-allowed}
+#mealBuff{font-size:11px;color:#f0d7a2;margin-top:4px;font-weight:700}
+@media(max-width:760px){#campPanel{bottom:calc(146px + env(safe-area-inset-bottom));padding:12px}#campPanel button{font-size:12px}}

@@ -1,0 +1,25 @@
+#rankPanel{position:fixed;inset:0;background:rgba(21,28,24,.64);z-index:22;display:flex;align-items:center;justify-content:center;padding:16px;pointer-events:auto}
+#rankPanel .rankSheet{width:min(550px,96vw);max-height:90vh;max-height:90dvh;overflow:auto;background:#f4efe3;border:1.5px solid #314b35;border-radius:12px;padding:18px;color:#1f2b28;box-shadow:0 14px 45px #0005}
+#rankPanel .rankHead{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px}
+#rankPanel h3{font-family:"Nanum Myeongjo",serif;font-size:21px;letter-spacing:.1em}
+#rankProgress{padding:11px 12px;background:#e7e6d4;border-radius:9px;line-height:1.8;font-size:13px}
+#rankProgress strong{font-size:17px}
+#rankGuide{margin-top:12px}
+.rankTier{border-bottom:1px solid #d0c8b4;padding:9px 4px;font-size:12px;line-height:1.6}
+.rankTier.current{background:#e4eddc;border-radius:6px;padding:10px}
+.rankGoal{font-size:12px;margin-top:3px}
+.rankGoal.done{color:#38693c}.rankGoal.pending{color:#8f5633}
+#bagUpgradeBtn{position:absolute;top:calc(61px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:3;font-size:13px;padding:9px 12px;border-color:#e8d29b;background:rgba(27,43,31,.9);color:#f4efe3;pointer-events:auto}
+#bagUpgradePanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:auto;width:min(370px,92vw);max-height:85dvh;overflow:auto;background:#f4efe3;border:1.5px solid #415e44;border-radius:12px;padding:20px;color:#1f2b28;text-align:center;box-shadow:0 14px 38px #0008}
+#bagUpgradePanel h3{font-family:"Nanum Myeongjo",serif;font-size:21px;margin-bottom:12px}
+#bagUpgradePanel p{font-size:13px;line-height:1.85;margin:7px 0 14px}
+#bagUpgradePanel .buyActions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#bagUpgradePanel .buyActions button{min-height:44px}
+/* Lantern upgrades sit directly below backpack upgrades in the tent. */
+#lanternUpgradeBtn{position:absolute;top:calc(107px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:3;font-size:13px;padding:9px 12px;border-color:#e8d29b;background:rgba(27,43,31,.9);color:#f4efe3;pointer-events:auto}
+#lanternUpgradePanel{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;pointer-events:auto;width:min(370px,92vw);max-height:85dvh;overflow:auto;background:#f4efe3;border:1.5px solid #415e44;border-radius:12px;padding:20px;color:#1f2b28;text-align:center;box-shadow:0 14px 38px #0008}
+#lanternUpgradePanel h3{font-family:"Nanum Myeongjo",serif;font-size:21px;margin-bottom:12px}
+#lanternUpgradePanel p{font-size:13px;line-height:1.85;margin:7px 0 14px;white-space:pre-line}
+#lanternUpgradePanel .buyActions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#lanternUpgradePanel .buyActions button{min-height:44px}
+@media(max-width:760px){#bagUpgradeBtn{top:calc(69px + env(safe-area-inset-top));font-size:12px;padding:8px 10px}#lanternUpgradeBtn{top:calc(112px + env(safe-area-inset-top));font-size:12px;padding:8px 10px}}

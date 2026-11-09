@@ -1,0 +1,24 @@
+#pad{position:fixed;bottom:18px;left:14px;right:14px;display:flex;justify-content:space-between;pointer-events:none;z-index:6}
+#pad button{pointer-events:auto;width:64px;height:64px;border-radius:50%;border:1px solid rgba(31,43,40,.35);background:rgba(244,239,227,.8);font-size:24px;color:var(--ink);box-shadow:0 6px 18px rgba(20,30,28,.15)}
+#pad button:active{background:#fff}
+body{background:linear-gradient(#b9d3df,#eef1e7)}
+#startPanel{pointer-events:auto;position:fixed;left:50%;bottom:9vh;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;opacity:0;transition:opacity 1.2s ease}
+#startPanel.on{opacity:1}
+#startPanel .row{display:flex;gap:10px;align-items:center;background:rgba(244,239,227,.88);padding:8px 12px;border-radius:999px;border:1px solid rgba(31,43,40,.25)}
+#nick{font-family:"Gowun Dodum";font-size:15px;border:none;background:transparent;outline:none;width:150px;color:var(--ink)}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.8);cursor:pointer;box-shadow:0 0 0 1px rgba(31,43,40,.3)}
+.sw.on{box-shadow:0 0 0 2px #1f2b28}
+#continueBtn{position:static;transform:none;opacity:1;font-size:17px;padding:11px 20px 11px 24px}
+.profilePinRow{display:flex;align-items:center;gap:10px;background:rgba(244,239,227,.9);border:1px solid rgba(31,43,40,.25);padding:9px 12px;border-radius:999px}
+.profilePinRow label{font-size:13px;white-space:nowrap}
+#profilePin{width:110px;outline:none;border:0;background:transparent;color:var(--ink);font-family:"Gowun Dodum";font-size:16px;letter-spacing:.14em}
+.recordActions{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}
+#saveFileBtn,#loadFileBtn{font-family:"Gowun Dodum";cursor:pointer;border:1px solid rgba(31,43,40,.45);background:rgba(244,239,227,.93);color:var(--ink);padding:12px 14px;border-radius:4px;font-size:15px;box-shadow:0 6px 16px rgba(20,30,28,.12)}
+#saveFileBtn:hover,#loadFileBtn:hover{background:#fff}
+#profileStatus{max-width:min(450px,92vw);min-height:30px;padding:4px 10px;border-radius:7px;background:rgba(244,239,227,.8);text-align:center;color:var(--ink);font-size:12px;line-height:1.6;word-break:keep-all}
+#labels{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:4}
+.wl{position:absolute;left:0;top:0;white-space:nowrap;font-family:"Gowun Dodum";font-size:14px;color:#1f2b28;text-shadow:0 0 4px #fff,0 0 8px #fff}
+.wl.pip{font-size:15px;letter-spacing:2px;color:#2f4a3a}
+.wl.msg{font-family:"Nanum Myeongjo",serif;font-weight:700;background:rgba(244,239,227,.92);padding:4px 10px;border-radius:6px;text-shadow:none;border:1px solid rgba(31,43,40,.2)}
+.nametag{position:absolute;left:0;top:0;white-space:nowrap;font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(31,43,40,.7);color:#f4efe3}
+.rankNameTag{white-space:pre-line;text-align:center;line-height:1.4;min-width:80px;padding:5px 9px;font-weight:700;box-shadow:0 3px 10px #0003}

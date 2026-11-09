@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>백약산 3D — 약초꾼의 길</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles/00-foundation.css">
+<link rel="stylesheet" href="./styles/01-intro-hud-inventory.css">
+<link rel="stylesheet" href="./styles/02-controls-and-profiles.css">
+<link rel="stylesheet" href="./styles/03-ranks-upgrades.css">
+<link rel="stylesheet" href="./styles/04-joystick-map-climb.css">
+<link rel="stylesheet" href="./styles/05-responsive-layout.css">
+<link rel="stylesheet" href="./styles/06-save-and-camp.css">
+<link rel="stylesheet" href="./styles/07-tent-and-market.css">
+<link rel="stylesheet" href="./styles/08-mobile-opacity.css">
+<link rel="stylesheet" href="./styles/09-markup-refinements.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<div id="iosClouds" aria-hidden="true"><div class="cloud-side left"></div><div class="cloud-side right"></div></div>
+
+<div id="intro">
+  <div id="title">백약산</div>
+  <div id="subtitle">구름이 걷히면, 산이 길을 연다</div>
+  <div id="startPanel">
+    <div class="row"><input id="nick" maxlength="12" placeholder="별호 (닉네임)" autocomplete="nickname"><span class="field-hint">바람막이</span><div id="swatches"></div></div>
+    <div class="profilePinRow"><label for="profilePin">나의 4자리 코드</label><input id="profilePin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="숫자 4자리"></div>
+    <div class="recordActions">
+      <button id="continueBtn" type="button">이어서 하기</button>
+      <button id="saveFileBtn" type="button">저장</button>
+      <button id="loadFileBtn" type="button">불러오기</button>
+    </div>
+    <div id="profileStatus" role="status" aria-live="polite">같은 이름·코드로 이어서 하거나 기록 파일을 옮길 수 있어요.</div>
+    <input type="file" id="loadSaveInput" accept=".json,application/json" class="hide">
+  </div>
+  <div id="skip">화면을 누르면 건너뜁니다</div>
+</div>
+
+<div id="hud" class="hide">
+  <div class="plate">
+    <div id="alt"><small>해발</small>0m</div>
+    <div id="clock"></div>
+    <div id="weather"></div>
+    <div id="count">채집 0</div><div id="mealBuff" class="hide">🍲 산속 한 끼의 힘</div>
+    <div id="people" class="hide"></div>
+  </div>
+  <div class="btns">
+    <button class="btn" id="ecoBtn">절전</button>
+    <button class="btn" id="mapBtn">지도</button><button class="btn" id="rankBtn" type="button">등급 안내</button><button class="btn" id="photoBtn" type="button" title="UI 없이 기념사진 저장">📷 사진</button><button class="btn" id="radioBtn">📻 무전기</button>
+    <button class="btn" id="bagBtn">가방 · 도감</button>
+    <button class="btn" id="hudSaveBtn" title="지금 기록을 파일로 저장">기록 저장</button>
+  </div>
+</div>
+
+
+<!-- 현재 기록을 기기에 다운로드하기 전 확인 -->
+<div id="saveConfirm" class="hide" role="dialog" aria-modal="true" aria-labelledby="saveConfirmTitle" aria-describedby="saveConfirmDesc">
+  <div class="saveConfirmSheet">
+    <h3 id="saveConfirmTitle">기록을 저장할까요?</h3>
+    <p id="saveConfirmDesc">현재 산행 기록을 JSON 파일로 보관합니다.<br>저장 위치를 선택하거나 다운로드할 수 있습니다.</p>
+    <div class="saveConfirmActions">
+      <button type="button" id="saveConfirmYes">예 · 저장 위치 선택</button>
+      <button type="button" id="saveConfirmDownload">다운로드 폴더에 저장</button>
+      <button type="button" id="saveConfirmNo">아니요</button>
+    </div>
+    <p class="saveLocationTip" id="saveLocationTip">아이폰은 공유 메뉴에서 '파일에 저장'을 선택하세요.<br>카카오톡 안에서는 Safari 또는 Chrome으로 열어 주세요.</p>
+  </div>
+</div>
+
+<div id="boarWarning" class="hide" role="status" aria-live="polite"><strong>⚠ 야생동물 주의</strong>어디선가 고약한 냄새가 난다…<br>멧돼지가 가까이 있을지도 모른다!</div>
+<div id="rareSense" class="hide" role="status" aria-live="polite"><strong>🌿 약초꾼의 눈썰미</strong>산을 읽는 눈이 속삭인다…<br>이 근처에 예사롭지 않은 산의 보물이 숨어 있다.</div>
+<div id="toast"></div>
+<div id="campPanel" class="hide" role="dialog" aria-label="캠프파이어 요리">
+  <h3>🔥 산속의 화덕</h3><div id="campDetail"></div>
+  <div class="campActions"><button id="campFuelBtn" type="button">나뭇가지 넣기</button><button id="campCookBtn" type="button">🍳 요리하기</button><button id="campCloseBtn" type="button">닫기</button></div>
+</div>
+<div id="radioToast" class="hide"></div><div id="radioPanel" class="hide"><div class="radioHead">📻 산객 무전기 <button id="radioClose" class="btn">닫기</button></div><div id="radioChoices"></div><div id="radioLog"></div></div>
+<div id="faintOverlay" class="hide"><div class="faintSymbol">✦</div><h2>잠시 정신을 잃었습니다</h2><p id="faintMessage">산짐승을 피해 쉬고 있습니다.</p><div id="faintCountdown"></div><small>현실 시간 3분 동안 움직일 수 없습니다.</small></div>
+<div id="joy" class="hide"><div id="knob"></div></div>
+<button id="jumpBtn" class="hide">점프</button>
+<div id="climbPanel" class="hide" role="status" aria-live="off"><strong id="climbTitle">큰 바위 오르기</strong><small id="climbInfo">초록색 구간에 맞춰 오르기를 누르세요. 실패하면 2분간 기절합니다.</small><div id="climbBeat"><div id="climbBeatSafe"></div><div id="climbNeedle"></div></div></div>
+
+<div id="found">
+  <div class="tag" id="fTag">채집 성공</div>
+  <canvas id="fCanvas" width="360" height="480"></canvas>
+  <h2 id="fName">도라지</h2>
+  <div class="rar" id="fRar">★</div>
+  <p id="fDesc"></p><p id="fMeta"></p><button class="btn hide" id="fClose">닫기</button>
+</div>
+
+<div id="bag" class="hide">
+  <div class="sheet">
+    <h3>가방 · 도감 <button class="btn" id="bagClose">닫기</button></h3>
+    <div id="bagBody"></div>
+  </div>
+</div>
+
+
+
+
+<div id="rankPanel" class="hide" role="dialog" aria-modal="true" aria-label="약초꾼 승급 안내">
+  <section class="rankSheet"><div class="rankHead"><h3>🌿 약초꾼 승급 안내</h3><button class="btn" id="rankClose" type="button">닫기</button></div>
+    <div id="rankProgress" aria-live="polite"></div><div id="rankGuide"></div>
+    <p class="rank-footnote">등산 높이·바위 등반은 승급 조건에 포함되지 않습니다. 채집 누적량은 판매해도 유지됩니다.</p>
+  </section>
+</div>
+<div id="tentView" class="hide" aria-label="백약산 텐트 쉼터">
+  <div id="tentStatus">⛺ 백약산 쉼터 · 2인용</div>
+  <button id="tentExitBtn" class="btn tentExitBtn" type="button">밖으로 나가기</button>
+  <button id="tentChest" type="button" title="채집물을 판매하는 상자">상자 · 판매</button>
+  <div id="tentCash">정산금 0원</div>
+  <button id="bagUpgradeBtn" class="btn" type="button">🎒 가방 확장</button>
+  <section id="bagUpgradePanel" class="hide" role="dialog" aria-modal="true" aria-label="가방 확장 구매">
+    <h3>🎒 등산가방 확장</h3><p id="bagUpgradeInfo"></p>
+    <div class="buyActions"><button id="bagUpgradeBuy" class="btn" type="button">확장 구매</button><button id="bagUpgradeClose" class="btn" type="button">닫기</button></div>
+  </section>
+  <button id="lanternUpgradeBtn" class="btn" type="button">🔦 랜턴 1단계</button>
+  <section id="lanternUpgradePanel" class="hide" role="dialog" aria-modal="true" aria-label="랜턴 업그레이드 구매">
+    <h3>🔦 산행 랜턴 업그레이드</h3><p id="lanternUpgradeInfo"></p>
+    <div class="buyActions"><button id="lanternUpgradeBuy" class="btn" type="button">업그레이드 구매</button><button id="lanternUpgradeClose" class="btn" type="button">닫기</button></div>
+  </section>
+  <section id="sellPanel" class="hide" role="dialog" aria-modal="true" aria-labelledby="sellTitle">
+    <h3 id="sellTitle">산행 물품 판매</h3>
+    <p id="sellHelp">채집한 약초·나물·버섯·열매를 선택하세요. 게임 내 단가는 한국 시장의 상대적 가격을 참고해 조정한 가상 가격입니다.</p>
+    <div class="sellTools">
+      <div id="sellTabs" role="group" aria-label="판매 품목 종류"></div>
+      <select id="sellSort" aria-label="판매 품목 정렬">
+        <option value="price_desc">높은 가격순</option>
+        <option value="price_asc">낮은 가격순</option>
+        <option value="qty_desc">보유 수량순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
+    <div id="sellGrid" aria-live="polite"></div>
+    <div id="sellDetail">
+      <div id="sellInfo">판매할 품목을 선택해 주세요.</div>
+      <div id="sellQtyControls">
+        <button id="sellMinus" class="btn" type="button" aria-label="수량 줄이기">−</button>
+        <input id="sellQty" type="number" inputmode="numeric" min="1" value="1" aria-label="판매 수량">
+        <button id="sellPlus" class="btn" type="button" aria-label="수량 늘리기">+</button>
+        <button id="sellDoBtn" class="btn" type="button">판매하기</button>
+        <button id="sellCloseBtn" class="btn" type="button">닫기</button>
+      </div>
+      <div id="sellSummary">채집물 한 개는 게임 속 채집 단위이며 실제 시장의 kg 단위와 다릅니다.</div>
+    </div>
+  </section>
+</div>
+<div id="tentTransition" aria-hidden="true"></div>
+
+<div id="mapView" class="hide"><div class="sheet mapsheet">
+  <div class="mhead"><b>지도</b><span class="mkey">M 키로 열고 닫기</span><button class="btn" id="mapClose">닫기</button></div>
+  <div class="mwrap"><canvas id="mapC" width="680" height="680"></canvas>
+  </div>
+</div></div>
+<div id="fade"></div>
+<script src="./dist/game.bundle.js"></script>
+</body>
+</html>

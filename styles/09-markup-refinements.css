@@ -1,0 +1,7 @@
+/* 기존 HTML의 style 속성을 관리 가능한 클래스로 이동했습니다. */
+#startPanel .field-hint { font-size: 12px; opacity: .7; }
+#swatches { display: flex; gap: 6px; }
+#weather { font-size: 12px; margin-top: 3px; opacity: .85; }
+#fMeta { font-size: 12px; opacity: .65; margin-top: 4px; }
+#fClose { margin-top: 12px; }
+.rank-footnote { font-size: 11px; opacity: .7; margin-top: 12px; line-height: 1.65; }
