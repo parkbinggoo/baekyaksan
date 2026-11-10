@@ -36,12 +36,9 @@ function openSecretOffering(){
   offeringSelectedKey='';renderOfferingItems();$('secretOfferingPanel').classList.remove('hide');
 }
 function makeCaveOfferModel(key){
-  const base=goldBase(key),kind=itemKindOf(key),group=new THREE.Group();
-  if(kind==='herb'){
-    const plant=new THREE.Mesh(plantGeo(SPI[base],0),plantMat);
-    group.add(plant);
-  }else if(kind==='mush')group.add(mush3D(base));
-  if(isGoldenKey(key))tintGoldenObject(group);
+  const kind=itemKindOf(key),group=new THREE.Group();
+  // Same model factory as the original-species field guide and harvest card.
+  group.add(makeForageDisplayModel(kind,key));
   const bounds=new THREE.Box3().setFromObject(group),sz=bounds.getSize(new THREE.Vector3());
   const size=Math.max(sz.x,sz.y,sz.z,.01);
   group.scale.setScalar(Math.min(1.6,.65/size));

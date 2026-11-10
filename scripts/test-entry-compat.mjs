@@ -51,6 +51,6 @@ assert(run('complete'));
 assert(run('partial'));
 assert(run('missing'));
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-assert.match(html,/dist\/game\.bundle\.js\?v=1\.2\.8-entryfix/,'bust stale bundled JS cache');
+assert.match(html,/dist\/game\.bundle\.js\?v=1\.2\.8-entryfix-goldshape1/,'bust stale golden-shape bundle cache');
 assert.match(html,/styles\/14-golden-hoe-ui\.css\?v=1\.2\.8-entryfix/,'bust stale CSS cache');
 console.log('시작 화면 회귀 검증 통과: 최신/구형/일부 누락 HTML에서도 UI 초기화가 중단되지 않고, 캐시 갱신 경로가 존재합니다.');

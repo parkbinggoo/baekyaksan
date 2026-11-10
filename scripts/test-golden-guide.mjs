@@ -12,8 +12,10 @@ assert.match(regularCss,/\.card\.unk img\s*\{[^}]*filter\s*:\s*brightness\(0\) o
 assert.match(css,/\.golden-card\s*\{[^}]*border-color:/,'황금 도감 카드의 금색 테두리는 유지');
 assert.doesNotMatch(css,/\.golden-card(?:\.unk)?\s+img\s*,|\.golden-card\.unk\s+img\s*\{[^}]*(?:filter|opacity|visibility)\s*:/,'황금 미발견 이미지는 일반 도감 실루엣을 덮어쓰지 않음');
 const iconSrc=await read('src/game/graphics/25-collection-icons.js');
-assert.match(iconSrc,/const gilded=isGoldenKey\(type\);type=goldBase\(type\)/);
+assert.match(iconSrc,/function makeForageDisplayModel\(kind,type\)/);
+assert.match(iconSrc,/const base=goldBase\(type\),gilded=isGoldenKey\(type\)/);
 assert.match(iconSrc,/if\(gilded\)tintGoldenObject\(obj\)/);
+assert.match(iconSrc,/const obj=makeForageDisplayModel\(kind,type\)/);
 const harvest=await read('src/game/gameplay/32-harvest.js');
 assert.match(harvest,/const sp=SPI\[originalType\]/,'뿌리 연출은 gold: 키 대신 원본 식물의 데이터를 참조');
 // 가짜 DOM에서 황금 5성 도감 카드가 생성되고 3D 이미지 URL이 연결되는지 검사.

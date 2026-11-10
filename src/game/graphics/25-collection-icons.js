@@ -88,14 +88,27 @@ function hive3D(type){
  }
  return g;
 }
-function renderIcon(kind,type){
-  const gilded=isGoldenKey(type);type=goldBase(type);
-  iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
-  let obj;if(kind==='herb'){obj=new THREE.Mesh(plantGeo(SPI[type],0),plantMat)}else if(kind==='fruit'){obj=fruit3D(type)}else if(kind==='honey'){obj=hive3D(type)}else{obj=mush3D(type);obj.rotation.y=-Math.PI/2}
+// All displays construct the same original species model, then optionally
+// gild that very instance. The field-guide, discovery card and Buddha offering
+// can never accidentally use a different mushroom or a proxy plant model.
+function makeForageDisplayModel(kind,type){
+  const base=goldBase(type),gilded=isGoldenKey(type);
+  let obj;
+  if(kind==='herb')obj=new THREE.Mesh(plantGeo(SPI[base],0),plantMat);
+  else if(kind==='fruit')obj=fruit3D(base);
+  else if(kind==='honey')obj=hive3D(base);
+  else obj=mush3D(base);
   if(gilded)tintGoldenObject(obj);
+  return obj;
+}
+function renderIcon(kind,type){
+  const base=goldBase(type);
+  iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
+  const obj=makeForageDisplayModel(kind,type);
+  if(kind==='mush')obj.rotation.y=-Math.PI/2;
   const grp=new THREE.Group();grp.add(obj);
   const box=new THREE.Box3().setFromObject(grp),sz=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
-  if(kind==='herb'&&SPI[type].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);
+  if(kind==='herb'&&SPI[base].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);
     const line=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,.006),new THREE.MeshBasicMaterial({color:0x4a3a26}));line.position.set(ctr.x,0,ctr.z-Math.max(sz.z,.05)*.6+.001);grp.add(line)}
   iconScene.add(grp);
   // Original model scale and camera distance, now rendered inside a taller frame.

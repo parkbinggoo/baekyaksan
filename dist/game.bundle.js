@@ -1629,29 +1629,57 @@ function goldenKey(key){return GOLD_PREFIX+key}
 function goldTitle(key){const base=goldBase(key);return GOLD_TITLES[base]||('황금 '+itemInfo(base).name+'의 수호자')}
 const VALID_SPECIAL_TITLES=new Set(GOLD_FIVE_BASES.map(goldTitle));
 function validSpecialTitle(name){return typeof name==='string'&&VALID_SPECIAL_TITLES.has(name)?name:''}
-function goldenSpawn(slotId,cycle=0){
-  // One reserved slot for each species; do not roll new gold on every cycle
-  // or from random ground digging, which could exceed the one-per-species cap.
-  return GOLDEN_SINGLETON_IDS.has(slotId);
+function goldenSpawn(slotId,cycle=0,type=''){
+  // Each unique golden slot belongs to exactly ONE species. The optional type
+  // check prevents a changed/randomized species from receiving another name's
+  // golden appearance, even if it occupies a reserved slot.
+  return type?GOLDEN_SINGLETON_SLOTS[type]===slotId:GOLDEN_SINGLETON_IDS.has(slotId);
 }
-// Recolour the original meshes without replacing their geometry or changing
-// the silhouette. Source materials are cloned to avoid tinting ordinary plants.
+// Identical original topology, size, orientation, and part arrangement.
+// Golden variants reuse the real species model, with material-only treatment.
+// Native herbs store their leaf / berry / root colours in *vertex colours*;
+// replacing those with one flat colour erased the details that distinguished
+// sansam and cheonma. Convert only the colour buffer, never position/normal data.
 function tintGoldenObject(root){
-  root.traverse(obj=>{if(!obj.isMesh||obj.userData.goldTinted)return;
-    const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-    obj.material=mats.map(src=>{
-      const mat=src.clone();mat.flatShading=true;
-      const light=src.color?(src.color.r*.32+src.color.g*.52+src.color.b*.16):.5;
-      mat.color.setHSL(.119,.68,Math.min(.69,Math.max(.40,.43+light*.16)));
-      if(mat.vertexColors){ // Existing native-herb vertex hues would otherwise remain green.
-        mat.vertexColors=false;
+  root.traverse(obj=>{
+    if(!obj.isMesh||obj.userData.goldTinted)return;
+    const original=Array.isArray(obj.material)?obj.material:[obj.material];
+    if(original.every(mat=>mat?.visible===false))return; // invisible touch target
+    let goldenGeometry=null;
+    const goldenMats=original.map(src=>{
+      if(src?.visible===false)return src;
+      const mat=src.clone();
+      const originalColor=src.color;
+      const luminance=originalColor?.r!==undefined?
+        originalColor.r*.2126+originalColor.g*.7152+originalColor.b*.0722:.5;
+      const vertexColours=!!src.vertexColors&&!!obj.geometry?.getAttribute?.('color');
+      if(vertexColours){
+        // Do NOT modify plantGeoCache's geometry: ordinary specimens must stay green.
+        if(!goldenGeometry){
+          goldenGeometry=obj.geometry.clone();
+          goldenGeometry.userData={...goldenGeometry.userData,keep:false};
+          const colours=goldenGeometry.getAttribute('color');
+          for(let i=0;i<colours.count;i++){
+            const r=colours.getX(i),g=colours.getY(i),b=colours.getZ(i);
+            const shade=Math.max(.48,Math.min(1,.56+(.2126*r+.7152*g+.0722*b)*.54+(r>g*1.3&&r>b*1.3?.07:0)));
+            colours.setXYZ(i,Math.min(1,shade),shade*.78,shade*.30);
+          }
+          colours.needsUpdate=true;
+        }
+        mat.color.setHex(0xffffff); // per-part gold shades come from the colour buffer
+        mat.vertexColors=true;
+      }else{
+        // Mushroom cap, gills and stems keep their original relative contrast.
+        const shade=Math.max(.34,Math.min(.73,.36+luminance*.31));
+        mat.color.setHSL(.119,.72,shade);
       }
-      if(mat.emissive)mat.emissive.setHex(0x221304);
-      if('shininess' in mat)mat.shininess=4;
-      mat.needsUpdate=true;return mat;
+      // Restrained emissive gold, without adding / replacing any geometry.
+      if(mat.emissive){mat.emissive.setHex(0x845511);mat.emissiveIntensity=.24;}
+      mat.needsUpdate=true;
+      return mat;
     });
-    if(!Array.isArray(obj.userData?.goldSources))obj.userData.goldSources=mats;
-    if(!Array.isArray(obj.material))obj.material=obj.material[0];
+    if(goldenGeometry)obj.geometry=goldenGeometry;
+    obj.material=Array.isArray(obj.material)?goldenMats:goldenMats[0];
     obj.userData.goldTinted=true;
   });
   return root;
@@ -1660,7 +1688,7 @@ function applyGoldenVariants(chunk){
   for(const it of chunk.items){
     if(!it.mesh||!GOLD_FIVE_BASES.includes(it.type)||itemInfo(it.type)?.rar!==5)continue;
     const cycle=rareMoves.get(it.id)?.cycle||0;
-    if(!goldenSpawn(it.id,cycle))continue;
+    if(!goldenSpawn(it.id,cycle,it.type))continue; // type+slot must match
     it.golden=true;it.goldenCare=1.08;tintGoldenObject(it.mesh);
   }
 }
@@ -1997,14 +2025,27 @@ function hive3D(type){
  }
  return g;
 }
-function renderIcon(kind,type){
-  const gilded=isGoldenKey(type);type=goldBase(type);
-  iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
-  let obj;if(kind==='herb'){obj=new THREE.Mesh(plantGeo(SPI[type],0),plantMat)}else if(kind==='fruit'){obj=fruit3D(type)}else if(kind==='honey'){obj=hive3D(type)}else{obj=mush3D(type);obj.rotation.y=-Math.PI/2}
+// All displays construct the same original species model, then optionally
+// gild that very instance. The field-guide, discovery card and Buddha offering
+// can never accidentally use a different mushroom or a proxy plant model.
+function makeForageDisplayModel(kind,type){
+  const base=goldBase(type),gilded=isGoldenKey(type);
+  let obj;
+  if(kind==='herb')obj=new THREE.Mesh(plantGeo(SPI[base],0),plantMat);
+  else if(kind==='fruit')obj=fruit3D(base);
+  else if(kind==='honey')obj=hive3D(base);
+  else obj=mush3D(base);
   if(gilded)tintGoldenObject(obj);
+  return obj;
+}
+function renderIcon(kind,type){
+  const base=goldBase(type);
+  iconInit();while(iconScene.children.length>2)iconScene.remove(iconScene.children[2]);
+  const obj=makeForageDisplayModel(kind,type);
+  if(kind==='mush')obj.rotation.y=-Math.PI/2;
   const grp=new THREE.Group();grp.add(obj);
   const box=new THREE.Box3().setFromObject(grp),sz=box.getSize(new THREE.Vector3()),ctr=box.getCenter(new THREE.Vector3());
-  if(kind==='herb'&&SPI[type].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);
+  if(kind==='herb'&&SPI[base].root){const soil=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,Math.max(-box.min.y,.02)+.04),new THREE.MeshBasicMaterial({color:0x6b4f32,transparent:true,opacity:.28}));soil.position.set(ctr.x,(box.min.y-.02)/2,ctr.z-Math.max(sz.z,.05)*.6);grp.add(soil);
     const line=new THREE.Mesh(new THREE.PlaneGeometry(Math.max(sz.x,sz.z)*1.6+.1,.006),new THREE.MeshBasicMaterial({color:0x4a3a26}));line.position.set(ctr.x,0,ctr.z-Math.max(sz.z,.05)*.6+.001);grp.add(line)}
   iconScene.add(grp);
   // Original model scale and camera distance, now rendered inside a taller frame.
@@ -5443,12 +5484,9 @@ function openSecretOffering(){
   offeringSelectedKey='';renderOfferingItems();$('secretOfferingPanel').classList.remove('hide');
 }
 function makeCaveOfferModel(key){
-  const base=goldBase(key),kind=itemKindOf(key),group=new THREE.Group();
-  if(kind==='herb'){
-    const plant=new THREE.Mesh(plantGeo(SPI[base],0),plantMat);
-    group.add(plant);
-  }else if(kind==='mush')group.add(mush3D(base));
-  if(isGoldenKey(key))tintGoldenObject(group);
+  const kind=itemKindOf(key),group=new THREE.Group();
+  // Same model factory as the original-species field guide and harvest card.
+  group.add(makeForageDisplayModel(kind,key));
   const bounds=new THREE.Box3().setFromObject(group),sz=bounds.getSize(new THREE.Vector3());
   const size=Math.max(sz.x,sz.y,sz.z,.01);
   group.scale.setScalar(Math.min(1.6,.65/size));

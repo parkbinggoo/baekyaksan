@@ -22,29 +22,57 @@ function goldenKey(key){return GOLD_PREFIX+key}
 function goldTitle(key){const base=goldBase(key);return GOLD_TITLES[base]||('황금 '+itemInfo(base).name+'의 수호자')}
 const VALID_SPECIAL_TITLES=new Set(GOLD_FIVE_BASES.map(goldTitle));
 function validSpecialTitle(name){return typeof name==='string'&&VALID_SPECIAL_TITLES.has(name)?name:''}
-function goldenSpawn(slotId,cycle=0){
-  // One reserved slot for each species; do not roll new gold on every cycle
-  // or from random ground digging, which could exceed the one-per-species cap.
-  return GOLDEN_SINGLETON_IDS.has(slotId);
+function goldenSpawn(slotId,cycle=0,type=''){
+  // Each unique golden slot belongs to exactly ONE species. The optional type
+  // check prevents a changed/randomized species from receiving another name's
+  // golden appearance, even if it occupies a reserved slot.
+  return type?GOLDEN_SINGLETON_SLOTS[type]===slotId:GOLDEN_SINGLETON_IDS.has(slotId);
 }
-// Recolour the original meshes without replacing their geometry or changing
-// the silhouette. Source materials are cloned to avoid tinting ordinary plants.
+// Identical original topology, size, orientation, and part arrangement.
+// Golden variants reuse the real species model, with material-only treatment.
+// Native herbs store their leaf / berry / root colours in *vertex colours*;
+// replacing those with one flat colour erased the details that distinguished
+// sansam and cheonma. Convert only the colour buffer, never position/normal data.
 function tintGoldenObject(root){
-  root.traverse(obj=>{if(!obj.isMesh||obj.userData.goldTinted)return;
-    const mats=Array.isArray(obj.material)?obj.material:[obj.material];
-    obj.material=mats.map(src=>{
-      const mat=src.clone();mat.flatShading=true;
-      const light=src.color?(src.color.r*.32+src.color.g*.52+src.color.b*.16):.5;
-      mat.color.setHSL(.119,.68,Math.min(.69,Math.max(.40,.43+light*.16)));
-      if(mat.vertexColors){ // Existing native-herb vertex hues would otherwise remain green.
-        mat.vertexColors=false;
+  root.traverse(obj=>{
+    if(!obj.isMesh||obj.userData.goldTinted)return;
+    const original=Array.isArray(obj.material)?obj.material:[obj.material];
+    if(original.every(mat=>mat?.visible===false))return; // invisible touch target
+    let goldenGeometry=null;
+    const goldenMats=original.map(src=>{
+      if(src?.visible===false)return src;
+      const mat=src.clone();
+      const originalColor=src.color;
+      const luminance=originalColor?.r!==undefined?
+        originalColor.r*.2126+originalColor.g*.7152+originalColor.b*.0722:.5;
+      const vertexColours=!!src.vertexColors&&!!obj.geometry?.getAttribute?.('color');
+      if(vertexColours){
+        // Do NOT modify plantGeoCache's geometry: ordinary specimens must stay green.
+        if(!goldenGeometry){
+          goldenGeometry=obj.geometry.clone();
+          goldenGeometry.userData={...goldenGeometry.userData,keep:false};
+          const colours=goldenGeometry.getAttribute('color');
+          for(let i=0;i<colours.count;i++){
+            const r=colours.getX(i),g=colours.getY(i),b=colours.getZ(i);
+            const shade=Math.max(.48,Math.min(1,.56+(.2126*r+.7152*g+.0722*b)*.54+(r>g*1.3&&r>b*1.3?.07:0)));
+            colours.setXYZ(i,Math.min(1,shade),shade*.78,shade*.30);
+          }
+          colours.needsUpdate=true;
+        }
+        mat.color.setHex(0xffffff); // per-part gold shades come from the colour buffer
+        mat.vertexColors=true;
+      }else{
+        // Mushroom cap, gills and stems keep their original relative contrast.
+        const shade=Math.max(.34,Math.min(.73,.36+luminance*.31));
+        mat.color.setHSL(.119,.72,shade);
       }
-      if(mat.emissive)mat.emissive.setHex(0x221304);
-      if('shininess' in mat)mat.shininess=4;
-      mat.needsUpdate=true;return mat;
+      // Restrained emissive gold, without adding / replacing any geometry.
+      if(mat.emissive){mat.emissive.setHex(0x845511);mat.emissiveIntensity=.24;}
+      mat.needsUpdate=true;
+      return mat;
     });
-    if(!Array.isArray(obj.userData?.goldSources))obj.userData.goldSources=mats;
-    if(!Array.isArray(obj.material))obj.material=obj.material[0];
+    if(goldenGeometry)obj.geometry=goldenGeometry;
+    obj.material=Array.isArray(obj.material)?goldenMats:goldenMats[0];
     obj.userData.goldTinted=true;
   });
   return root;
@@ -53,7 +81,7 @@ function applyGoldenVariants(chunk){
   for(const it of chunk.items){
     if(!it.mesh||!GOLD_FIVE_BASES.includes(it.type)||itemInfo(it.type)?.rar!==5)continue;
     const cycle=rareMoves.get(it.id)?.cycle||0;
-    if(!goldenSpawn(it.id,cycle))continue;
+    if(!goldenSpawn(it.id,cycle,it.type))continue; // type+slot must match
     it.golden=true;it.goldenCare=1.08;tintGoldenObject(it.mesh);
   }
 }

@@ -122,11 +122,11 @@ index.html (화면 구조)
 | graphics | `src/game/graphics/19-herb-and-mushroom-mesh.js` | 1658–1700 | 43줄 | 기존 저폴리곤 약초·버섯 3D 모델 |
 | graphics | `src/game/graphics/20-hiker-avatar.js` | 1701–1823 | 145줄 | 플레이어 3D 모델·동작·소지물 표시 |
 | data | `src/game/data/21-native-flora-database.js` | 1824–2013 | 190줄 | 국내 자생 식물 종·서식 특성 데이터 |
-| data | `src/game/data/21b-golden-five-star.js` | —–— | 80줄 | 황금 5성 확률·색상·공양 칭호·머리 위 표시 유틸 |
+| data | `src/game/data/21b-golden-five-star.js` | —–— | 108줄 | 황금 5성 확률·색상·공양 칭호·머리 위 표시 유틸 |
 | world | `src/game/world/22-streams-and-habitats.js` | 2014–2038 | 25줄 | 계곡·토양·그늘·서식지 적합도 |
 | graphics | `src/game/graphics/23-low-poly-flora-builders.js` | 2039–2178 | 140줄 | 식물 저폴리곤 빌더·형상 최적화 |
 | world | `src/game/world/24-flora-population.js` | 2179–2235 | 57줄 | 지형·고도별 식생 분포·물가 |
-| graphics | `src/game/graphics/25-collection-icons.js` | 2236–2346 | 113줄 | 도감 아이콘 렌더·열매·벌집·땅속 채집 |
+| graphics | `src/game/graphics/25-collection-icons.js` | 2236–2346 | 126줄 | 도감 아이콘 렌더·열매·벌집·땅속 채집 |
 | world | `src/game/world/26-decoy-flora.js` | 2347–2566 | 220줄 | 배경 야생화·나무·바위 식생·야생버섯 |
 | world | `src/game/world/27-wild-honey.js` | 2567–2607 | 41줄 | 벌집 생성·꿀 채집 서식지 |
 | world | `src/game/world/28-rare-placement.js` | 2608–2702 | 95줄 | 희귀 채집물 위치 이동·재생성 |
@@ -159,7 +159,7 @@ index.html (화면 구조)
 | gameplay | `src/game/gameplay/49a-golden-hoe-ui-and-aura.js` | —–— | 95줄 | 황금 호미 진행·전용 획득창·동굴/호미 30m 접근 알림 |
 | world | `src/game/world/53-secret-cave-world.js` | —–— | 364줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
 | world | `src/game/world/53a-cave-blessing-visuals.js` | —–— | 63줄 | 공양 후 촛불 동시 흔들림·은은한 광원·황금 불상 빛·동굴 카메라 진동 |
-| gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 135줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
+| gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 132줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
 | gameplay | `src/game/gameplay/54a-cave-blessing-buff.js` | —–— | 51줄 | 일반/황금 5성 공양 40분/24시간 음식 동일 효과·산삼 힌트 3%·황금 기절 보호·저장·HUD |
 | core | `src/game/core/50-game-update.js` | 4528–4605 | 84줄 | 프레임별 게임 로직·물리·상태 갱신 |
 | save | `src/game/save/51-profile-and-files.js` | 4606–4843 | 249줄 | 프로필 키·JSON 저장·복원·기록 내보내기 |
