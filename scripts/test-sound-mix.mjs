@@ -1,0 +1,52 @@
+/** Audio-mix regression test: WebAudio stubs, no device/network required. */
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const read=path=>readFile(new URL('../'+path,import.meta.url),'utf8');
+const audio=await read('src/game/audio/44a-world-events-sound.js');
+const forest=await read('src/game/audio/44-forest-ambience.js');
+const audioCore=await read('src/game/audio/04-audio-core.js');
+const sounds=[];
+const param=()=>({value:0,setValueAtTime(v){this.value=v},linearRampToValueAtTime(v){this.value=v},exponentialRampToValueAtTime(v){this.value=v},setTargetAtTime(v){this.value=v},cancelScheduledValues(){}});
+const node=()=>({connect(){return this},start(){},stop(){},gain:param(),frequency:param(),Q:param(),pan:param(),opacity:param(),buffer:null});
+const fakeAC={state:'running',currentTime:50,sampleRate:8000,createGain:node,createOscillator:node,createBiquadFilter:node,createBufferSource:node,createStereoPanner:node,createBuffer(_channels,n){return {sampleRate:8000,getChannelData(){return new Float32Array(n)}}}};
+const amb={master:node(),water:node()};
+const ctx={AC:fakeAC,soundOn:true,document:{hidden:false},audioOutput:node(),AMB:amb,Math,Date,
+  tone(...args){sounds.push({f:args[0],dur:args[1],vol:args[3],delay:args[5]||0})},
+  inSecretCave:true,inTent:false,
+};
+const obj=vm.runInNewContext(audio+'\n({playBoarTension,beginCaveSound,tickCaveSound,endCaveSound,CAVE_CHORDS,CAVE_MELODY,get boarUntil(){return boarTensionUntil},get cave(){return caveAudio}})',ctx);
+obj.playBoarTension();
+assert(sounds.length>=30,'original tension cue should have a noticeable rhythmic sequence');
+const notes=sounds.filter(s=>s.f>=100&&s.f<200);
+assert(new Set(notes.map(x=>x.f)).size>=4,'danger motif should differ from a two-note borrowed pattern');
+assert(notes.at(-1).delay>notes[2].delay,'staggered notes');
+assert(obj.boarUntil>fakeAC.currentTime+3.5,'ambient duck should cover the suspense cue');
+assert(amb.master.gain.value<=.3,'forest should be ducked while the motif plays');
+assert(sounds.every(x=>x.vol<.12),'avoid excessively high standalone note gain');
+const before=sounds.length;obj.playBoarTension();
+assert.equal(sounds.length,before,'repeated alert must not hammer the cue');
+obj.beginCaveSound();
+assert(obj.cave?.nodes.length>=6,'cave has a real multi-layer synthesized music bed');
+assert(obj.cave?.music.gain.value>=.85,'music is foregrounded');
+assert.equal(obj.cave?.nodes.length,obj.cave.harmonies.length+1,'ambient bed separate from harmonies');
+obj.tickCaveSound(2.5);
+assert.equal(obj.cave?.melodyIndex,1,'slow original melody becomes audible in cave');
+obj.tickCaveSound(8.1);
+assert(obj.cave.chordIndex>0,'cave changes chords while exploring');
+obj.endCaveSound();
+assert.equal(obj.cave,null,'leaving cave releases the ambient music');
+const forestObj=vm.runInNewContext(forest+'\n({CHORUS,SND})',{Math});
+assert(forestObj.CHORUS['아침'].bird<=.13,'morning chirps less frequent');
+assert(forestObj.CHORUS['낮'].bird<.08,'day chirps less frequent');
+assert.equal(forestObj.CHORUS['낮'].cicada,.09,'cicada frequency preserved');
+assert.equal(forestObj.CHORUS['저녁'].higurashi,.07,'evening insect frequency preserved');
+assert.equal(forestObj.CHORUS['아침'].dove,.10,'other bird frequency preserved');
+assert.equal(forestObj.CHORUS['낮'].cuckoo,.025,'other bird call unchanged');
+assert.match(forest,/R\(680,1110\)/,'bird pitch lowered into softer register');
+assert.match(forest,/R\(2\.5,4\.2\)/,'cicada duration unchanged');
+assert.match(forest,/2650,2200/,'evening cicada pitch unchanged');
+assert.match(forest,/boarTensionUntil>a\.currentTime/,'live background ducking while alert plays');
+assert.match(audio,/boarDuck=boarTensionUntil>a\.currentTime/,'rain audio also ducked');
+assert.match(audioCore,/function tone\(/,'core sound engine maintained');
+console.log('음향 믹스 검사 통과: 동굴 음악 우선, 동굴 공기음 축소, 멧돼지 독창적 가속 리듬/배경 덕킹, 길게 삐 울리는 일반 새소리만 음역/빈도 감소(다른 새·벌레 소리 불변).');

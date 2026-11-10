@@ -4,6 +4,8 @@
  */
 let soundNoiseBuffer=null,fireSfxClock=0,stepSfxDistance=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
 let caveAudio=null,rainAudio=null;
+// Audio-context time keeps the threat cue and ambient ducking in sync.
+let boarTensionUntil=0,lastBoarTensionAt=-30;
 function eventAudioReady(){
   if(!soundOn||!AC||AC.state!=='running'||document.hidden)return null;
   return AC;
@@ -44,11 +46,27 @@ function playCookingStage(stage){
   if(stage===7){eventNoise({duration:.12,volume:.018,lowpass:1250})}
 }
 function playBoarTension(){
-  // Small original two-second tension cue; not a loud alarm.
-  tone(146,2.2,'sine',.034,.85);
-  tone(220,1.8,'triangle',.019,.75,.14);
-  tone(164,.6,'sine',.023,.77,1.05);
-  eventNoise({duration:1.9,volume:.015,lowpass:410,highpass:65});
+  // Original, accelerating low-register danger ostinato. A classic suspense
+  // atmosphere, but not the melody or exact note pattern of any existing score.
+  const a=eventAudioReady();if(!a)return;
+  if(a.currentTime-lastBoarTensionAt<8)return; // avoid repeats on alert flicker
+  lastBoarTensionAt=a.currentTime;
+  const pitches=[110,146.83,130.81,164.81,116.54,174.61];
+  let elapsed=0;
+  for(let i=0;i<15;i++){
+    const progress=i/14;
+    const gap=.44-progress*.23; // rhythmic tension accelerates
+    const pitch=pitches[i%pitches.length];
+    const strength=.063+progress*.037;
+    tone(pitch,gap*.83,'triangle',strength,1,elapsed);
+    tone(pitch*.5,gap*.9,'sine',strength*.43,1,elapsed);
+    if(i%3===2)eventNoise({delay:elapsed,duration:gap*.65,volume:.019+progress*.018,lowpass:540,highpass:45});
+    elapsed+=gap;
+  }
+  tone(73.42,Math.max(.8,elapsed*.35),'sine',.041,1,0);
+  boarTensionUntil=a.currentTime+elapsed+.65;
+  if(AMB)AMB.master.gain.setTargetAtTime(.24,a.currentTime,.12);
+  if(rainAudio)rainAudio.gain.gain.setTargetAtTime(rainAudio.gain.gain.value*.42,a.currentTime,.12);
 }
 function playSnowStep(){
   eventNoise({duration:.19,volume:.068,lowpass:2400,highpass:480,pan:(Math.random()-.5)*.12});
@@ -74,20 +92,44 @@ function saySansamFound(){
     window.speechSynthesis.speak(utter);
   }catch(e){/* WebSpeech is optional on Safari. Musical cue is always available. */}
 }
+const CAVE_CHORDS=[
+  [73.42,146.83,174.61,220.00,293.66],
+  [58.27,116.54,146.83,174.61,233.08],
+  [49.00,98.00,146.83,196.00,293.66],
+  [55.00,110.00,164.81,220.00,329.63],
+];
+const CAVE_MELODY=[293.66,349.23,440,392,293.66,261.63,349.23,220];
+function playCaveMusicNote(c,freq){
+  const a=c.a,t=a.currentTime+.02,dur=2.55;
+  const o=a.createOscillator(),filter=a.createBiquadFilter(),g=a.createGain();
+  o.type='triangle';o.frequency.setValueAtTime(freq,t);
+  filter.type='lowpass';filter.frequency.value=950;
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.linearRampToValueAtTime(.037,t+.34);
+  g.gain.setValueAtTime(.031,t+dur*.38);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(filter);filter.connect(g);g.connect(c.music);
+  o.start(t);o.stop(t+dur+.03);
+}
 function beginCaveSound(){
   const a=eventAudioReady();if(!a||caveAudio)return;
-  if(AMB){AMB.master.gain.setTargetAtTime(.075,a.currentTime,.32);AMB.water.gain.setTargetAtTime(0,a.currentTime,.18)}
-  const main=a.createGain(),drone=a.createGain(),caveWind=a.createGain();
-  main.gain.value=.0001;main.connect(audioOutput);drone.gain.value=.52;drone.connect(main);caveWind.gain.value=.12;caveWind.connect(main);
-  const nodes=[];
-  for(const [freq,vol,kind] of [[98,.045,'sine'],[146.83,.024,'sine'],[196,.030,'triangle'],[293.66,.014,'sine'],[392,.008,'sine']]){
-    const o=a.createOscillator(),g=a.createGain();o.type=kind;o.frequency.value=freq;g.gain.value=vol;
-    o.connect(g);g.connect(drone);o.start();nodes.push(o);
+  if(AMB){AMB.master.gain.setTargetAtTime(.025,a.currentTime,.32);AMB.water.gain.setTargetAtTime(0,a.currentTime,.18)}
+  const main=a.createGain(),music=a.createGain(),drone=a.createGain(),caveWind=a.createGain();
+  main.gain.value=.0001;main.connect(audioOutput);
+  music.gain.value=.95;music.connect(main);
+  drone.gain.value=.90;drone.connect(music);
+  caveWind.gain.value=.022;caveWind.connect(main); // quieter cave airflow
+  const nodes=[],harmonies=[];
+  const volumes=[.087,.060,.046,.038,.022];
+  for(let i=0;i<volumes.length;i++){
+    const o=a.createOscillator(),g=a.createGain();
+    o.type=i===2?'triangle':'sine';o.frequency.value=CAVE_CHORDS[0][i];g.gain.value=volumes[i];
+    o.connect(g);g.connect(drone);o.start();nodes.push(o);harmonies.push(o);
   }
   const wind=a.createBufferSource(),filter=a.createBiquadFilter();wind.buffer=eventNoiseBuffer(a);wind.loop=true;
-  filter.type='lowpass';filter.frequency.value=360;wind.connect(filter);filter.connect(caveWind);wind.start();nodes.push(wind);
+  filter.type='lowpass';filter.frequency.value=270;wind.connect(filter);filter.connect(caveWind);wind.start();nodes.push(wind);
   main.gain.setTargetAtTime(1,a.currentTime,.95);
-  caveAudio={main,drone,nodes,a,elapsed:0};
+  caveAudio={main,music,drone,nodes,harmonies,a,elapsed:0,chordIndex:0,melodyIndex:0,nextMelody:2.1,nextChord:7.5};
 }
 function endCaveSound(){
   if(AMB&&AC){AMB.master.gain.setTargetAtTime(.79,AC.currentTime,.60)}
@@ -99,8 +141,18 @@ function endCaveSound(){
 function tickCaveSound(dt){
   if(!inSecretCave||inTent||!soundOn){endCaveSound();return}
   if(!caveAudio)beginCaveSound();
-  if(caveAudio){caveAudio.elapsed+=dt;
-    caveAudio.drone.gain.setTargetAtTime(.48+Math.sin(caveAudio.elapsed*.20)*.085,caveAudio.a.currentTime,.5);
+  if(!caveAudio)return;
+  const c=caveAudio;c.elapsed+=dt;
+  c.drone.gain.setTargetAtTime(.86+Math.sin(c.elapsed*.15)*.07,c.a.currentTime,.5);
+  if(c.elapsed>=c.nextChord){
+    c.chordIndex=(c.chordIndex+1)%CAVE_CHORDS.length;
+    c.harmonies.forEach((o,i)=>o.frequency.setTargetAtTime(CAVE_CHORDS[c.chordIndex][i],c.a.currentTime,1.35));
+    c.nextChord+=7.5;
+  }
+  if(c.elapsed>=c.nextMelody){
+    playCaveMusicNote(c,CAVE_MELODY[c.melodyIndex%CAVE_MELODY.length]);
+    c.melodyIndex++;
+    c.nextMelody+=3.3;
   }
 }
 function updateRainSound(){
@@ -111,7 +163,8 @@ function updateRainSound(){
     lp.type='lowpass';lp.frequency.value=2400;gain.gain.value=.0001;
     src.connect(hp);hp.connect(lp);lp.connect(gain);gain.connect(audioOutput);src.start();rainAudio={a,gain};
   }
-  const volume=mode==='game'&&!inTent&&!inSecretCave&&Date.now()>=faintUntil?.026*weatherRain:0;
+  const boarDuck=boarTensionUntil>a.currentTime?.43:1;
+  const volume=mode==='game'&&!inTent&&!inSecretCave&&Date.now()>=faintUntil?.026*weatherRain*boarDuck:0;
   rainAudio.gain.gain.setTargetAtTime(volume,rainAudio.a.currentTime,.45);
 }
 function updateWorldSounds(dt){

@@ -109,7 +109,7 @@ index.html (화면 구조)
 | world | `src/game/world/06-terrain-height.js` | 750–768 | 19줄 | 지형 높이·능선·산길 수학 |
 | graphics | `src/game/graphics/07-renderer-and-textures.js` | 769–788 | 20줄 | Three.js 렌더러·카메라·재질·캔버스 텍스처 |
 | graphics | `src/game/graphics/08-tent-mesh.js` | 789–844 | 56줄 | 텐트 외부 3D 모델 |
-| gameplay | `src/game/gameplay/09-campfire-cooking.js` | 845–1130 | 286줄 | 모닥불·불쏘시개·조리·버프·애니메이션 |
+| gameplay | `src/game/gameplay/09-campfire-cooking.js` | 845–1130 | 287줄 | 모닥불·불쏘시개·조리·버프·애니메이션 |
 | world | `src/game/world/10-tent-placement.js` | 1131–1220 | 90줄 | 산속 텐트 배치·분홍 리본 길 안내 |
 | gameplay | `src/game/gameplay/11-tent-occupancy.js` | 1221–1268 | 48줄 | 텐트 출입·수용 인원·점유 동기화 |
 | gameplay | `src/game/gameplay/12-tent-upgrades.js` | 1269–1308 | 40줄 | 가방 확장·랜턴 업그레이드·구매 금액 |
@@ -135,29 +135,30 @@ index.html (화면 구조)
 | world | `src/game/world/29-chunks-and-ground.js` | 2703–3080 | 386줄 | 청크 지형·식물 배치·충돌·로드/언로드 |
 | world | `src/game/world/30-summit-and-gate.js` | 3081–3143 | 63줄 | 2,500m 정상·태극기·일주문 |
 | graphics | `src/game/graphics/31-particles.js` | 3144–3157 | 14줄 | 흙·하트·채집 이펙트 |
-| gameplay | `src/game/gameplay/32-harvest.js` | 3158–3262 | 111줄 | 이동 상태·채집·아이템 획득·도감 팝업 |
+| gameplay | `src/game/gameplay/32-harvest.js` | 3158–3262 | 118줄 | 이동 상태·채집·아이템 획득·도감 팝업 |
 | ui | `src/game/ui/33-world-labels.js` | 3263–3270 | 8줄 | 캐릭터·채집 세계 좌표 라벨 |
 | input | `src/game/input/34-pointer-and-keyboard.js` | 3271–3308 | 43줄 | 마우스·터치·키보드 조작 |
 | input | `src/game/input/34a-forage-hit-assist.js` | —–— | 60줄 | 작은 약초·버섯·채집물의 화면 터치 오차범위 보정 (모델/난이도 불변) |
 | ui | `src/game/ui/35-hud-and-bag.js` | 3309–3345 | 51줄 | 상단 상태 HUD·가방·도감 UI |
 | ui | `src/game/ui/36-map.js` | 3346–3438 | 107줄 | 지도·나침반·위치 표기 |
 | network | `src/game/network/37-radio.js` | 3439–3461 | 23줄 | 무전기 UI·상태 메시지 |
-| network | `src/game/network/38-multiplayer.js` | 3462–3622 | 164줄 | MQTT 접속·플레이어 동기화·랭크 표시 |
+| network | `src/game/network/38-multiplayer.js` | 3462–3622 | 171줄 | MQTT 접속·플레이어 동기화·랭크 표시 |
 | world | `src/game/world/39-collisions-and-camera.js` | 3623–3643 | 21줄 | 바위·나무 충돌 및 카메라 가림 처리 |
 | core | `src/game/core/40-performance.js` | 3644–3659 | 16줄 | 기기별 FPS·화질·절전 설정 |
 | world | `src/game/world/41-shared-day-clock.js` | 3660–3676 | 17줄 | 한국 시간 동기화·게임 하루·하늘색 |
-| world | `src/game/world/42-weather.js` | 3677–3820 | 144줄 | 공유 날씨·비·눈·안개·하늘 변화 |
+| world | `src/game/world/42-weather.js` | 3677–3820 | 163줄 | 공유 날씨·비·눈·안개·하늘 변화 |
 | graphics | `src/game/graphics/43-fireflies.js` | 3821–3909 | 89줄 | 야간 반딧불 무리·발광 |
-| audio | `src/game/audio/44-forest-ambience.js` | 3910–3968 | 59줄 | 숲 소리·시각별 환경음 |
+| audio | `src/game/audio/44-forest-ambience.js` | 3910–3968 | 62줄 | 숲 소리·시각별 환경음 |
+| audio | `src/game/audio/44a-world-events-sound.js` | —–— | 191줄 | 모닥불·요리·텐트·멧돼지·동굴·천둥·설원 발자국·산삼 축하 효과음 |
 | gameplay | `src/game/gameplay/45-careful-harvest.js` | 3969–3987 | 19줄 | 조심스러운 캐기 실패·벌 공격 |
 | world | `src/game/world/46-wildlife-models.js` | 3988–4183 | 196줄 | 동물 유형·멧돼지 상태·3D 형상 |
 | world | `src/game/world/47-wildlife-states.js` | 4184–4319 | 91줄 | 동물 움직임·위협·기절·멧돼지 경고 |
 | gameplay | `src/game/gameplay/47b-five-star-sense.js` | —–— | 79줄 | 레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림 |
 | world | `src/game/world/48-wildlife-update.js` | 4320–4435 | 116줄 | 동물 AI 및 이름표 갱신 |
 | gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 92줄 | 바위 등반 타이밍·기절·점프 연결 |
-| world | `src/game/world/53-secret-cave-world.js` | —–— | 309줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
+| world | `src/game/world/53-secret-cave-world.js` | —–— | 310줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
 | gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 128줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
-| core | `src/game/core/50-game-update.js` | 4528–4605 | 81줄 | 프레임별 게임 로직·물리·상태 갱신 |
+| core | `src/game/core/50-game-update.js` | 4528–4605 | 82줄 | 프레임별 게임 로직·물리·상태 갱신 |
 | save | `src/game/save/51-profile-and-files.js` | 4606–4843 | 244줄 | 프로필 키·JSON 저장·복원·기록 내보내기 |
 | core | `src/game/core/51a-settings-terrain-refresh.js` | —–— | 73줄 | 설정 > 지형 새로고침: 프로필 위치 보존·자동 복귀·청크 복구 대체 |
 | core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 142줄 | 시작·버튼 이벤트·메인 렌더 루프 |

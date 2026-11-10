@@ -22,7 +22,7 @@ function osc(dst,type,t,dur,f0,f1,shape){const o=AMB.a.createOscillator();o.type
 function noise(dst,t,dur,f,q){const s=AMB.a.createBufferSource();s.buffer=AMB.buf;const bp=AMB.a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=Math.min(f,2600);bp.Q.value=Math.min(q,2.4);const lp=AMB.a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=2900;lp.Q.value=.55;s.connect(bp);bp.connect(lp);lp.connect(dst);s.start(t,Math.random());s.stop(t+dur+.02)}
 const R=(a,b)=>a+Math.random()*(b-a);
 const SND={
-  bird(t){const p=R(-.8,.8),n=2+Math.floor(R(0,4)),f=R(1500,2450);for(let i=0;i<n;i++){const tt=t+i*R(.09,.16);voice(tt,R(.11,.19),(g,t0,dd)=>osc(g,'sine',t0,dd,f*R(.9,1.15),f*R(.76,1.12)),.017,p)}},
+  bird(t){const p=R(-.8,.8),n=1+Math.floor(R(0,3)),f=R(680,1110);for(let i=0;i<n;i++){const tt=t+i*R(.13,.22);voice(tt,R(.11,.20),(g,t0,dd)=>osc(g,'sine',t0,dd,f*R(.93,1.08),f*R(.82,.98)),.010,p)}},
   cuckoo(t){const p=R(-.6,.6),reps=2+Math.floor(R(0,3));for(let i=0;i<reps;i++){const tt=t+i*.95;voice(tt,.22,(g,t0,d)=>osc(g,'sine',t0,d,690,650),.034,p);voice(tt+.3,.38,(g,t0,d)=>osc(g,'sine',t0,d,540,510),.034,p)}},
   dove(t){const p=R(-.7,.7);[[0,.34],[.48,.2],[.75,.36]].forEach(([o,dd])=>voice(t+o,dd,(g,t0,d)=>osc(g,'triangle',t0,d,430,370),.03,p))},
   woodpecker(t,v=.07,p=R(-.8,.8)){const n=12+Math.floor(R(0,8));for(let i=0;i<n;i++)voice(t+i/19,.025,(g,t0,d)=>noise(g,t0,d,1050,1.6),v*.65*(1-i/n*.5),p)},
@@ -45,11 +45,12 @@ const SND={
   frog(t){const p=R(-.8,.8);for(let i=0;i<2+Math.floor(R(0,3));i++)voice(t+i*.22,.14,(g,t0,d)=>{const lp=AMB.a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=700;lp.connect(g);osc(lp,'square',t0,d,R(160,210),130)},.03,p)},
   bubble(t){const p=R(-.4,.4);voice(t,.055,(g,t0,d)=>osc(g,'sine',t0,d,R(330,560),R(550,850)),.0025,p)},
 };
-const CHORUS={'새벽':{bird:.06,scops:.018,owl:.022,cricket:.6},'아침':{bird:.31,woodpecker:.024,dove:.10,cuckoo:.025},'낮':{cicada:.09,bird:.16,dove:.055,cuckoo:.025,woodpecker:.015},'저녁':{higurashi:.07,crow:.035,bird:.045,owl:.018,scops:.012,cricket:.7},'밤':{cricket:1.3,scops:.025,owl:.028}};
+const CHORUS={'새벽':{bird:.025,scops:.018,owl:.022,cricket:.6},'아침':{bird:.12,woodpecker:.024,dove:.10,cuckoo:.025},'낮':{cicada:.09,bird:.065,dove:.055,cuckoo:.025,woodpecker:.015},'저녁':{higurashi:.07,crow:.035,bird:.018,owl:.018,scops:.012,cricket:.7},'밤':{cricket:1.3,scops:.025,owl:.028}};
 let ambT=0;
 function updAmbience(dt){
   if(!AMB)return;const a=AMB.a;if(a.state==='suspended')return;
-  AMB.master.gain.setTargetAtTime((inSecretCave||inTent)? .09 : .79,a.currentTime,.50);
+  const boarDuck=typeof boarTensionUntil!=='undefined'&&boarTensionUntil>a.currentTime;
+  AMB.master.gain.setTargetAtTime((inSecretCave||inTent)? .025 : boarDuck ? .24 : .79,a.currentTime,.25);
   if(inSecretCave||inTent){AMB.water.gain.setTargetAtTime(0,a.currentTime,.2);return;}
   const ds=streamD(P.x,P.z),wf=clamp(1-(ds-1)/15,0,1);
   AMB.water.gain.setTargetAtTime(wf*wf*.085,a.currentTime,.9);
