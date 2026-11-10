@@ -17,15 +17,16 @@ for (const [index,part] of manifest.files.entries()){
 }
 execFileSync(process.execPath,['--check',join(root,'dist/game.bundle.js')]);
 const html=await readFile(join(root,'index.html'),'utf8');
+const assetFilePath=p=>p.split(/[?#]/,1)[0]; // Cache-bust query strings are not part of local filesystem paths.
 const cssPaths=[...html.matchAll(/<link\s+rel="stylesheet"\s+href="([^"]+)"/g)].map(x=>x[1]);
-for(const p of cssPaths.filter(p=>p.startsWith('./'))){await access(join(root,p));}
+for(const p of cssPaths.filter(p=>p.startsWith('./'))){await access(join(root,assetFilePath(p)));}
 const jsPaths=[...html.matchAll(/<script\s+src="([^"]+)"/g)].map(x=>x[1]);
-for(const p of jsPaths.filter(p=>p.startsWith('./'))){await access(join(root,p));}
+for(const p of jsPaths.filter(p=>p.startsWith('./'))){await access(join(root,assetFilePath(p)));}
 const ids=[...html.matchAll(/\bid="([^"]+)"/g)].map(x=>x[1]);
 const duplicates=ids.filter((x,i)=>ids.indexOf(x)!==i);
 if(duplicates.length)throw new Error('HTML 중복 ID: '+[...new Set(duplicates)].join(', '));
 if(/\sstyle=/.test(html))throw new Error('HTML에 인라인 스타일이 남았습니다.');
-let css='';for(const p of cssPaths.filter(p=>p.startsWith('./'))){css+=await readFile(join(root,p),'utf8')+'\n';}
+let css='';for(const p of cssPaths.filter(p=>p.startsWith('./'))){css+=await readFile(join(root,assetFilePath(p)),'utf8')+'\n';}
 // Rule nesting depth; comments/strings should not be interpreted as braces.
 let dep=0,inComment=false,quote=null;
 for(let i=0;i<css.length;i++){

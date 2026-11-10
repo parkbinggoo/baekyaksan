@@ -21,6 +21,8 @@
 <link rel="stylesheet" href="./styles/10-secret-cave-and-titles.css">
 <link rel="stylesheet" href="./styles/11-five-star-sense.css">
 <link rel="stylesheet" href="./styles/12-hud-navigation.css">
+<link rel="stylesheet" href="./styles/13-cave-blessing.css">
+<link rel="stylesheet" href="./styles/14-golden-hoe-ui.css?v=1.2.8-entryfix">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -49,7 +51,7 @@
     <div id="alt"><span id="hudCompass" class="hudCompass" role="img" aria-label="가상 북쪽을 가리키는 나침반"><span class="hudCompassNorth" aria-hidden="true">N</span><span id="hudCompassNeedle" class="hudCompassNeedle" aria-hidden="true"></span></span><small id="altLabel">해발</small><span id="altMeters">0m</span></div>
     <div id="clock"></div>
     <div id="weather"></div>
-    <div id="count">채집 0</div><div id="mealBuff" class="hide">🍲 산속 한 끼의 힘</div>
+    <div id="count">채집 0</div><div id="mealBuff" class="hide">🍲 산속 한 끼의 힘</div><div id="offeringBuff" class="hide" aria-live="off"></div>
     <div id="people" class="hide"></div>
   </div>
   <nav class="btns" aria-label="게임 주요 메뉴">
@@ -112,6 +114,24 @@
 <button id="jumpBtn" class="hide">점프</button>
 <div id="climbPanel" class="hide" role="status" aria-live="off"><strong id="climbTitle">큰 바위 오르기</strong><small id="climbInfo">초록색 구간에 맞춰 오르기를 누르세요. 실패하면 2분간 기절합니다.</small><div id="climbBeat"><div id="climbBeatSafe"></div><div id="climbNeedle"></div></div></div>
 
+<section id="goldenHoePanel" class="hide" aria-label="황금 호미 채집">
+  <div class="goldenHoeEyebrow">숨겨진 산의 유물</div>
+  <div class="goldenHoePanelHead"><strong>✦ 황금 호미</strong><span id="goldenHoeProgress">0 / 30</span></div>
+  <div class="goldenHoeTrack" aria-hidden="true"><div id="goldenHoeProgressBar"></div></div>
+  <p id="goldenHoeInstruction">바위 틈의 황금 호미 · 조심스럽게 30번 캐내세요.</p>
+  <button id="goldenHoeDigBtn" type="button">조심히 캐기</button>
+</section>
+<section id="goldenHoeAchievement" class="hide" role="dialog" aria-label="황금 호미 획득" aria-modal="false">
+  <div class="goldenHoeAchievementSheet">
+    <div class="goldenHoeRay">✦</div>
+    <div class="goldenHoeEyebrow">백약산의 숨겨진 유산</div>
+    <h2>황금 호미를 얻었다!</h2>
+    <div class="goldenHoeEmblem" aria-hidden="true">⚒</div>
+    <p class="goldenHoeLore">오랜 세월 바위에 잠들어 있던 황금 호미가<br>마침내 산객의 손에서 깨어났다.<br>번개가 산등성을 가르고 천둥이 울린다.</p>
+    <div class="goldenHoeGift"><strong>✦ 황금 호미의 은총</strong><span>조심스러운 채집에 실패해도<br>채집물이 사라지지 않고 한 번 더 기회를 얻습니다.</span></div>
+    <button id="goldenHoeAchievementClose" type="button">산행 계속하기</button>
+  </div>
+</section>
 <div id="found">
   <div class="tag" id="fTag">채집 성공</div>
   <canvas id="fCanvas" width="360" height="480"></canvas>
@@ -203,7 +223,7 @@
 <div id="secretOfferingPanel" class="hide" role="dialog" aria-modal="true" aria-labelledby="secretOfferingTitle">
   <div class="secret-sheet">
     <h3 id="secretOfferingTitle">불상에 공양하기</h3>
-    <p>가방에 보유한 5성 채집물을 바칠 수 있습니다. 황금 5성은 특별 칭호를 남깁니다.</p>
+    <p>일반 5성 공양: 촛불과 은은한 빛, 이동·점프 40분 강화.<br>황금 5성 공양: 촛불과 동굴의 진동, 금빛 불상의 특별 칭호, 이동·점프 24시간 강화.</p>
     <div id="secretOfferingItems" class="secret-offer-items"></div>
     <p id="secretOfferingConfirmText">공양할 재료를 선택해 주세요.</p>
     <div class="secret-buttons">
@@ -214,6 +234,6 @@
 </div>
 <div id="secretAchievement" class="hide" role="status" aria-live="polite"></div>
 <div id="fade"></div>
-<script src="./dist/game.bundle.js"></script>
+<script src="./dist/game.bundle.js?v=1.2.8-entryfix"></script>
 </body>
 </html>
