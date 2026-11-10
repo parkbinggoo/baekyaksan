@@ -2,7 +2,7 @@
  * Calls to ac() remain user-gesture guarded by the browser; no timers or sources
  * are created while audio is suspended, muted, or the tab is hidden.
  */
-let soundNoiseBuffer=null,fireSfxClock=0,stepSfxDistance=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
+let soundNoiseBuffer=null,fireSfxClock=0,snowSfxElapsed=0,snowSfxNext=.90,snowStepIndex=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
 let caveAudio=null,rainAudio=null;
 // Audio-context time keeps the threat cue and ambient ducking in sync.
 let boarTensionUntil=0,lastBoarTensionAt=-30;
@@ -29,7 +29,12 @@ function eventNoise({delay=0,duration=.25,volume=.04,lowpass=1200,highpass=0,pan
   s.connect(lp);if(stereo){head.connect(stereo);stereo.pan.value=pan;stereo.connect(g)}else head.connect(g);
   g.connect(audioOutput);s.start(t,Math.random()*1.1);s.stop(t+duration+.025);
 }
-function playFireLight(){eventNoise({duration:.45,volume:.065,lowpass:2200,highpass:350});tone(165,.28,'triangle',.025,.65)}
+// Gentle ignition: warm low crackle rather than a bright hiss/pop.
+function playFireLight(){
+  eventNoise({duration:.48,volume:.025,lowpass:830,highpass:80});
+  eventNoise({delay:.12,duration:.24,volume:.008,lowpass:480,highpass:45});
+  tone(135,.22,'sine',.010,.77);
+}
 function playTentZip(enter){
   eventNoise({duration:enter?.64:.52,volume:.10,lowpass:5300,highpass:650});
   tone(enter?580:730,.30,'triangle',.024,enter?1.6:.55,.08);
@@ -70,10 +75,27 @@ function playBoarTension(){
   if(AMB)AMB.master.gain.setTargetAtTime(.16,a.currentTime,.12);
   if(rainAudio)rainAudio.gain.gain.setTargetAtTime(rainAudio.gain.gain.value*.34,a.currentTime,.12);
 }
-function playSnowStep(){
-  eventNoise({duration:.19,volume:.068,lowpass:2400,highpass:480,pan:(Math.random()-.5)*.12});
-  eventNoise({delay:.045,duration:.12,volume:.044,lowpass:530,highpass:70});
+// Quiet, slow snow compression; the two textures alternate independently of footfall count.
+function playSnowStep(variant=0){
+  const pan=(Math.random()-.5)*.06;
+  if(variant%2===0){ // '뽀득': soft, rounded compression with a faint second creak
+    eventNoise({duration:.38,volume:.018,lowpass:620,highpass:55,pan});
+    eventNoise({delay:.14,duration:.23,volume:.008,lowpass:390,highpass:35,pan});
+  }else{ // '삭': muted, airy brush over compact snow
+    eventNoise({duration:.42,volume:.013,lowpass:730,highpass:95,pan});
+    eventNoise({delay:.10,duration:.22,volume:.006,lowpass:420,highpass:45,pan});
+  }
 }
+function playSnowDig(){
+  // Snow-covered soil digging uses a soft low snow scrape, not the generic sharp impact.
+  eventNoise({duration:.46,volume:.019,lowpass:510,highpass:40});
+  eventNoise({delay:.16,duration:.27,volume:.009,lowpass:360,highpass:30});
+}
+function snowGroundCoverage(x,z,y){
+  const alt=y*ALT_K,patch=clamp(.63+vn(x*.044+4,z*.044-3)*.36,0,1);
+  return clamp((alt-1530)/900,0,1)*clamp((patch-.22)*1.8,0,1);
+}
+
 function playThunder(delayed=0){
   // Deep rolling noise layered with sub-bass, following the light flash.
   eventNoise({delay:delayed,duration:3.5,volume:.23,lowpass:510,highpass:28});
@@ -174,20 +196,28 @@ function updateWorldSounds(dt){
   if(!eventAudioReady()||mode!=='game'||inTent||inSecretCave||Date.now()<faintUntil)return;
   // Positional, sparsely scheduled crackle; volume follows distance to the fire.
   fireSfxClock+=dt;
-  if(fireSfxClock>.30){fireSfxClock=0;
+  if(fireSfxClock>.72){fireSfxClock=0;
     for(const t of tents){if(!t.camp||campState(t).fireUntil<Date.now())continue;
       const d=Math.hypot(P.x-t.camp.x,P.z-t.camp.z);
-      if(d<17&&Math.random()<.48*(1-d/18)){eventNoise({duration:.10+Math.random()*.2,volume:.045*(1-d/19),lowpass:2100,highpass:280});break}
+      if(d<16&&Math.random()<.50*(1-d/20)){
+        const vol=.017*(1-d/19);
+        eventNoise({duration:.26+Math.random()*.28,volume:vol,lowpass:850,highpass:75});
+        if(Math.random()<.24)eventNoise({delay:.14,duration:.17,volume:vol*.36,lowpass:510,highpass:45});
+        break;
+      }
     }
   }
   // The playable snowy floor uses these exact altitude and patch thresholds.
   const travelled=lastStepX===null?0:Math.hypot(P.x-lastStepX,P.z-lastStepZ);
   lastStepX=P.x;lastStepZ=P.z;
-  const alt=P.y*ALT_K;
-  const patch=clamp(.63+vn(P.x*.044+4,P.z*.044-3)*.36,0,1);
-  const coverage=clamp((alt-1530)/900,0,1)*clamp((patch-.22)*1.8,0,1);
+  const coverage=snowGroundCoverage(P.x,P.z,P.y);
   if(P.speed>.10&&travelled>.012&&travelled<2.5&&!P.air&&!climbing&&!onRock&&coverage>.36){
-    stepSfxDistance+=travelled;
-    if(stepSfxDistance>1.35){stepSfxDistance=0;playSnowStep()}
-  }else stepSfxDistance=0;
+    // Slow cadence (~1.0–1.5s), independent from the avatar's fast leg animation.
+    snowSfxElapsed+=Math.min(Math.max(dt,0),.25);
+    if(snowSfxElapsed>=snowSfxNext){
+      snowSfxElapsed=0;
+      playSnowStep(snowStepIndex++);
+      snowSfxNext=[1.32,1.15,1.48,1.24][snowStepIndex%4];
+    }
+  }else snowSfxElapsed=0;
 }

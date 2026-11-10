@@ -173,6 +173,17 @@ function repairChunkResources(c){
     }
   }
 }
+function addGoldenHoeHostRock(c,grp){
+  // A fixed, climbable real rock exists in both regular and low-memory chunks.
+  const siteZ=SUMMIT_Z+118,siteX=pathX(siteZ)+15.5;
+  if(c.cx!==Math.floor(siteX/CH)||c.cz!==Math.floor(siteZ/CH))return;
+  const rad=4.65,gy=H(siteX,siteZ);
+  const m=new THREE.Mesh(ROCK2,M(0x888477));
+  m.scale.set(rad*1.08,rad*.82,rad*1.05);m.rotation.set(.11,.44,.13);
+  m.position.set(siteX,gy-rad*.25,siteZ);m.castShadow=true;m.receiveShadow=true;grp.add(m);
+  c.rocks.push({x:siteX,z:siteZ,r:rad,climbable:true,goldenHoeHost:true,
+    mesh:m,topY:m.position.y+m.scale.y*.78,groundY:gy});
+}
 function buildChunk(cx,cz){
   const r=rngOf((Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0);
   const ox=cx*CH+CH/2,oz=cz*CH+CH/2;
@@ -183,11 +194,12 @@ function buildChunk(cx,cz){
   const startX=pathX(24);
   const nearStart=(x,z,r)=>Math.hypot(x-startX,z-24)<r;
   c.rocks=[];
+  addGoldenHoeHostRock(c,grp);
   const nClusters=r()<.5?1+Math.floor(r()*2):0;
   for(let k=0;k<nClusters;k++){const cx0=ox+(r()-.5)*CH*.8,cz0=oz+(r()-.5)*CH*.8,big=r()<.45;
     const nr=big?1+Math.floor(r()*2):2+Math.floor(r()*4);
     for(let q=0;q<nr;q++){const rad=big?2.6+r()*3.2:.9+r()*1.8;const x=cx0+(r()-.5)*(big?6:9),z=cz0+(r()-.5)*(big?6:9);
-      if(nearStart(x,z,rad+4))continue;
+      if(nearStart(x,z,rad+4)||c.rocks.some(b=>b.goldenHoeHost&&Math.hypot(x-b.x,z-b.z)<b.r+rad+2.2))continue;
       const rk={x,z,r:rad,climbable:big&&rad>3.0};c.rocks.push(rk);
       const m=new THREE.Mesh(r()<.5?STONE:ROCK2,M([0x8b8778,0x7d7a6c,0x96917f,0x6f6c60][q%4]));
       m.scale.set(rad*(1+r()*.3),rad*(.55+r()*.45),rad*(.85+r()*.35));m.rotation.set(r()*.6,r()*6.28,r()*.4);
@@ -311,6 +323,7 @@ function rescueTrailChunk(key,cx,cz){
     const grp=new THREE.Group(),ground=makeRealGround(cx,cz);
     grp.add(ground);
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
+    addGoldenHoeHostRock(c,grp);
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
     addTargetedFiveStarResources(c);

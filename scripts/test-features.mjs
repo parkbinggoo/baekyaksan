@@ -78,6 +78,7 @@ ctx.save.inv={'gold:songi':1};ctx.save.specialTitles={unlocked:[],equipped:''};
 Object.assign(ctx,{caveOffering:{key:'gold:songi',item:{parent:{remove(){}}}},
   me:{mode:'bow',t:0},hudKey:'',currentOfferingKeys:()=>[],
   setGreens:()=>{},totalCount:()=>1,glowSecretCaveCandles:()=>{},showCaveAchievement:()=>{},tone:()=>{},
+  grantOfferingBuff:()=>({kind:'gold'}),startCaveBlessingFx:()=>{},netPublish:()=>{},caveBuddhaPoint:{x:0,z:-36.2},
   $:()=>({classList:{contains:()=>true}}),buildBag:()=>{},validOfferingKey:()=>true});
 run(offerComplete+'\ncompleteSecretOffering();completeSecretOffering();');
 assert.equal(ctx.save.inv['gold:songi'],undefined);

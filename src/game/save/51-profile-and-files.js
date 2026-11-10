@@ -96,12 +96,17 @@ function normalizeRecord(raw){
   };
   const highestRank=Number.isInteger(raw?.highestRank)?clamp(raw.highestRank,1,RANKS.length):1;
   const mealBuffUntil=Number.isFinite(raw?.mealBuffUntil)?clamp(raw.mealBuffUntil,0,Date.now()+20*60*1000):0;
-  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
+  const buffKind=raw?.offeringBuffKind==='gold'?'gold':raw?.offeringBuffKind==='normal'?'normal':'';
+  const buffCap=buffKind==='gold'?24*60*60*1000:40*60*1000;
+  const buffUntil=buffKind&&Number.isFinite(raw?.offeringBuffUntil)?clamp(raw.offeringBuffUntil,0,Date.now()+buffCap):0;
+  const goldenHoeOwned=!!raw?.goldenHoeOwned;
+  const goldenHoeCooldownUntil=Number.isFinite(raw?.goldenHoeCooldownUntil)?Math.max(0,Math.min(Date.now()+24*60*60*1000,Math.floor(raw.goldenHoeCooldownUntil))):0;
+  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;

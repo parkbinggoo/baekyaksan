@@ -43,17 +43,17 @@ assert.match(cave,/beginCaveSound\(\)/);
 assert.match(cave,/endCaveSound\(\)/);
 // Isolate footstep logic and confirm only snowy ground + movement triggers steps.
 let calls=0;
-const source=audio.slice(audio.indexOf('function updateWorldSounds(dt){'));
+const source=audio.slice(audio.indexOf('function snowGroundCoverage('),audio.indexOf('function playThunder('))+'\n'+audio.slice(audio.indexOf('function updateWorldSounds(dt){'));
 const context={
   eventAudioReady:()=>true,mode:'game',inTent:false,inSecretCave:false,faintUntil:0,Date,
   updateRainSound:()=>{},tents:[],P:{x:0,z:0,y:2100,speed:1,air:false},
   ALT_K:1,clamp:(v,a,b)=>Math.max(a,Math.min(b,v)),vn:()=>0,
-  stepSfxDistance:0,fireSfxClock:0,lastStepX:null,lastStepZ:null,playSnowStep:()=>calls++,Math,
+  snowSfxElapsed:0,snowSfxNext:.90,snowStepIndex:0,fireSfxClock:0,lastStepX:null,lastStepZ:null,playSnowStep:()=>calls++,Math,
   climbing:null,onRock:null,
 };
 const doTest=vm.runInNewContext(source+'\nupdateWorldSounds',context);
 for(let i=0;i<10;i++){context.P.x+=.92;doTest(.25);}
-assert(calls>=1,'footsteps on thick snowy surface');
+assert(calls>=1&&calls<=2,'snow effects must be slow and sparse even with many steps');
 const afterSnow=calls;
 context.P.y=700;
 for(let i=0;i<10;i++){context.P.x+=.92;doTest(.25);}
@@ -61,4 +61,4 @@ assert.equal(calls,afterSnow,'no snowy sound on bare low mountain ground');
 context.P.y=2200;context.P.air=true;
 for(let i=0;i<10;i++){context.P.x+=.92;doTest(.25);}
 assert.equal(calls,afterSnow,'no snowy sound while jumping');
-console.log('날씨·소리 검사 통과: 공통 시드 천둥번개, 번개/천둥 시차, 설원 보행 조건, 상황별 효과음, 산삼 멀티 알림.');
+console.log('날씨·소리 검사 통과: 공통 시드 천둥번개, 번개/천둥 시차, 느린 설원 보행, 상황별 효과음, 산삼 멀티 알림.');

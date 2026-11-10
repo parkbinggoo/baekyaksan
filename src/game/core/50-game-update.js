@@ -13,7 +13,8 @@ function updateGame(dt){
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0,lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);if(rot){camYaw+=rot*dt*1.8;lastDrag=clock}
-  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing;
+  me.hasGoldenHoe=!!save.goldenHoeOwned;
+  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing||goldenHoeBusy();
   let moveAmt=0,mvx=0,mvz=0;
   if(!busy&&(Math.abs(fwd)>.08||Math.abs(str)>.08)){target=null;pending=null;
     const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
@@ -26,14 +27,14 @@ function updateGame(dt){
   if(moveAmt){
     if(onRock){
       // Walk freely within this boulder's safe upper surface.
-      const speed=2.55*(mealBoosted()?MEAL_SPEED_MULT:1),limit=onRock.r*rockWalkLimit;
+      const speed=2.55*offeringSpeedMultiplier(),limit=onRock.r*rockWalkLimit;
       let nx=P.x+mvx*moveAmt*speed*dt,nz=P.z+mvz*moveAmt*speed*dt;
       const dx=nx-onRock.x,dz=nz-onRock.z,d=Math.hypot(dx,dz);
       if(d>limit){nx=onRock.x+dx/d*limit;nz=onRock.z+dz/d*limit}
       P.x=nx;P.z=nz;
       if(target&&Math.hypot(target.x-onRock.x,target.z-onRock.z)>limit+1)target=null;
     }else{
-      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*(mealBoosted()?MEAL_SPEED_MULT:1)*clamp(1-slope*.35,.6,1.15);
+      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*offeringSpeedMultiplier()*clamp(1-slope*.35,.6,1.15);
       let nx=P.x+mvx*moveAmt*spd*dt,nz=P.z+mvz*moveAmt*spd*dt;
       const d=nx-pathX(nz);if(Math.abs(d)>58)nx=pathX(nz)+Math.sign(d)*58;if(nz>34)nz=34;if(nz<SUMMIT_Z+2)nz=SUMMIT_Z+2;
       if(H(nx,nz)-P.y<.9||P.air){const q=collide(nx,nz);P.x=q.x;P.z=q.z}
@@ -46,6 +47,7 @@ function updateGame(dt){
   if(fainted){me.mode='faint'}
   else if(me.mode==='dig'){if(!hitDone&&me.t>DIG_T*.62){hitDone=true;if(curAct)impact(curAct)}if(me.mode==='dig'&&me.t>=DIG_T){me.mode='idle';me.t=0;if(queued){const q=queued;queued=null;if(nearTo(q.pos,2.6))swing(q)}}}
   else if(me.mode==='joy'||me.mode==='joyspin'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
+  else if(goldenHoeBusy())me.mode='goldhoe';
   else if(cooking)me.mode='cook';
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
@@ -69,7 +71,7 @@ function updateGame(dt){
   for(let i=pulls.length-1;i>=0;i--){const p=pulls[i];p.t+=dt;const k=clamp(p.t/.7,0,1);p.m.position.y=p.y0+ease(k)*p.d;p.m.rotation.z=Math.sin(p.t*9)*.15*(1-k);if(p.t>1.1)p.m.scale.setScalar(Math.max(.001,1-(p.t-1.1)/.4));if(p.t>1.5){p.m.parent&&p.m.parent.remove(p.m);pulls.splice(i,1)}}
   updateSecretCaveExterior(dt);
   updateRareSense(dt);
-  updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
+  updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);updateMysteriousAuraAlert();
   updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);updateWorldSounds(dt);
   updateHudCompass();
   hudT+=dt;if(hudT>.25){hudT=0;updHud()}

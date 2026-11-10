@@ -54,7 +54,7 @@ function applyGoldenVariants(chunk){
     if(!it.mesh||!GOLD_FIVE_BASES.includes(it.type)||itemInfo(it.type)?.rar!==5)continue;
     const cycle=rareMoves.get(it.id)?.cycle||0;
     if(!goldenSpawn(it.id,cycle))continue;
-    it.golden=true;tintGoldenObject(it.mesh);
+    it.golden=true;it.goldenCare=1.08;tintGoldenObject(it.mesh);
   }
 }
 function setSpecialTitle(saveTitle){

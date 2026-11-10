@@ -47,7 +47,19 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
 const FAINT_MS=3*60*1000;
 let faintUntil=0,faintReason='';
 try{faintUntil=Math.min(+(localStorage.getItem('baek_faint_until')||0),Date.now()+FAINT_MS)}catch(e){faintUntil=0}
-function faintAnimal(spec){if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
+let lastBuddhaProtectionToast=0;
+function faintAnimal(spec){
+ if((spec?.bees||spec?.fall||spec?.id==='boar'||spec?.name==='멧돼지')&&goldenBuddhaProtects()){
+   const now=Date.now();
+   if(now-lastBuddhaProtectionToast>8000){
+     lastBuddhaProtectionToast=now;
+     const reason=spec?.bees?'벌의 공격':spec?.fall?'바위 추락':'멧돼지의 공격';
+     toast(`황금 불상의 보살핌이 ${reason}으로부터 지켜주었다.`);
+     tone(392,.38,'sine',.03);tone(494,.48,'sine',.024,1,.12);
+   }
+   return false; // No faint overlay, radio, save mutation or movement lock.
+ }
+ if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
  try{localStorage.setItem('baek_faint_until',String(faintUntil))}catch(e){}persist();
  target=null;pending=null;joy.x=0;joy.y=0;me.mode='faint';me.t=0;$('faintOverlay').classList.remove('hide');
  faintSoundVolume(faintDuration);

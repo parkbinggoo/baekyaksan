@@ -135,7 +135,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeGameSettings()});
 $('terrainRefreshBtn').addEventListener('click',refreshWorldFromSettings);
 // Refresh operates only through the settings button; jumping is unchanged.
 setTimeout(()=>resumeAfterSettingsReload(),120);
-function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
+function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*offeringJumpMultiplier();P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(!AMB)return;if(document.hidden)AMB.a.suspend();else AMB.a.resume()});

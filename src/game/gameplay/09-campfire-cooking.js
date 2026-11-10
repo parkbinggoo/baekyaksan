@@ -149,7 +149,7 @@ function addCampFuel(){if(!selectedCamp||cooking)return;const t=selectedCamp,c=c
  const fuel=c.fuel+use,fireUntil=fuel>=CAMP_FUEL_N?now+CAMP_FIRE_MS:0;
  updateCampState(t.id,fireUntil?0:fuel,fireUntil,now,true);
  persist();hudKey='';setGreens(me,totalCount());
- if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3);playFireLight()}
+ if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');playFireLight()}
  else{refreshCampPanel();toast(`🪵 나뭇가지 ${use}개를 넣었다 · ${fuel}/${CAMP_FUEL_N}`)};
 }
 function cookPosition(c){const dx=c.x-c.tent.x,dz=c.z-c.tent.z,d=Math.hypot(dx,dz)||1;return {x:c.x+dx/d*1.18,z:c.z+dz/d*1.18}}

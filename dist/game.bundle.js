@@ -168,7 +168,7 @@ function renderRankGuide(){
   guide.appendChild(section);
  }
 }
-function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
+function itemInfo(key){if(isGoldenKey(key)){const base=goldBase(key),ref=HERBS[base]||MUSH[base];return {...ref,care:ref.care||1.08,name:'황금 '+ref.name,desc:ref.desc+' 황금빛 희귀 개체 · 판매 불가 · 공양 가능'}}return HERBS[key]||MUSH[key]||FRUITS[key]||HONEY[key]||null}
 function itemKindOf(key){key=goldBase(key);return HONEY[key]?'honey':FRUITS[key]?'fruit':MUSH[key]?'mush':HERBS[key]?'herb':null}
 function itemPrice(key){
   if(isGoldenKey(key))return 0; // Defence in depth: never attach a market price.
@@ -247,13 +247,13 @@ function chime(rar){const base=[392,494,587,784,988]; const n=rar>=4?5:3; for(le
 const SAVE3='baekyaksan3d-v1'; // Old single-browser record; kept for one-time migration.
 const TWIG_KEY='fallenTwig',MEAL_SPEED_MULT=1.32,MEAL_JUMP_MULT=1.175;
 const PROFILE_STORE_PREFIX='baekyaksan-profile-v2:', PROFILE_APP='baekyaksan3d', PROFILE_FORMAT=2;
-let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''}};
+let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''},offeringBuffKind:'',offeringBuffUntil:0,goldenHoeOwned:false,goldenHoeCooldownUntil:0};
 try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.inv)save=Object.assign(save,s)}catch(e){}
 const legacySave=JSON.parse(JSON.stringify(save));
 let activeProfileKey='',activeCredential=null;
 function profileProgress(){
   const pos=(typeof P!=='undefined'&&mode==='game')?(inSecretCave&&caveReturnPos?{x:caveReturnPos.x,z:caveReturnPos.z}:{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}):save.pos;
-  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''}};
+  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,offeringBuffKind:save.offeringBuffKind||'',offeringBuffUntil:+save.offeringBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''},goldenHoeOwned:!!save.goldenHoeOwned,goldenHoeCooldownUntil:+save.goldenHoeCooldownUntil||0};
 }
 function profileDocument(cred,progress){return {app:PROFILE_APP,format:PROFILE_FORMAT,profile:{name:cred.nick,verifier:cred.verifier},progress,updatedAt:Date.now()}}
 function persist(){
@@ -561,7 +561,7 @@ function addCampFuel(){if(!selectedCamp||cooking)return;const t=selectedCamp,c=c
  const fuel=c.fuel+use,fireUntil=fuel>=CAMP_FUEL_N?now+CAMP_FIRE_MS:0;
  updateCampState(t.id,fireUntil?0:fuel,fireUntil,now,true);
  persist();hudKey='';setGreens(me,totalCount());
- if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3);playFireLight()}
+ if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');playFireLight()}
  else{refreshCampPanel();toast(`🪵 나뭇가지 ${use}개를 넣었다 · ${fuel}/${CAMP_FUEL_N}`)};
 }
 function cookPosition(c){const dx=c.x-c.tent.x,dz=c.z-c.tent.z,d=Math.hypot(dx,dz)||1;return {x:c.x+dx/d*1.18,z:c.z+dz/d*1.18}}
@@ -1347,9 +1347,15 @@ function makeHiker(jacket){
   const crook=mk(new THREE.TorusGeometry(.05,.016,6,10,Math.PI),T(0x6a6560),stick,.05,.22,0);
   const hoe=new THREE.Group();hoe.position.set(0,-.6,.02);armR.add(hoe);
   const handle=mk(new THREE.CylinderGeometry(.022,.026,.3,8),wood,hoe,0,0,.1);handle.rotation.x=Math.PI/2;
-  mk(new THREE.CylinderGeometry(.01,.01,.09,5),T(0x5a5a5a),hoe,0,-.02,.27).rotation.x=.5;
+  const ferrule=mk(new THREE.CylinderGeometry(.01,.01,.09,5),T(0x5a5a5a),hoe,0,-.02,.27);ferrule.rotation.x=.5;
   const blade=mk(new THREE.ConeGeometry(.075,.15,3),T(0x9aa0a6),hoe,0,-.08,.3);blade.rotation.x=Math.PI;blade.scale.z=.3;
-  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1};
+  // Own the hoe materials per hiker: never tint shared matCache materials,
+  // or a golden peer would change everybody's ordinary hoe to gold.
+  handle.material=handle.material.clone();
+  ferrule.material=ferrule.material.clone();
+  blade.material=blade.material.clone();
+  const hoeGlow=new THREE.PointLight(0xffd76f,0,7.5,1.55);hoeGlow.position.set(0,-.03,.24);hoeGlow.castShadow=false;hoe.add(hoeGlow);
+  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
 }
 function setGreens(h,n){n=Math.min(6,n);if(h.nGreens===n)return;h.nGreens=n;while(h.greens.children.length)h.greens.remove(h.greens.children[0]);
   for(let i=0;i<n;i++){leafM(h.greens,0,0,(i-2.5)*.025,.2,.05,i*.5,1.3,M(i%2?0x5a8a3a:0x6fa046))}}
@@ -1358,9 +1364,20 @@ function poseHiker(h,dt,speed){
   h.t+=dt;let lL=0,lR=0,aL=.08,aR=.08,aLz=.12,aRz=-.12,by=0,lean=0,hd=0;
   // The walking stick and hoe do not overlap the temporary cooking utensils.
   if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
+  const hasGoldenHoe=!!h.hasGoldenHoe,night=(typeof skyAtHour==='function'&&typeof gameMin!=='undefined')?skyAtHour(gameMin/60).night:0;
+  if(h.hoe){h.hoe.scale.setScalar(hasGoldenHoe?1.5:1);h.hoe.rotation.x=hasGoldenHoe&&h.mode==='goldhoe'?-1.18:0;h.hoe.rotation.z=hasGoldenHoe&&h.mode==='goldhoe'?.10:0;}
+  const hoeMats=hasGoldenHoe?[0xcda12c,0xd4ab39,0xffd869]:[0xa47a4a,0x5a5a5a,0x9aa0a6];
+  if(h.hoeHandle?.material?.color)h.hoeHandle.material.color.setHex(hoeMats[0]);
+  if(h.hoeHandle?.material?.emissive)h.hoeHandle.material.emissive.setHex(hasGoldenHoe?0x6a4b06:0x000000),h.hoeHandle.material.emissiveIntensity=hasGoldenHoe?(.22+night*.45):0;
+  if(h.hoeFerrule?.material?.color)h.hoeFerrule.material.color.setHex(hoeMats[1]);
+  if(h.hoeFerrule?.material?.emissive)h.hoeFerrule.material.emissive.setHex(hasGoldenHoe?0x715208:0x000000),h.hoeFerrule.material.emissiveIntensity=hasGoldenHoe?(.26+night*.55):0;
+  if(h.hoeBlade?.material?.color)h.hoeBlade.material.color.setHex(hoeMats[2]);
+  if(h.hoeBlade?.material?.emissive)h.hoeBlade.material.emissive.setHex(hasGoldenHoe?0x8a650c:0x000000),h.hoeBlade.material.emissiveIntensity=hasGoldenHoe?(.38+night*.68):0;
+  if(h.hoeGlow)h.hoeGlow.intensity=hasGoldenHoe?(.16+night*.95):0;
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
   else if(h.mode==='joy'||h.mode==='joyspin'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
+  else if(h.mode==='goldhoe'){const k=Math.min(1,h.t/.46);by=Math.abs(Math.sin(h.t*8))*.10*Math.max(.25,1-h.t/2.8);aL=-.38;aR=lerp(-.45,-3.08,k);aLz=.08;aRz=lerp(-.12,-.08,k);lL=-.12;lR=.10;lean=lerp(.06,-.20,k);hd=-.18;}
   else if(h.mode==='climb'){const st=(climbing?.steps||0),w=Math.sin(clock*5+st*1.6);lL=-.55+w*.4;lR=-.55-w*.4;aL=-2.35-w*.4;aR=-2.35+w*.4;lean=.38;by=.06;}
   else if(h.mode==='cook'){
     const k=h.cookTime||h.t||0,stage=h.cookStage??cookStageAt(k);
@@ -1644,7 +1661,7 @@ function applyGoldenVariants(chunk){
     if(!it.mesh||!GOLD_FIVE_BASES.includes(it.type)||itemInfo(it.type)?.rar!==5)continue;
     const cycle=rareMoves.get(it.id)?.cycle||0;
     if(!goldenSpawn(it.id,cycle))continue;
-    it.golden=true;tintGoldenObject(it.mesh);
+    it.golden=true;it.goldenCare=1.08;tintGoldenObject(it.mesh);
   }
 }
 function setSpecialTitle(saveTitle){
@@ -2660,6 +2677,17 @@ function repairChunkResources(c){
     }
   }
 }
+function addGoldenHoeHostRock(c,grp){
+  // A fixed, climbable real rock exists in both regular and low-memory chunks.
+  const siteZ=SUMMIT_Z+118,siteX=pathX(siteZ)+15.5;
+  if(c.cx!==Math.floor(siteX/CH)||c.cz!==Math.floor(siteZ/CH))return;
+  const rad=4.65,gy=H(siteX,siteZ);
+  const m=new THREE.Mesh(ROCK2,M(0x888477));
+  m.scale.set(rad*1.08,rad*.82,rad*1.05);m.rotation.set(.11,.44,.13);
+  m.position.set(siteX,gy-rad*.25,siteZ);m.castShadow=true;m.receiveShadow=true;grp.add(m);
+  c.rocks.push({x:siteX,z:siteZ,r:rad,climbable:true,goldenHoeHost:true,
+    mesh:m,topY:m.position.y+m.scale.y*.78,groundY:gy});
+}
 function buildChunk(cx,cz){
   const r=rngOf((Math.imul(cx,73856093)^Math.imul(cz,19349663))>>>0);
   const ox=cx*CH+CH/2,oz=cz*CH+CH/2;
@@ -2670,11 +2698,12 @@ function buildChunk(cx,cz){
   const startX=pathX(24);
   const nearStart=(x,z,r)=>Math.hypot(x-startX,z-24)<r;
   c.rocks=[];
+  addGoldenHoeHostRock(c,grp);
   const nClusters=r()<.5?1+Math.floor(r()*2):0;
   for(let k=0;k<nClusters;k++){const cx0=ox+(r()-.5)*CH*.8,cz0=oz+(r()-.5)*CH*.8,big=r()<.45;
     const nr=big?1+Math.floor(r()*2):2+Math.floor(r()*4);
     for(let q=0;q<nr;q++){const rad=big?2.6+r()*3.2:.9+r()*1.8;const x=cx0+(r()-.5)*(big?6:9),z=cz0+(r()-.5)*(big?6:9);
-      if(nearStart(x,z,rad+4))continue;
+      if(nearStart(x,z,rad+4)||c.rocks.some(b=>b.goldenHoeHost&&Math.hypot(x-b.x,z-b.z)<b.r+rad+2.2))continue;
       const rk={x,z,r:rad,climbable:big&&rad>3.0};c.rocks.push(rk);
       const m=new THREE.Mesh(r()<.5?STONE:ROCK2,M([0x8b8778,0x7d7a6c,0x96917f,0x6f6c60][q%4]));
       m.scale.set(rad*(1+r()*.3),rad*(.55+r()*.45),rad*(.85+r()*.35));m.rotation.set(r()*.6,r()*6.28,r()*.4);
@@ -2798,6 +2827,7 @@ function rescueTrailChunk(key,cx,cz){
     const grp=new THREE.Group(),ground=makeRealGround(cx,cz);
     grp.add(ground);
     const c={key,cx,cz,grp,ground,trees:[],items:[],treeMeshes:[],rocks:[]};
+    addGoldenHoeHostRock(c,grp);
     try{ensureTrailFlora(c,rngOf((Math.imul(cx,741103597)^Math.imul(cz,195871091)^0x5f2519)>>>0),
         cx*CH+CH/2,cz*CH+CH/2,grp)}catch(e){console.warn('산길 대체 약초 생성 오류:',key,e)}
     addTargetedFiveStarResources(c);
@@ -2969,7 +2999,8 @@ function act(tg){
     if(nearestClimbableRock()===rock)beginClimb(rock);
     return;
   }
-  if((tg.kind==='herb'||tg.kind==='honey')&&(tg.kind==='honey'?HONEY[tg.item.type]:HERBS[tg.item.type]).care&&nearTo(tg.pos,2.4)){const gap=(tg.kind==='honey'?HONEY[tg.item.type]:HERBS[tg.item.type]).care,it=tg.item;if((me.mode==='dig'&&curAct&&curAct.item===it)||(queued&&queued.item===it)||(it.hits>0&&clock-(it.lastHit||-9)<gap)){queued=null;careFail(tg);return}}
+  const careGap=careGapOfTarget(tg);
+  if(careGap&&nearTo(tg.pos,2.4)){const gap=careGap,it=tg.item;if((me.mode==='dig'&&curAct&&curAct.item===it)||(queued&&queued.item===it)||(it.hits>0&&clock-(it.lastHit||-9)<gap)){queued=null;careFail(tg);return}}
   const reach=tg.kind==='ground'?1.9:2.4;
   if(nearTo(tg.pos,reach)){target=null;pending=null;swing(tg)}
   else{target={x:tg.pos.x,z:tg.pos.z,stop:reach*.8};pending=tg}
@@ -2981,7 +3012,9 @@ function swing(tg){
 }
 const spots={};
 function impact(tg){
-  thud();
+  // Digging into snowy ground gets the same gentle, low-frequency snow texture.
+  const snowyDig=(tg.kind==='ground'||tg.kind==='herb'||tg.kind==='decoy')&&snowGroundCoverage(P.x,P.z,P.y)>.36;
+  if(snowyDig)playSnowDig();else thud();
   if(tg.kind==='herb'||tg.kind==='ground'||tg.kind==='fruit'||tg.kind==='decoy')dirt(tg.pos,16);else dirt(tg.pos,10,[0x7a4a30,0x5a3a24,0x5e8f3e]);
   if(tg.kind==='decoy'){
     const it=tg.item;if(!it||takenUntil(it.id))return;
@@ -2993,7 +3026,7 @@ function impact(tg){
   }else if(tg.kind==='herb'||tg.kind==='mush'||tg.kind==='fruit'||tg.kind==='honey'){
     const it=tg.item;if(takenUntil(it.id))return;it.hits++;it.lastHit=clock;
     if(it.mesh){it.mesh.userData.shake=.3;shaking.add(it)}
-    if(it.hits>=it.need){collect(it.kind,it.type,tg.pos,it)}else{pip(tg.pos,it.hits,it.need);if(it.hits===1&&((it.kind==='herb'&&HERBS[it.type].care)||it.kind==='honey'))setTimeout(()=>floatMsg(tg.pos,it.kind==='honey'?'벌들이 예민하다… 천천히':'뿌리가 여리다… 천천히'),350)}
+    if(it.hits>=it.need){collect(it.kind,it.type,tg.pos,it)}else{pip(tg.pos,it.hits,it.need);if(it.hits===1&&careGapOfItem(it.kind,it)>0)setTimeout(()=>floatMsg(tg.pos,it.kind==='honey'?'벌들이 예민하다… 천천히':it.kind==='mush'?'조각나지 않게 천천히 캐자':'뿌리가 여리다… 천천히'),350)}
   }else if(tg.kind==='tree'){
     const t=tg.tree;
     // Trees without any attached, available collectible are 'empty trees'.
@@ -3050,7 +3083,8 @@ function collect(kind,type,pos,it){
   if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[originalType];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp?.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
   save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
   if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
-  recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
+  recordHerbHarvest(originalType,itemInfo(originalType),!!it&&
+    (!!itemInfo(originalType)?.care||!!(it.golden&&itemInfo(originalType)?.rar===5)));persist();
   const isSansam=originalType==='sansam';
   me.mode=isSansam?'joyspin':'joy';me.t=0;joyT=isSansam?3.65:2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));
@@ -3093,8 +3127,9 @@ function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)
   ndc.set(sx/W*2-1,-(sy/Hh)*2+1);ray.setFromCamera(ndc,camera);
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
+  if(typeof goldenHoeMesh!=='undefined'&&goldenHoeMesh&&goldenHoeMesh.visible)objs.push(goldenHoeMesh);
   const hits=ray.intersectObjects(objs,true);
-  for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire)o=o.parent;if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
+  for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire&&!o.userData.goldenHoe)o=o.parent;if(o?.userData.goldenHoe){interactGoldenHoe();hideHint();return;}if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
   // If the tap narrowly misses a small collectible, check its projected
   // silhouette before treating the tap as terrain or an ordinary tree.
   // Real ray hits on items, tents and campfires always take priority.
@@ -3185,6 +3220,7 @@ let hudKey='';
 function updHud(){const alt=Math.max(0,Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K))),ph=phaseOf(gameMin/60),ck=clockText(),k=alt+'|'+ck+'|'+totalCount()+'|'+discoveredCount()+'|'+bagLimit()+'|'+playerRank+'|'+(inSecretCave?'cave':'mountain');if(k!==hudKey){hudKey=k;$('altLabel').textContent=inSecretCave?'장소':'해발';$('altMeters').textContent=inSecretCave?'비밀 동굴':`${alt.toLocaleString()}m`;$('clock').textContent=`${ph} · ${ck}`;$('count').textContent=`가방 ${totalCount()}/${bagLimit()} · 도감 ${discoveredCount()}/${HERB_KEYS.length+MUSH_KEYS.length+Object.keys(FRUITS).length+HONEY_KEYS.length}종`}
   const buff=$('mealBuff'),active=mealBoosted();buff.classList.toggle('hide',!active);
   if(active)buff.textContent=`🍲 산속 한 끼 · 속도, 점프 증가 · 남은 ${Math.ceil((save.mealBuffUntil-Date.now())/60000)}분`;
+  updateOfferingBuffHud();
   const m=Math.floor(alt/300);if(lastMile<0)lastMile=m;if(m>lastMile){lastMile=m;toast(`해발 ${m*300}m — ${MILES[Math.min(MILES.length-1,m-1)]}`);tone(392,.4,'sine',.06);tone(587,.6,'sine',.05,1,.15)}}
 $('bagBtn').onclick=()=>{buildBag();$('bag').classList.remove('hide')};
 $('bagClose').onclick=()=>$('bag').classList.add('hide');
@@ -3374,7 +3410,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
 function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
-  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle()};}
+  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
   peopleCount=count;
@@ -3453,6 +3489,7 @@ function connectRoom(){
         }return;
       }
       if(d.type==='caveOffer'){if(d.cv===1&&inSecretCave&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&Math.hypot(d.x-caveBuddhaPoint.x,d.z-caveBuddhaPoint.z)<9)glowSecretCaveCandles();return}
+      if(d.type==='caveBlessing'){if(d.cv===1&&inSecretCave&&(d.gold===0||d.gold===1)&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&Math.hypot(d.x-caveBuddhaPoint.x,d.z-caveBuddhaPoint.z)<9)startCaveBlessingFx(d.gold===1);return}
       if(d.type==='boarDisperse'){
         const peer=others.get(d.id);
         if(peer&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&
@@ -3483,7 +3520,7 @@ function upOther(p){
     lampLens.position.set(0,1.77,.13);av.root.add(lampLens);
     o={av,el,headLamp,lampLens,x:s.x,y:s.y||H(s.x,s.z),z:s.z,h:s.h||0,tx:s.x,ty:s.y,tz:s.z,th:s.h||0,mode:'idle',nick:''};others.set(p.peer,o)}
   o.tx=+s.x;o.tz=+s.z;o.ty=Number.isFinite(+s.y)?+s.y:H(o.tx,o.tz);o.th=+s.h||0;
-  o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);
+  o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);o.av.hasGoldenHoe=s.gh===1;
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
   const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
@@ -3900,7 +3937,7 @@ function updAmbience(dt){
  * Calls to ac() remain user-gesture guarded by the browser; no timers or sources
  * are created while audio is suspended, muted, or the tab is hidden.
  */
-let soundNoiseBuffer=null,fireSfxClock=0,stepSfxDistance=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
+let soundNoiseBuffer=null,fireSfxClock=0,snowSfxElapsed=0,snowSfxNext=.90,snowStepIndex=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
 let caveAudio=null,rainAudio=null;
 // Audio-context time keeps the threat cue and ambient ducking in sync.
 let boarTensionUntil=0,lastBoarTensionAt=-30;
@@ -3927,7 +3964,12 @@ function eventNoise({delay=0,duration=.25,volume=.04,lowpass=1200,highpass=0,pan
   s.connect(lp);if(stereo){head.connect(stereo);stereo.pan.value=pan;stereo.connect(g)}else head.connect(g);
   g.connect(audioOutput);s.start(t,Math.random()*1.1);s.stop(t+duration+.025);
 }
-function playFireLight(){eventNoise({duration:.45,volume:.065,lowpass:2200,highpass:350});tone(165,.28,'triangle',.025,.65)}
+// Gentle ignition: warm low crackle rather than a bright hiss/pop.
+function playFireLight(){
+  eventNoise({duration:.48,volume:.025,lowpass:830,highpass:80});
+  eventNoise({delay:.12,duration:.24,volume:.008,lowpass:480,highpass:45});
+  tone(135,.22,'sine',.010,.77);
+}
 function playTentZip(enter){
   eventNoise({duration:enter?.64:.52,volume:.10,lowpass:5300,highpass:650});
   tone(enter?580:730,.30,'triangle',.024,enter?1.6:.55,.08);
@@ -3968,10 +4010,27 @@ function playBoarTension(){
   if(AMB)AMB.master.gain.setTargetAtTime(.16,a.currentTime,.12);
   if(rainAudio)rainAudio.gain.gain.setTargetAtTime(rainAudio.gain.gain.value*.34,a.currentTime,.12);
 }
-function playSnowStep(){
-  eventNoise({duration:.19,volume:.068,lowpass:2400,highpass:480,pan:(Math.random()-.5)*.12});
-  eventNoise({delay:.045,duration:.12,volume:.044,lowpass:530,highpass:70});
+// Quiet, slow snow compression; the two textures alternate independently of footfall count.
+function playSnowStep(variant=0){
+  const pan=(Math.random()-.5)*.06;
+  if(variant%2===0){ // '뽀득': soft, rounded compression with a faint second creak
+    eventNoise({duration:.38,volume:.018,lowpass:620,highpass:55,pan});
+    eventNoise({delay:.14,duration:.23,volume:.008,lowpass:390,highpass:35,pan});
+  }else{ // '삭': muted, airy brush over compact snow
+    eventNoise({duration:.42,volume:.013,lowpass:730,highpass:95,pan});
+    eventNoise({delay:.10,duration:.22,volume:.006,lowpass:420,highpass:45,pan});
+  }
 }
+function playSnowDig(){
+  // Snow-covered soil digging uses a soft low snow scrape, not the generic sharp impact.
+  eventNoise({duration:.46,volume:.019,lowpass:510,highpass:40});
+  eventNoise({delay:.16,duration:.27,volume:.009,lowpass:360,highpass:30});
+}
+function snowGroundCoverage(x,z,y){
+  const alt=y*ALT_K,patch=clamp(.63+vn(x*.044+4,z*.044-3)*.36,0,1);
+  return clamp((alt-1530)/900,0,1)*clamp((patch-.22)*1.8,0,1);
+}
+
 function playThunder(delayed=0){
   // Deep rolling noise layered with sub-bass, following the light flash.
   eventNoise({delay:delayed,duration:3.5,volume:.23,lowpass:510,highpass:28});
@@ -4072,28 +4131,55 @@ function updateWorldSounds(dt){
   if(!eventAudioReady()||mode!=='game'||inTent||inSecretCave||Date.now()<faintUntil)return;
   // Positional, sparsely scheduled crackle; volume follows distance to the fire.
   fireSfxClock+=dt;
-  if(fireSfxClock>.30){fireSfxClock=0;
+  if(fireSfxClock>.72){fireSfxClock=0;
     for(const t of tents){if(!t.camp||campState(t).fireUntil<Date.now())continue;
       const d=Math.hypot(P.x-t.camp.x,P.z-t.camp.z);
-      if(d<17&&Math.random()<.48*(1-d/18)){eventNoise({duration:.10+Math.random()*.2,volume:.045*(1-d/19),lowpass:2100,highpass:280});break}
+      if(d<16&&Math.random()<.50*(1-d/20)){
+        const vol=.017*(1-d/19);
+        eventNoise({duration:.26+Math.random()*.28,volume:vol,lowpass:850,highpass:75});
+        if(Math.random()<.24)eventNoise({delay:.14,duration:.17,volume:vol*.36,lowpass:510,highpass:45});
+        break;
+      }
     }
   }
   // The playable snowy floor uses these exact altitude and patch thresholds.
   const travelled=lastStepX===null?0:Math.hypot(P.x-lastStepX,P.z-lastStepZ);
   lastStepX=P.x;lastStepZ=P.z;
-  const alt=P.y*ALT_K;
-  const patch=clamp(.63+vn(P.x*.044+4,P.z*.044-3)*.36,0,1);
-  const coverage=clamp((alt-1530)/900,0,1)*clamp((patch-.22)*1.8,0,1);
+  const coverage=snowGroundCoverage(P.x,P.z,P.y);
   if(P.speed>.10&&travelled>.012&&travelled<2.5&&!P.air&&!climbing&&!onRock&&coverage>.36){
-    stepSfxDistance+=travelled;
-    if(stepSfxDistance>1.35){stepSfxDistance=0;playSnowStep()}
-  }else stepSfxDistance=0;
+    // Slow cadence (~1.0–1.5s), independent from the avatar's fast leg animation.
+    snowSfxElapsed+=Math.min(Math.max(dt,0),.25);
+    if(snowSfxElapsed>=snowSfxNext){
+      snowSfxElapsed=0;
+      playSnowStep(snowStepIndex++);
+      snowSfxNext=[1.32,1.15,1.48,1.24][snowStepIndex%4];
+    }
+  }else snowSfxElapsed=0;
 }
 /* ================= 조심히 캐야 하는 약초 ================= */
 const CARE={sansam:1.2,cheonma:1.0,ma:1.0,deodeok:.85,doraji:.8,jandae:.8,keunjorong:.9,jichi:.9,danggwi:.8,sanmaneul:.75,dokhwal:.7,seokchangpo:.9,gorancho:1.05,doldanpung:.8};
 for(const k in CARE)if(HERBS[k])HERBS[k].care=CARE[k];
+function careGapOfItem(kind,it){
+  if(!it)return 0;
+  if(kind==='honey')return HONEY[it.type]?.care||0;
+  const info=itemInfo(it.golden?goldenKey(it.type):it.type)||itemInfo(it.type);
+  if(info?.care)return info.care;
+  if((kind==='herb'||kind==='mush')&&it.golden&&info?.rar===5)return it.goldenCare||1.08;
+  return 0;
+}
+function careGapOfTarget(tg){return tg&&tg.item?careGapOfItem(tg.kind,tg.item):0}
+function careFailureMercy(tg){
+  const it=tg?.item;if(!it||!save.goldenHoeOwned||it.goldenHoeMercyUsed||tg.kind==='honey')return false;
+  if(!careGapOfTarget(tg))return false;
+  queued=null;pending=null;curAct=null;it.hits=0;it.goldenHoeMercyUsed=true;
+  floatMsg(tg.pos,'황금 호미가 버텨줬다! 한 번 더 기회');
+  toast('황금 호미의 힘으로 채집물이 사라지지 않았다. 한 번 더 도전할 수 있다!');
+  tone(523,.24,'sine',.05);tone(659,.22,'sine',.035,1,.08);
+  return true;
+}
 function careFail(tg){
   const it=tg.item;if(!it||takenUntil(it.id))return;
+  if(careFailureMercy(tg))return;
   if(tg.kind==='honey'){
     queued=null;pending=null;curAct=null;it.hits=0;
     markTaken(it.id,Date.now()+RESPAWN_MS,true,it.type);
@@ -4353,7 +4439,19 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
 const FAINT_MS=3*60*1000;
 let faintUntil=0,faintReason='';
 try{faintUntil=Math.min(+(localStorage.getItem('baek_faint_until')||0),Date.now()+FAINT_MS)}catch(e){faintUntil=0}
-function faintAnimal(spec){if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
+let lastBuddhaProtectionToast=0;
+function faintAnimal(spec){
+ if((spec?.bees||spec?.fall||spec?.id==='boar'||spec?.name==='멧돼지')&&goldenBuddhaProtects()){
+   const now=Date.now();
+   if(now-lastBuddhaProtectionToast>8000){
+     lastBuddhaProtectionToast=now;
+     const reason=spec?.bees?'벌의 공격':spec?.fall?'바위 추락':'멧돼지의 공격';
+     toast(`황금 불상의 보살핌이 ${reason}으로부터 지켜주었다.`);
+     tone(392,.38,'sine',.03);tone(494,.48,'sine',.024,1,.12);
+   }
+   return false; // No faint overlay, radio, save mutation or movement lock.
+ }
+ if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
  try{localStorage.setItem('baek_faint_until',String(faintUntil))}catch(e){}persist();
  target=null;pending=null;joy.x=0;joy.y=0;me.mode='faint';me.t=0;$('faintOverlay').classList.remove('hide');
  faintSoundVolume(faintDuration);
@@ -4593,7 +4691,8 @@ function updateAnimalLookLabel(){
 /* ======= BIG BOULDER CLIMBING =======
    Rocks are deterministic chunk geometry. One beat is 1.65 real seconds;
    five correctly timed presses raise the hiker gradually; a miss triggers
-   the existing 3-minute faint system. Touch and keyboard use the same action.
+   the existing 3-minute faint system.
+   Summit-side special rock: a golden hoe can be carefully excavated.
 */
 let climbing=null,onRock=null;
 // Walk on the actual top of the rock, not the terrain beneath it.
@@ -4609,6 +4708,107 @@ function rockSurfaceY(rock,x,z){
 }
 let lastClimbRockCheck=0,cachedClimbRock=null;
 const CLIMB_STEPS=5,CLIMB_BEAT_MS=1650;
+const GOLDEN_HOE_REQUIRED_HITS=30,GOLDEN_HOE_GAP=1.05,GOLDEN_HOE_COOLDOWN_MS=24*60*60*1000;
+let goldenHoeRock=null,goldenHoeMesh=null,goldenHoeGlow=null,goldenHoeClaimFx=null,goldenHoeAttempt=null,goldenHoeHintedRock=null,goldenHoeFlashLight=null;
+function goldenHoeBusy(){return !!goldenHoeClaimFx}
+function goldenHoeCooldownLeft(now=Date.now()){return Math.max(0,(+save.goldenHoeCooldownUntil||0)-now)}
+function formatGoldenHoeCooldown(ms){
+  const mins=Math.ceil(ms/60000),hours=Math.floor(mins/60),rem=mins%60;
+  return hours>0?`${hours}시간 ${rem}분`:`${mins}분`;
+}
+function chooseGoldenHoeRock(){
+  for(const c of chunks.values())for(const rock of c.rocks||[]){
+    if(rock.goldenHoeHost&&rock.mesh&&rock.mesh.parent&&rock.mesh.parent.parent===scene)return rock;
+  }
+  return null;
+}
+function ensureGoldenHoeRock(){
+  if(goldenHoeRock?.mesh?.parent?.parent===scene)return goldenHoeRock;
+  goldenHoeRock=chooseGoldenHoeRock();
+  return goldenHoeRock;
+}
+function makeGoldenHoeRockMesh(){
+  const g=new THREE.Group();g.userData.goldenHoe=1;
+  const gold=(col,extra)=>new THREE.MeshToonMaterial(Object.assign({color:col,emissive:0x7a580e,emissiveIntensity:.55},extra||{}));
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.038,.044,.78,9),gold(0xd6ac3d));shaft.rotation.x=Math.PI/2;shaft.position.set(0,.44,-.02);g.add(shaft);
+  const ferrule=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.18,6),gold(0xc89a2d));ferrule.rotation.x=.58;ferrule.position.set(0,.39,.29);g.add(ferrule);
+  const blade=new THREE.Mesh(new THREE.ConeGeometry(.14,.26,3),gold(0xffdf76));blade.rotation.x=Math.PI;blade.scale.z=.34;blade.position.set(0,.29,.37);g.add(blade);
+  const guard=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.05,8),gold(0xe7bf52));guard.position.set(0,.50,.11);g.add(guard);
+  const stoneGrip=new THREE.Mesh(new THREE.CylinderGeometry(.06,.072,.26,8),new THREE.MeshToonMaterial({color:0x84745f}));stoneGrip.rotation.x=.09;stoneGrip.position.set(0,.16,-.10);g.add(stoneGrip);
+  goldenHoeGlow=new THREE.PointLight(0xffda73,0,10,1.65);goldenHoeGlow.position.set(0,.62,.12);g.add(goldenHoeGlow);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+  scene.add(g);return g;
+}
+function updateGoldenHoeMesh(dt){
+  const rock=ensureGoldenHoeRock();
+  if(!rock){if(goldenHoeMesh)goldenHoeMesh.visible=false;return;}
+  if(!goldenHoeMesh)goldenHoeMesh=makeGoldenHoeRockMesh();
+  const visible=!save.goldenHoeOwned && rock.mesh&&rock.mesh.parent;
+  goldenHoeMesh.visible=visible;
+  if(!visible)return;
+  const sway=Math.sin(clock*2.1)*.03;
+  goldenHoeMesh.position.set(rock.x,rockSurfaceY(rock,rock.x,rock.z)-.22,rock.z);
+  goldenHoeMesh.rotation.set(.08+sway,.48+Math.sin(clock*1.4)*.02,.02);
+  if(goldenHoeGlow)goldenHoeGlow.intensity=.72+Math.max(0,skyAtHour(gameMin/60).night)*.95;
+}
+function beginGoldenHoeTry(){
+  if(save.goldenHoeOwned){toast('이미 황금 호미를 손에 넣었다.');return false}
+  const cool=goldenHoeCooldownLeft();
+  if(cool>0){toast('황금 호미는 아직 꿈쩍하지 않는다. 다시 도전하려면 '+formatGoldenHoeCooldown(cool)+' 남았다.');return false}
+  if(!onRock||onRock!==goldenHoeRock){toast('황금 호미가 박힌 큰 바위 위에 올라가야 한다.');return false}
+  goldenHoeAttempt=goldenHoeAttempt||{hits:0,lastHit:-999};
+  if(!goldenHoeAttempt.hits)toast('황금 호미가 큰 바위에 깊게 박혀 있다… 너무 빠르게 치면 실패한다. 조심스럽게 30번 캐보자!');
+  return true;
+}
+function failGoldenHoeTry(){
+  if(!goldenHoeAttempt)return;
+  goldenHoeAttempt=null;save.goldenHoeCooldownUntil=Date.now()+GOLDEN_HOE_COOLDOWN_MS;persist();
+  if(goldenHoeMesh)goldenHoeMesh.rotation.z=-.18;
+  toast('황금 호미를 캐내지 못했다… 바위가 다시 굳어 24시간 뒤에야 재도전할 수 있다.');
+  floatMsg(goldenHoeMesh?goldenHoeMesh.position:new THREE.Vector3(P.x,P.y+1,P.z),'실패… 24시간 후 재도전');
+  tone(196,.34,'triangle',.06,.75);tone(147,.44,'sine',.045,.7,.06);
+}
+function completeGoldenHoeTry(){
+  goldenHoeAttempt=null;save.goldenHoeOwned=true;save.goldenHoeCooldownUntil=0;persist();
+  me.hasGoldenHoe=true;goldenHoeClaimFx={time:0,duration:3.2,thunder:false};
+  sendPresence(true);showGoldenHoeAchievement();
+  if(goldenHoeMesh)goldenHoeMesh.visible=false;
+  toast('✦ 황금 호미를 얻었다! 조심스러운 채집에 실패해도 채집물이 사라지지 않고 한 번 더 기회를 준다.');
+}
+function interactGoldenHoe(){
+  const rock=ensureGoldenHoeRock();
+  if(!rock||!goldenHoeMesh||!goldenHoeMesh.visible)return;
+  if(!onRock||onRock!==rock||Math.hypot(P.x-rock.x,P.z-rock.z)>rock.r*.55+1.1){toast('큰 바위 위에서 가까이 다가가 황금 호미를 눌러 보자.');return}
+  if(!beginGoldenHoeTry())return;
+  const now=clock;
+  if(goldenHoeAttempt.hits>0&&now-goldenHoeAttempt.lastHit<GOLDEN_HOE_GAP){failGoldenHoeTry();return}
+  goldenHoeAttempt.lastHit=now;goldenHoeAttempt.hits++;
+  me.mode='dig';me.t=0;curAct=null;queued=null;target=null;pending=null;
+  if(goldenHoeMesh){goldenHoeMesh.rotation.z=.08+Math.sin(now*40)*.08}
+  pip(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.65,0)),goldenHoeAttempt.hits,GOLDEN_HOE_REQUIRED_HITS);
+  tone(355+goldenHoeAttempt.hits*4,.08,'sine',.055,1.05);
+  if(goldenHoeAttempt.hits===1)setTimeout(()=>floatMsg(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.55,0)),'돌결을 따라 천천히…'),280);
+  if(goldenHoeAttempt.hits>=GOLDEN_HOE_REQUIRED_HITS)completeGoldenHoeTry();
+}
+function updateGoldenHoeClaim(dt){
+  me.hasGoldenHoe=!!save.goldenHoeOwned;
+  if(!goldenHoeFlashLight){goldenHoeFlashLight=new THREE.PointLight(0xfff4c0,0,34,1.6);scene.add(goldenHoeFlashLight)}
+  if(!goldenHoeClaimFx){goldenHoeFlashLight.intensity=0;return;}
+  goldenHoeClaimFx.time+=dt;target=null;pending=null;P.speed=0;me.mode='goldhoe';me.t+=0;
+  const k=Math.min(1,goldenHoeClaimFx.time/.36)*Math.min(1,(goldenHoeClaimFx.duration-goldenHoeClaimFx.time)/1.1);
+  goldenHoeFlashLight.position.set(P.x,P.y+2.2,P.z+.2);
+  goldenHoeFlashLight.intensity=k*(goldenHoeClaimFx.time<.55?9.5:4.2)*(1+.25*Math.sin(goldenHoeClaimFx.time*28));
+  if(!goldenHoeClaimFx.thunder&&goldenHoeClaimFx.time>.38){goldenHoeClaimFx.thunder=true;playThunder(.06);tone(659,.30,'sine',.05,1,.05)}
+  if(!goldenHoeGlow){const dummy=0}else goldenHoeGlow.intensity=1.25+k*3.2;
+  if(goldenHoeClaimFx.time>=goldenHoeClaimFx.duration){goldenHoeClaimFx=null;goldenHoeFlashLight.intensity=0;me.mode='idle';me.t=0}
+}
+function maybeHintGoldenHoe(){
+  if(!onRock||onRock!==goldenHoeRock||save.goldenHoeOwned||goldenHoeHintedRock===onRock)return;
+  goldenHoeHintedRock=onRock;
+  const cool=goldenHoeCooldownLeft();
+  if(cool>0)toast('큰 바위 틈에 황금 호미가 박혀 있다… 하지만 바위가 굳어 있다. '+formatGoldenHoeCooldown(cool)+' 뒤 다시 도전할 수 있다.');
+  else toast('큰 바위 틈에 황금 호미가 박혀 있다! 가까이서 눌러 조심스럽게 30번 캐보자.');
+}
 function nearestClimbableRock(){
  const now=performance.now();
  if(now-lastClimbRockCheck<200){return cachedClimbRock}
@@ -4641,12 +4841,12 @@ function climbFail(){
  faintAnimal({name:'바위 추락',fall:true,durationMs:2*60*1000});
 }
 function climbAct(){if(inSecretCave)return;
- if(Date.now()<faintUntil||inTent||cooking)return;
+ if(Date.now()<faintUntil||inTent||cooking||goldenHoeBusy())return;
  if(onRock){
    const rock=onRock,dx=P.x-rock.x,dz=P.z-rock.z,len=Math.hypot(dx,dz)||1;
    P.x=rock.x+dx/len*(rock.r+1.8);P.z=rock.z+dz/len*(rock.r+1.8);P.y=H(P.x,P.z);
    onRock=null;me.root.rotation.x=0;me.mode='idle';P.speed=0;
-   $('climbPanel').classList.add('hide');$('jumpBtn').textContent='점프';return;
+   $('climbPanel').classList.add('hide');$('jumpBtn').textContent='점프';goldenHoeHintedRock=null;return;
  }
  if(!climbing){const rock=nearestClimbableRock();if(rock)beginClimb(rock);else jump();return;}
  const phase=climbPhase();
@@ -4661,13 +4861,14 @@ function climbAct(){if(inSecretCave)return;
  if(climbing.steps>=CLIMB_STEPS){
    onRock=rock;climbing=null;P.y=rockSurfaceY(rock,P.x,P.z);
    $('climbPanel').classList.add('hide');$('jumpBtn').textContent='내려가기';
-   toast('큰 바위에 올라섰다. 바위 위 채집물을 살펴보자.');
+   toast('큰 바위에 올라섰다. 바위 위 채집물을 살펴보자.');maybeHintGoldenHoe();
  }else{
    climbing.start=performance.now();
    $('climbInfo').textContent=`초록색 구간에 맞춰 오르기 · ${climbing.steps}/${CLIMB_STEPS}`;
  }
 }
 function updateRockClimbing(dt){
+ updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);updateGoldenHoePanel();
  const btn=$('jumpBtn');
  if(mode!=='game'||inTent){btn.classList.add('hide');return}
  if(climbing){btn.classList.remove('hide');
@@ -4676,12 +4877,63 @@ function updateRockClimbing(dt){
    btn.textContent='오르기';btn.classList.add('climbAvailable');
    return;
  }
- if(onRock){btn.classList.remove('hide');btn.textContent='내려가기';btn.classList.add('climbAvailable');return}
+ if(onRock){maybeHintGoldenHoe();btn.classList.remove('hide');btn.textContent='내려가기';btn.classList.add('climbAvailable');return}
  const rock=nearestClimbableRock();
  btn.classList.toggle('hide',!IS_TOUCH&&!rock);
  btn.textContent=rock?'오르기':'점프';btn.classList.toggle('climbAvailable',!!rock);
  $('climbPanel').classList.add('hide');
 }
+/* === GOLDEN HOE UI + MYSTERIOUS 30m PROXIMITY SIGNALS ===
+ * Prompts disclose no compass direction, altitude, coordinate or map marker.
+ * Enter-triggered once per approach: re-arm after leaving 36m radius.
+ */
+let caveAuraNear=false,hoeAuraNear=false,lastAuraNoticeAt=-10000;
+let goldenHoePanelLastUpdate=0,goldenHoeAchievementTimer=0;
+function updateMysteriousAuraAlert(){
+  if(mode!=='game'||inSecretCave||inTent)return;
+  const caveDistance=caveSite?Math.hypot(P.x-caveSite.x,P.z-caveSite.z):Infinity;
+  const hoeRock=save.goldenHoeOwned?null:ensureGoldenHoeRock();
+  const hoeDistance=hoeRock?Math.hypot(P.x-hoeRock.x,P.z-hoeRock.z):Infinity;
+  if(caveDistance>36)caveAuraNear=false;
+  if(hoeDistance>36)hoeAuraNear=false;
+  const caveArrived=caveDistance<=30&&!caveAuraNear;
+  const hoeArrived=hoeDistance<=30&&!hoeAuraNear;
+  if(caveDistance<=30)caveAuraNear=true;
+  if(hoeDistance<=30)hoeAuraNear=true;
+  if((caveArrived||hoeArrived)&&clock-lastAuraNoticeAt>12){
+    lastAuraNoticeAt=clock;toast('심상치 않은 기운이 느껴진다...');
+  }
+}
+function updateGoldenHoePanel(){
+  const panel=$('goldenHoePanel');
+  if(mode!=='game'||inTent||inSecretCave||save.goldenHoeOwned||goldenHoeBusy()||
+     !onRock||onRock!==goldenHoeRock||!goldenHoeMesh?.visible){
+    panel.classList.add('hide');return;
+  }
+  panel.classList.remove('hide');
+  // Update at most ten times per second, except first show via dig button.
+  if(clock-goldenHoePanelLastUpdate<.10)return;
+  goldenHoePanelLastUpdate=clock;
+  const n=goldenHoeAttempt?.hits||0,cool=goldenHoeCooldownLeft();
+  $('goldenHoeProgress').textContent=n+' / '+GOLDEN_HOE_REQUIRED_HITS;
+  $('goldenHoeProgressBar').style.width=(100*n/GOLDEN_HOE_REQUIRED_HITS)+'%';
+  const button=$('goldenHoeDigBtn');button.disabled=cool>0;
+  button.textContent=cool>0?'재도전 대기 중':'조심히 캐기';
+  $('goldenHoeInstruction').textContent=cool>0?
+    '바위가 다시 굳어 있다 · '+formatGoldenHoeCooldown(cool)+' 남음':
+    n>0?'서두르면 실패합니다. 천천히, 정확하게 두드리세요.':
+    '바위 틈의 황금 호미 · 조심스럽게 30번 캐내세요.';
+}
+function showGoldenHoeAchievement(){
+  const el=$('goldenHoeAchievement');
+  el.classList.remove('hide');
+  clearTimeout(goldenHoeAchievementTimer);
+  goldenHoeAchievementTimer=setTimeout(()=>el.classList.add('hide'),7600);
+}
+$('goldenHoeDigBtn').addEventListener('click',()=>{interactGoldenHoe();goldenHoePanelLastUpdate=-1;updateGoldenHoePanel()});
+$('goldenHoeAchievementClose').addEventListener('click',()=>{
+  clearTimeout(goldenHoeAchievementTimer);$('goldenHoeAchievement').classList.add('hide');
+});
 /* ================= SECRET CAVE WORLD =================
  * Visual guide: forest-overgrown rock opening, rough natural stone, seated
  * rock Buddha shrine. All geometry is original low-poly Three.js primitives.
@@ -4837,28 +5089,76 @@ function makeCaveTunnel(){
   group.traverse(obj=>obj.layers.set(1));caveInterior=group;scene.add(group);
 }
 function makeCaveBuddha(group){
-  const g=new THREE.Group(),stone=caveStoneMaterial(0xa29b88),robe=caveStoneMaterial(0x8e897b),shadow=caveStoneMaterial(0x706c60);
-  const ico=(c,x,y,z,sx,sy,sz,detail=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detail),c,x,y,z,sx,sy,sz);
-  caveMesh(g,new THREE.CylinderGeometry(1.15,1.35,.34,10),shadow,0,.02,0);
-  caveMesh(g,new THREE.CylinderGeometry(.92,1.08,.28,10),stone,0,.30,0);
-  ico(robe,0,.72,0,.92,.34,.68,1);
-  ico(stone,0,1.54,.02,.72,1.02,.56,1);
-  ico(robe,-.42,1.62,.08,.29,.82,.42,0);
-  ico(stone,0,2.60,.02,.42,.58,.40,1);
-  ico(stone,0,3.06,.04,.28,.14,.28,0);
-  for(const side of [-1,1])ico(stone,side*.39,2.64,.02,.08,.15,.12,0);
-  const eyes=caveStoneMaterial(0x67665e);
-  for(const s of [-1,1])caveMesh(g,new THREE.BoxGeometry(.12,.016,.013),eyes,s*.15,2.62,.38);
-  ico(stone,0,2.44,.40,.09,.15,.09,0);
-  const mouth=caveMesh(g,new THREE.BoxGeometry(.18,.014,.018),eyes,0,2.30,.382);mouth.rotation.z=.03;
-  // One upright palm, one resting hand.
-  const arm=caveMesh(g,new THREE.CylinderGeometry(.16,.20,.84,6),stone,.70,1.78,.05);arm.rotation.z=-.35;
-  ico(stone,.80,2.16,.11,.20,.30,.12,0);
-  for(let i=0;i<4;i++)caveMesh(g,new THREE.CylinderGeometry(.033,.039,.24,5),stone,.67+i*.08,2.39,.12);
-  const left=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.86,6),robe,-.68,1.28,.26);left.rotation.z=-.88;
-  ico(stone,-.20,.82,.52,.28,.10,.20,0);
+  const g=new THREE.Group(),stone=caveStoneMaterial(0xa39b89),robe=caveStoneMaterial(0x8d887a),shadow=caveStoneMaterial(0x6f6a5f),detail=caveStoneMaterial(0x7b7668),dark=caveStoneMaterial(0x666257);
+  const ico=(c,x,y,z,sx,sy,sz,detailLevel=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detailLevel),c,x,y,z,sx,sy,sz);
+  // Lotus-like stone base.
+  caveMesh(g,new THREE.CylinderGeometry(1.20,1.42,.24,10),shadow,0,.02,0);
+  caveMesh(g,new THREE.CylinderGeometry(1.02,1.18,.20,10),stone,0,.24,0);
+  for(let i=0;i<10;i++){
+    const a=i/10*Math.PI*2;
+    const petal=caveMesh(g,new THREE.ConeGeometry(.16,.38,5),detail,Math.cos(a)*.88,.22,Math.sin(a)*.12,.72,.7,.85);
+    petal.rotation.x=Math.PI*.52;petal.rotation.z=Math.cos(a)*.28;petal.rotation.y=a;
+  }
+  // Seated body and robe mass.
+  ico(robe,0,.74,.03,1.02,.42,.82,1);
+  ico(robe,0,1.22,.02,1.05,.74,.74,1);
+  ico(stone,0,1.62,.03,.74,1.06,.58,1);
+  // Robe shoulder drape and layered cloth.
+  const leftDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,1.08,6),robe,-.62,1.36,.16);leftDrape.rotation.z=.86;
+  const rightDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,.98,6),robe,.66,1.54,.09);rightDrape.rotation.z=-.36;
+  for(let i=0;i<4;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.92-.1*i,.05,.10),detail,-.08,.95+i*.18,.48-i*.02);
+    fold.rotation.z=.10-i*.03;fold.rotation.x=.08;
+  }
+  for(let i=0;i<3;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.64-.07*i,.045,.09),detail,-.36,.98+i*.20,.55);
+    fold.rotation.z=.34;fold.rotation.x=.1;
+  }
+  // Folded legs / lap.
+  ico(robe,-.42,.58,.24,.54,.22,.36,0);
+  ico(robe,.36,.58,.22,.58,.23,.38,0);
+  ico(detail,-.05,.50,.43,.70,.11,.22,0);
+  // Neck and head.
+  caveMesh(g,new THREE.CylinderGeometry(.16,.20,.20,6),shadow,0,2.12,.02);
+  ico(stone,0,2.62,.02,.48,.60,.44,1);
+  ico(stone,0,2.98,.05,.38,.28,.34,1);
+  // Ushnisha / top knot.
+  ico(detail,0,3.24,.04,.24,.18,.22,0);
+  // Ears.
+  for(const side of [-1,1]){
+    const ear=ico(stone,side*.42,2.63,.02,.09,.19,.12,0);
+    ear.rotation.z=side*.12;
+  }
+  // Facial details: brow, eyes, nose, mouth, urna dot.
+  const brow=caveMesh(g,new THREE.BoxGeometry(.38,.03,.03),dark,0,2.73,.34);brow.rotation.z=.02;
+  for(const s of [-1,1]){
+    const eye=caveMesh(g,new THREE.BoxGeometry(.10,.012,.012),dark,s*.15,2.63,.37);eye.rotation.z=s*-.06;
+  }
+  const nose=ico(detail,0,2.49,.40,.06,.13,.08,0);
+  const mouth=caveMesh(g,new THREE.BoxGeometry(.17,.013,.014),dark,0,2.34,.382);mouth.rotation.z=.02;
+  const urna=caveMesh(g,new THREE.SphereGeometry(.035,6,6),new THREE.MeshLambertMaterial({color:0xc7c0a9,flatShading:true}),0,2.56,.40);
+  // Hands: right blessing hand with fingers, left hand resting on lap.
+  const rightArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.92,6),stone,.70,1.80,.07);rightArm.rotation.z=-.34;
+  const rightPalm=ico(stone,.82,2.16,.13,.21,.31,.12,0);
+  for(let i=0;i<4;i++){
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.028,.034,.25,5),stone,.70+i*.082,2.40,.14);
+    finger.rotation.z=-.04+i*.03;
+  }
+  const thumb=caveMesh(g,new THREE.CylinderGeometry(.026,.03,.17,5),stone,.63,2.28,.15);thumb.rotation.z=.72;
+  const leftArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.94,6),robe,-.70,1.25,.23);leftArm.rotation.z=.92;
+  const leftPalm=ico(stone,-.20,.82,.52,.30,.11,.21,0);
+  for(let i=0;i<4;i++){
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.022,.027,.17,5),stone,-.32+i*.068,.86,.55);
+    finger.rotation.x=.95;finger.rotation.z=.10-i*.06;
+  }
+  const leftThumb=caveMesh(g,new THREE.CylinderGeometry(.02,.024,.12,5),stone,-.31,.79,.49);leftThumb.rotation.z=.9;leftThumb.rotation.x=.7;
+  // Chest bead / robe clasp detail.
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.18,1.58,.39);
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.06,1.48,.42);
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,.02,1.36,.44);
   g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.6);
   group.add(g);
+  prepareCaveBlessingFx(group,g,[stone,robe,shadow]);
   // Keep the foreground clear: small, low offering tray only.
   const stand=caveMesh(group,new THREE.CylinderGeometry(.40,.48,.14,8),stone,caveBuddhaPoint.x,.09,caveBuddhaPoint.z+1.72);
   stand.userData.isOfferingTray=true;
@@ -4894,12 +5194,17 @@ function ensureSecretCave(){
 function glowSecretCaveCandles(){caveLightPulse=Math.max(caveLightPulse,2.8)}
 function animateSecretCaveCandles(dt){
   caveInteractionElapsed+=dt;caveLightPulse=Math.max(0,caveLightPulse-dt);
-  const bright=caveLightPulse>0?Math.min(1,caveLightPulse)*.75:0;
+  updateCaveBlessingFx(dt);
+  const bright=(caveLightPulse>0?Math.min(1,caveLightPulse)*.75:0)+caveBlessingStrength()*.7;
   for(const c of caveCandles){
     const flicker=1+Math.sin(caveInteractionElapsed*7.3+c.phase)*.085+Math.sin(caveInteractionElapsed*11+c.phase*.5)*.035;
     if(c.light)c.light.intensity=c.base*(flicker+bright);
-    if(c.flame){c.flame.scale.y=flicker+.14*bright;c.flame.rotation.z=Math.sin(caveInteractionElapsed*8+c.phase)*.11;
-      c.flame.material.opacity=Math.min(1,.88+.11*bright)}
+    if(c.flame){
+      const synchronizedSway=caveBlessingStrength()*Math.sin(caveInteractionElapsed*14)*.26;
+      c.flame.scale.y=flicker+.14*bright+caveBlessingStrength()*.25;
+      c.flame.rotation.z=Math.sin(caveInteractionElapsed*8+c.phase)*.11+synchronizedSway;
+      c.flame.material.opacity=Math.min(1,.88+.11*bright)
+    }
   }
 }
 function showCaveAction(which){
@@ -4978,6 +5283,7 @@ function updateSecretCaveInterior(dt){
   const cx=clamp(P.x-Math.sin(camYaw)*cd*.82,caveCurve(cz)-walkHalf*.92,caveCurve(cz)+walkHalf*.92);
   camera.position.lerp(v3.set(cx,2.05,clamp(cz,-39.2,6.4)),1-Math.exp(-dt*10));
   camera.lookAt(P.x,P.y+1.30,P.z);
+  applyCaveBlessingShake(camera);
   updOthers(dt);updateMyRankTag();
   if(P.z>3.8)showCaveAction('secretCaveLeaveBtn');
   else if(Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)<5.0&&!caveOffering){
@@ -4992,6 +5298,69 @@ function updateSecretCaveInterior(dt){
 }
 $('secretCaveEnterBtn').addEventListener('click',enterSecretCave);
 $('secretCaveLeaveBtn').addEventListener('click',leaveSecretCave);
+/* === CAVE SHRINE VISUAL RESPONSE ===
+ * A modest pale aura for ordinary five-star; candle surge, mild shake and
+ * golden Buddha illumination for golden five-star. No terrain or cave-site changes.
+ */
+let caveBlessFx=null,caveBuddhaMaterials=[],caveBlessLight=null,caveBlessHalo=null,caveFaceLight=null,caveGoldAura=null;
+function prepareCaveBlessingFx(parent,buddha,materials){
+  caveBuddhaMaterials=materials;
+  caveBlessLight=new THREE.PointLight(0xffe8b5,0,9,2);
+  caveBlessLight.position.set(caveBuddhaPoint.x,2.1,caveBuddhaPoint.z-.20);parent.add(caveBlessLight);
+  caveBlessHalo=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),
+    new THREE.MeshBasicMaterial({color:0xffca64,transparent:true,opacity:0,depthWrite:false,
+      blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+  caveBlessHalo.position.set(caveBuddhaPoint.x,2.05,caveBuddhaPoint.z-1.30);
+  caveBlessHalo.scale.set(1.35,2.1,.22);caveBlessHalo.visible=false;parent.add(caveBlessHalo);
+  caveFaceLight=new THREE.PointLight(0xffc577,.65,7.8,1.85);
+  caveFaceLight.position.set(caveBuddhaPoint.x,1.78,caveBuddhaPoint.z+1.25);parent.add(caveFaceLight);
+  caveGoldAura=new THREE.Mesh(new THREE.SphereGeometry(1.2,18,12),new THREE.MeshBasicMaterial({color:0xffdb86,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide}));
+  caveGoldAura.position.set(caveBuddhaPoint.x,1.95,caveBuddhaPoint.z-.6);caveGoldAura.scale.set(1.9,2.45,1.45);caveGoldAura.visible=false;parent.add(caveGoldAura);
+}
+function startCaveBlessingFx(golden){
+  caveBlessFx={golden:!!golden,time:0,duration:golden?5.8:4.4};
+  glowSecretCaveCandles();
+  // Low and warm rather than a piercing alarm, to preserve cave ambience.
+  tone(golden?294:392,.9,'sine',golden?.052:.029,1);
+  if(golden){tone(440,1.7,'sine',.032,1,.16);tone(587,2.0,'sine',.032,1,.44)}
+}
+function caveBlessingStrength(){
+  if(!caveBlessFx)return 0;
+  const t=caveBlessFx.time,T=caveBlessFx.duration;
+  return Math.min(1,t/.36)*Math.min(1,(T-t)/1.5);
+}
+function updateCaveBlessingFx(dt){
+  if(!caveBlessLight||!caveBlessHalo)return;
+  if(caveBlessFx){caveBlessFx.time+=dt;if(caveBlessFx.time>=caveBlessFx.duration)caveBlessFx=null}
+  const k=caveBlessingStrength(),gold=!!caveBlessFx?.golden;
+  const candlePulse=.62+.18*Math.sin(caveInteractionElapsed*7.4)+Math.max(0,caveLightPulse)*.08;
+  if(caveFaceLight){
+    caveFaceLight.color.setHex(gold?0xffd17d:0xffb86a);
+    caveFaceLight.intensity=candlePulse + k*(gold?1.85:.42);
+  }
+  caveBlessLight.color.setHex(gold?0xffbb43:0xffebbb);
+  caveBlessLight.intensity=k*(gold?3.8:1.35)*(1+.08*Math.sin(caveInteractionElapsed*8));
+  caveBlessHalo.visible=k>.005;
+  caveBlessHalo.material.opacity=k*(gold?.40:.10)*(1+.06*Math.sin(caveInteractionElapsed*5));
+  caveBlessHalo.material.color.setHex(gold?0xffc043:0xffdfaa);
+  if(caveGoldAura){
+    caveGoldAura.visible=gold&&k>.005;
+    caveGoldAura.material.opacity=gold?k*.26*(1+.05*Math.sin(caveInteractionElapsed*4.2)):0;
+    caveGoldAura.scale.set(1.9+k*.35,2.45+k*.4,1.45+k*.25);
+  }
+  for(const m of caveBuddhaMaterials){if(!m?.emissive)continue;
+    m.emissive.setHex(gold?0xb8891f:0x4a3820);
+    m.emissiveIntensity=(gold?.28:.05)+k*(gold?1.08:.20);
+  }
+}
+function applyCaveBlessingShake(camera){
+  const fx=caveBlessFx;if(!fx?.golden)return;
+  const k=caveBlessingStrength();
+  // Brief mild camera vibration, not an actual change to terrain or pathfinding.
+  const shake=k*.055;
+  camera.position.x+=Math.sin(fx.time*31)*shake;
+  camera.position.y+=Math.sin(fx.time*37)*shake*.46;
+}
 /* ================= BUDDHA OFFERING / SPECIAL TITLES =================
  * A local, single-session offering transaction finishes only after a bow. It
  * guards double clicks, cancel and premature page close. The existing game
@@ -5017,12 +5386,12 @@ function renderOfferingItems(){
   for(const key of keys){
     const info=itemInfo(key),gold=isGoldenKey(key),b=document.createElement('button');
     b.type='button';b.className='secret-choice'+(gold?' golden':'')+(key===offeringSelectedKey?' on':'');
-    b.textContent=(gold?'✦ ':'')+info.name+' · '+(save.inv[key]||0)+'개'+(gold?' · 특별 칭호 공양':'');
+    b.textContent=(gold?'✦ ':'')+info.name+' · '+(save.inv[key]||0)+'개'+(gold?' · 영구 칭호 + 24시간 보살핌':' · 40분 가호 · 힌트 3%');
     b.onclick=()=>{offeringSelectedKey=key;renderOfferingItems();};host.appendChild(b);
   }
   $('secretOfferingConfirm').disabled=!keys.includes(offeringSelectedKey);
   $('secretOfferingConfirmText').textContent=offeringSelectedKey?
-    `${itemInfo(offeringSelectedKey).name} 1개를 소모합니다. 공양 후 되돌릴 수 없습니다.`:
+    `${itemInfo(offeringSelectedKey).name} 1개를 소모합니다. ${isGoldenKey(offeringSelectedKey)?'영구 칭호 + 24시간 기절 보호·이동·점프 강화':'40분 이동·점프 강화 + 3% 확률의 산삼 힌트'}가 적용됩니다. 되돌릴 수 없습니다.`:
     '공양할 5성 채집물을 선택해 주세요.';
 }
 function openSecretOffering(){
@@ -5061,7 +5430,7 @@ function startSecretOffering(){
 function showCaveAchievement(title,key){
   const host=$('secretAchievement');host.replaceChildren();
   const prose=document.createElement('div');
-  prose.textContent='산의 깊은 곳에서 발견한 귀한 영약이\n오랜 세월 잠들어 있던 불상 앞에 놓입니다.\n\n고요한 동굴에 황금빛이 번져갑니다.\n\n새로운 칭호를 획득했습니다.';
+  prose.textContent='산의 깊은 곳에서 발견한 귀한 영약이\n오랜 세월 잠들어 있던 불상 앞에 놓입니다.\n\n고요한 동굴에 황금빛이 번져갑니다.\n\n새로운 칭호를 획득했습니다.\n황금 불상의 보살핌이 24시간 이어집니다.\n칭호는 영원히 남습니다.';
   const name=document.createElement('strong');name.textContent='「'+title+'」';
   host.append(prose,name);host.classList.remove('hide');
   clearTimeout(achievementTimeout);achievementTimeout=setTimeout(()=>host.classList.add('hide'),4900);
@@ -5075,11 +5444,18 @@ function completeSecretOffering(){
     }
     save.inv[key]--;
     if(!save.inv[key])delete save.inv[key];
-    const title=isGoldenKey(key)?addSpecialTitle(key):'';
+    const gold=isGoldenKey(key),title=gold?addSpecialTitle(key):'';
+    const blessing=grantOfferingBuff(gold);
     persist();setGreens(me,totalCount());hudKey='';
-    glowSecretCaveCandles();
-    if(title){showCaveAchievement(title,key);tone(587,.5,'sine',.055,1,.18)}
-    else {toast('바친 영약 앞에 촛불이 조용히 흔들립니다.');tone(392,.3,'sine',.035)}
+    startCaveBlessingFx(gold);
+    netPublish('caveBlessing',{cv:1,gold:gold?1:0,x:caveBuddhaPoint.x,z:caveBuddhaPoint.z});
+    if(title){showCaveAchievement(title,key);tone(587,.6,'sine',.055,1,.18)}
+    else {
+      const hint=rollSansamOfferingHint();
+      if(hint){toast(hint);toastT=9.5;tone(523,.8,'sine',.035,1,.12)}
+      else toast(blessing.kind==='gold'?'황금 불상의 보살핌이 이어집니다.':'은은한 가호가 내려옵니다. 음식과 같은 힘이 40분간 이어집니다.');
+      tone(392,.6,'sine',.035);
+    }
     if(!$('bag').classList.contains('hide'))buildBag();
     sendPresence(true);
   }catch(error){
@@ -5120,6 +5496,57 @@ $('secretOfferingPanel').addEventListener('click',e=>{if(e.target===$('secretOff
 addEventListener('keydown',e=>{if(e.key==='Escape'){
   if(!$('secretOfferingPanel').classList.contains('hide'))closeOffering();
 }});
+/* === FIVE-STAR BUDDHA BLESSING / REAL-TIME BUFF ===
+ * Duration is wall-clock time and is persisted with each profile.
+ * A regular offering never downgrades an active golden blessing.
+ */
+const CAVE_NORMAL_BUFF_MS=40*60*1000,CAVE_GOLD_BUFF_MS=24*60*60*1000;
+function offeringBuffState(now=Date.now()){
+  const until=+save.offeringBuffUntil||0,kind=save.offeringBuffKind;
+  return until>now&&(kind==='normal'||kind==='gold')?{kind,until}:null;
+}
+function grantOfferingBuff(golden,now=Date.now()){
+  const current=offeringBuffState(now);
+  if(!golden&&current?.kind==='gold')return current;
+  const kind=golden?'gold':'normal';
+  const duration=golden?CAVE_GOLD_BUFF_MS:CAVE_NORMAL_BUFF_MS;
+  save.offeringBuffKind=kind;save.offeringBuffUntil=now+duration;
+  return {kind,until:save.offeringBuffUntil};
+}
+// A Buddha blessing grants the exact same strength as a cooked meal.
+// Overlapping meal and offering timers extend availability, NOT movement power.
+function offeringSpeedMultiplier(now=Date.now()){
+  return (+save.mealBuffUntil||0)>now||!!offeringBuffState(now)?MEAL_SPEED_MULT:1;
+}
+function offeringJumpMultiplier(now=Date.now()){
+  return (+save.mealBuffUntil||0)>now||!!offeringBuffState(now)?MEAL_JUMP_MULT:1;
+}
+function goldenBuddhaProtects(now=Date.now()){
+  return offeringBuffState(now)?.kind==='gold';
+}
+// Regular 5-star offerings reveal a poetic, intentionally imprecise clue with 3% odds.
+// It refers to a real available ginseng slot, but never reveals a coordinate or map pin.
+function rollSansamOfferingHint(random=Math.random){
+  if(random()>=.03)return '';
+  const sites=TARGETED_FIVE_STAR_SITES.sansam.filter(site=>
+    !takenUntil(`${site.chunk}:fiveStar-sansam-${site.index}`));
+  if(!sites.length)return '';
+  const site=sites[Math.floor(random()*sites.length)],alt=H(site.x,site.z)*ALT_K;
+  const height=alt<750?'숨결이 아직 따뜻한 낮은 숲':alt<1350?
+    '산허리를 감싸는 짙은 나무 그늘':'서늘한 바람이 맴도는 높은 숲';
+  const leaf='솔잎 사이로 떨어진 빛이 오래된 흙을 어루만지는 곳';
+  return `석불의 속삭임… 「${height}, ${leaf}. 땅속 깊은 귀한 뿌리가 잠들어 있도다.」`;
+}
+function updateOfferingBuffHud(){
+  const el=$('offeringBuff'),buff=offeringBuffState();
+  if(!el)return;
+  el.classList.toggle('hide',!buff);
+  if(!buff)return;
+  const mins=Math.ceil((buff.until-Date.now())/60000);
+  const remaining=mins>=60?`${Math.floor(mins/60)}시간 ${mins%60}분`:`${mins}분`;
+  el.textContent=(buff.kind==='gold'?'✦ 황금 불상의 보살핌':'✧ 불상의 가호')+
+    ` · 음식과 동일한 속도·점프`+(buff.kind==='gold'?' · 기절 보호':'')+` · ${remaining} 남음`;
+}
 /* ================= GAME LOOP ================= */
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
 function updateGame(dt){
@@ -5135,7 +5562,8 @@ function updateGame(dt){
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0,lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);if(rot){camYaw+=rot*dt*1.8;lastDrag=clock}
-  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing;
+  me.hasGoldenHoe=!!save.goldenHoeOwned;
+  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing||goldenHoeBusy();
   let moveAmt=0,mvx=0,mvz=0;
   if(!busy&&(Math.abs(fwd)>.08||Math.abs(str)>.08)){target=null;pending=null;
     const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
@@ -5148,14 +5576,14 @@ function updateGame(dt){
   if(moveAmt){
     if(onRock){
       // Walk freely within this boulder's safe upper surface.
-      const speed=2.55*(mealBoosted()?MEAL_SPEED_MULT:1),limit=onRock.r*rockWalkLimit;
+      const speed=2.55*offeringSpeedMultiplier(),limit=onRock.r*rockWalkLimit;
       let nx=P.x+mvx*moveAmt*speed*dt,nz=P.z+mvz*moveAmt*speed*dt;
       const dx=nx-onRock.x,dz=nz-onRock.z,d=Math.hypot(dx,dz);
       if(d>limit){nx=onRock.x+dx/d*limit;nz=onRock.z+dz/d*limit}
       P.x=nx;P.z=nz;
       if(target&&Math.hypot(target.x-onRock.x,target.z-onRock.z)>limit+1)target=null;
     }else{
-      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*(mealBoosted()?MEAL_SPEED_MULT:1)*clamp(1-slope*.35,.6,1.15);
+      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*offeringSpeedMultiplier()*clamp(1-slope*.35,.6,1.15);
       let nx=P.x+mvx*moveAmt*spd*dt,nz=P.z+mvz*moveAmt*spd*dt;
       const d=nx-pathX(nz);if(Math.abs(d)>58)nx=pathX(nz)+Math.sign(d)*58;if(nz>34)nz=34;if(nz<SUMMIT_Z+2)nz=SUMMIT_Z+2;
       if(H(nx,nz)-P.y<.9||P.air){const q=collide(nx,nz);P.x=q.x;P.z=q.z}
@@ -5168,6 +5596,7 @@ function updateGame(dt){
   if(fainted){me.mode='faint'}
   else if(me.mode==='dig'){if(!hitDone&&me.t>DIG_T*.62){hitDone=true;if(curAct)impact(curAct)}if(me.mode==='dig'&&me.t>=DIG_T){me.mode='idle';me.t=0;if(queued){const q=queued;queued=null;if(nearTo(q.pos,2.6))swing(q)}}}
   else if(me.mode==='joy'||me.mode==='joyspin'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
+  else if(goldenHoeBusy())me.mode='goldhoe';
   else if(cooking)me.mode='cook';
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
@@ -5191,7 +5620,7 @@ function updateGame(dt){
   for(let i=pulls.length-1;i>=0;i--){const p=pulls[i];p.t+=dt;const k=clamp(p.t/.7,0,1);p.m.position.y=p.y0+ease(k)*p.d;p.m.rotation.z=Math.sin(p.t*9)*.15*(1-k);if(p.t>1.1)p.m.scale.setScalar(Math.max(.001,1-(p.t-1.1)/.4));if(p.t>1.5){p.m.parent&&p.m.parent.remove(p.m);pulls.splice(i,1)}}
   updateSecretCaveExterior(dt);
   updateRareSense(dt);
-  updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
+  updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);updateMysteriousAuraAlert();
   updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);updateWorldSounds(dt);
   updateHudCompass();
   hudT+=dt;if(hudT>.25){hudT=0;updHud()}
@@ -5300,12 +5729,17 @@ function normalizeRecord(raw){
   };
   const highestRank=Number.isInteger(raw?.highestRank)?clamp(raw.highestRank,1,RANKS.length):1;
   const mealBuffUntil=Number.isFinite(raw?.mealBuffUntil)?clamp(raw.mealBuffUntil,0,Date.now()+20*60*1000):0;
-  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil};
+  const buffKind=raw?.offeringBuffKind==='gold'?'gold':raw?.offeringBuffKind==='normal'?'normal':'';
+  const buffCap=buffKind==='gold'?24*60*60*1000:40*60*1000;
+  const buffUntil=buffKind&&Number.isFinite(raw?.offeringBuffUntil)?clamp(raw.offeringBuffUntil,0,Date.now()+buffCap):0;
+  const goldenHoeOwned=!!raw?.goldenHoeOwned;
+  const goldenHoeCooldownUntil=Number.isFinite(raw?.goldenHoeCooldownUntil)?Math.max(0,Math.min(Date.now()+24*60*60*1000,Math.floor(raw.goldenHoeCooldownUntil))):0;
+  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;
@@ -5656,7 +6090,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeGameSettings()});
 $('terrainRefreshBtn').addEventListener('click',refreshWorldFromSettings);
 // Refresh operates only through the settings button; jumping is unchanged.
 setTimeout(()=>resumeAfterSettingsReload(),120);
-function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
+function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*offeringJumpMultiplier();P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(!AMB)return;if(document.hidden)AMB.a.suspend();else AMB.a.resume()});

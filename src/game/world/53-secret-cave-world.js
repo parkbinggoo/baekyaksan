@@ -153,28 +153,76 @@ function makeCaveTunnel(){
   group.traverse(obj=>obj.layers.set(1));caveInterior=group;scene.add(group);
 }
 function makeCaveBuddha(group){
-  const g=new THREE.Group(),stone=caveStoneMaterial(0xa29b88),robe=caveStoneMaterial(0x8e897b),shadow=caveStoneMaterial(0x706c60);
-  const ico=(c,x,y,z,sx,sy,sz,detail=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detail),c,x,y,z,sx,sy,sz);
-  caveMesh(g,new THREE.CylinderGeometry(1.15,1.35,.34,10),shadow,0,.02,0);
-  caveMesh(g,new THREE.CylinderGeometry(.92,1.08,.28,10),stone,0,.30,0);
-  ico(robe,0,.72,0,.92,.34,.68,1);
-  ico(stone,0,1.54,.02,.72,1.02,.56,1);
-  ico(robe,-.42,1.62,.08,.29,.82,.42,0);
-  ico(stone,0,2.60,.02,.42,.58,.40,1);
-  ico(stone,0,3.06,.04,.28,.14,.28,0);
-  for(const side of [-1,1])ico(stone,side*.39,2.64,.02,.08,.15,.12,0);
-  const eyes=caveStoneMaterial(0x67665e);
-  for(const s of [-1,1])caveMesh(g,new THREE.BoxGeometry(.12,.016,.013),eyes,s*.15,2.62,.38);
-  ico(stone,0,2.44,.40,.09,.15,.09,0);
-  const mouth=caveMesh(g,new THREE.BoxGeometry(.18,.014,.018),eyes,0,2.30,.382);mouth.rotation.z=.03;
-  // One upright palm, one resting hand.
-  const arm=caveMesh(g,new THREE.CylinderGeometry(.16,.20,.84,6),stone,.70,1.78,.05);arm.rotation.z=-.35;
-  ico(stone,.80,2.16,.11,.20,.30,.12,0);
-  for(let i=0;i<4;i++)caveMesh(g,new THREE.CylinderGeometry(.033,.039,.24,5),stone,.67+i*.08,2.39,.12);
-  const left=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.86,6),robe,-.68,1.28,.26);left.rotation.z=-.88;
-  ico(stone,-.20,.82,.52,.28,.10,.20,0);
+  const g=new THREE.Group(),stone=caveStoneMaterial(0xa39b89),robe=caveStoneMaterial(0x8d887a),shadow=caveStoneMaterial(0x6f6a5f),detail=caveStoneMaterial(0x7b7668),dark=caveStoneMaterial(0x666257);
+  const ico=(c,x,y,z,sx,sy,sz,detailLevel=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detailLevel),c,x,y,z,sx,sy,sz);
+  // Lotus-like stone base.
+  caveMesh(g,new THREE.CylinderGeometry(1.20,1.42,.24,10),shadow,0,.02,0);
+  caveMesh(g,new THREE.CylinderGeometry(1.02,1.18,.20,10),stone,0,.24,0);
+  for(let i=0;i<10;i++){
+    const a=i/10*Math.PI*2;
+    const petal=caveMesh(g,new THREE.ConeGeometry(.16,.38,5),detail,Math.cos(a)*.88,.22,Math.sin(a)*.12,.72,.7,.85);
+    petal.rotation.x=Math.PI*.52;petal.rotation.z=Math.cos(a)*.28;petal.rotation.y=a;
+  }
+  // Seated body and robe mass.
+  ico(robe,0,.74,.03,1.02,.42,.82,1);
+  ico(robe,0,1.22,.02,1.05,.74,.74,1);
+  ico(stone,0,1.62,.03,.74,1.06,.58,1);
+  // Robe shoulder drape and layered cloth.
+  const leftDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,1.08,6),robe,-.62,1.36,.16);leftDrape.rotation.z=.86;
+  const rightDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,.98,6),robe,.66,1.54,.09);rightDrape.rotation.z=-.36;
+  for(let i=0;i<4;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.92-.1*i,.05,.10),detail,-.08,.95+i*.18,.48-i*.02);
+    fold.rotation.z=.10-i*.03;fold.rotation.x=.08;
+  }
+  for(let i=0;i<3;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.64-.07*i,.045,.09),detail,-.36,.98+i*.20,.55);
+    fold.rotation.z=.34;fold.rotation.x=.1;
+  }
+  // Folded legs / lap.
+  ico(robe,-.42,.58,.24,.54,.22,.36,0);
+  ico(robe,.36,.58,.22,.58,.23,.38,0);
+  ico(detail,-.05,.50,.43,.70,.11,.22,0);
+  // Neck and head.
+  caveMesh(g,new THREE.CylinderGeometry(.16,.20,.20,6),shadow,0,2.12,.02);
+  ico(stone,0,2.62,.02,.48,.60,.44,1);
+  ico(stone,0,2.98,.05,.38,.28,.34,1);
+  // Ushnisha / top knot.
+  ico(detail,0,3.24,.04,.24,.18,.22,0);
+  // Ears.
+  for(const side of [-1,1]){
+    const ear=ico(stone,side*.42,2.63,.02,.09,.19,.12,0);
+    ear.rotation.z=side*.12;
+  }
+  // Facial details: brow, eyes, nose, mouth, urna dot.
+  const brow=caveMesh(g,new THREE.BoxGeometry(.38,.03,.03),dark,0,2.73,.34);brow.rotation.z=.02;
+  for(const s of [-1,1]){
+    const eye=caveMesh(g,new THREE.BoxGeometry(.10,.012,.012),dark,s*.15,2.63,.37);eye.rotation.z=s*-.06;
+  }
+  const nose=ico(detail,0,2.49,.40,.06,.13,.08,0);
+  const mouth=caveMesh(g,new THREE.BoxGeometry(.17,.013,.014),dark,0,2.34,.382);mouth.rotation.z=.02;
+  const urna=caveMesh(g,new THREE.SphereGeometry(.035,6,6),new THREE.MeshLambertMaterial({color:0xc7c0a9,flatShading:true}),0,2.56,.40);
+  // Hands: right blessing hand with fingers, left hand resting on lap.
+  const rightArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.92,6),stone,.70,1.80,.07);rightArm.rotation.z=-.34;
+  const rightPalm=ico(stone,.82,2.16,.13,.21,.31,.12,0);
+  for(let i=0;i<4;i++){
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.028,.034,.25,5),stone,.70+i*.082,2.40,.14);
+    finger.rotation.z=-.04+i*.03;
+  }
+  const thumb=caveMesh(g,new THREE.CylinderGeometry(.026,.03,.17,5),stone,.63,2.28,.15);thumb.rotation.z=.72;
+  const leftArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.94,6),robe,-.70,1.25,.23);leftArm.rotation.z=.92;
+  const leftPalm=ico(stone,-.20,.82,.52,.30,.11,.21,0);
+  for(let i=0;i<4;i++){
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.022,.027,.17,5),stone,-.32+i*.068,.86,.55);
+    finger.rotation.x=.95;finger.rotation.z=.10-i*.06;
+  }
+  const leftThumb=caveMesh(g,new THREE.CylinderGeometry(.02,.024,.12,5),stone,-.31,.79,.49);leftThumb.rotation.z=.9;leftThumb.rotation.x=.7;
+  // Chest bead / robe clasp detail.
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.18,1.58,.39);
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.06,1.48,.42);
+  caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,.02,1.36,.44);
   g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.6);
   group.add(g);
+  prepareCaveBlessingFx(group,g,[stone,robe,shadow]);
   // Keep the foreground clear: small, low offering tray only.
   const stand=caveMesh(group,new THREE.CylinderGeometry(.40,.48,.14,8),stone,caveBuddhaPoint.x,.09,caveBuddhaPoint.z+1.72);
   stand.userData.isOfferingTray=true;
@@ -210,12 +258,17 @@ function ensureSecretCave(){
 function glowSecretCaveCandles(){caveLightPulse=Math.max(caveLightPulse,2.8)}
 function animateSecretCaveCandles(dt){
   caveInteractionElapsed+=dt;caveLightPulse=Math.max(0,caveLightPulse-dt);
-  const bright=caveLightPulse>0?Math.min(1,caveLightPulse)*.75:0;
+  updateCaveBlessingFx(dt);
+  const bright=(caveLightPulse>0?Math.min(1,caveLightPulse)*.75:0)+caveBlessingStrength()*.7;
   for(const c of caveCandles){
     const flicker=1+Math.sin(caveInteractionElapsed*7.3+c.phase)*.085+Math.sin(caveInteractionElapsed*11+c.phase*.5)*.035;
     if(c.light)c.light.intensity=c.base*(flicker+bright);
-    if(c.flame){c.flame.scale.y=flicker+.14*bright;c.flame.rotation.z=Math.sin(caveInteractionElapsed*8+c.phase)*.11;
-      c.flame.material.opacity=Math.min(1,.88+.11*bright)}
+    if(c.flame){
+      const synchronizedSway=caveBlessingStrength()*Math.sin(caveInteractionElapsed*14)*.26;
+      c.flame.scale.y=flicker+.14*bright+caveBlessingStrength()*.25;
+      c.flame.rotation.z=Math.sin(caveInteractionElapsed*8+c.phase)*.11+synchronizedSway;
+      c.flame.material.opacity=Math.min(1,.88+.11*bright)
+    }
   }
 }
 function showCaveAction(which){
@@ -294,6 +347,7 @@ function updateSecretCaveInterior(dt){
   const cx=clamp(P.x-Math.sin(camYaw)*cd*.82,caveCurve(cz)-walkHalf*.92,caveCurve(cz)+walkHalf*.92);
   camera.position.lerp(v3.set(cx,2.05,clamp(cz,-39.2,6.4)),1-Math.exp(-dt*10));
   camera.lookAt(P.x,P.y+1.30,P.z);
+  applyCaveBlessingShake(camera);
   updOthers(dt);updateMyRankTag();
   if(P.z>3.8)showCaveAction('secretCaveLeaveBtn');
   else if(Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)<5.0&&!caveOffering){

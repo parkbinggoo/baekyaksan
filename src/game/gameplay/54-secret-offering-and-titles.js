@@ -23,12 +23,12 @@ function renderOfferingItems(){
   for(const key of keys){
     const info=itemInfo(key),gold=isGoldenKey(key),b=document.createElement('button');
     b.type='button';b.className='secret-choice'+(gold?' golden':'')+(key===offeringSelectedKey?' on':'');
-    b.textContent=(gold?'✦ ':'')+info.name+' · '+(save.inv[key]||0)+'개'+(gold?' · 특별 칭호 공양':'');
+    b.textContent=(gold?'✦ ':'')+info.name+' · '+(save.inv[key]||0)+'개'+(gold?' · 영구 칭호 + 24시간 보살핌':' · 40분 가호 · 힌트 3%');
     b.onclick=()=>{offeringSelectedKey=key;renderOfferingItems();};host.appendChild(b);
   }
   $('secretOfferingConfirm').disabled=!keys.includes(offeringSelectedKey);
   $('secretOfferingConfirmText').textContent=offeringSelectedKey?
-    `${itemInfo(offeringSelectedKey).name} 1개를 소모합니다. 공양 후 되돌릴 수 없습니다.`:
+    `${itemInfo(offeringSelectedKey).name} 1개를 소모합니다. ${isGoldenKey(offeringSelectedKey)?'영구 칭호 + 24시간 기절 보호·이동·점프 강화':'40분 이동·점프 강화 + 3% 확률의 산삼 힌트'}가 적용됩니다. 되돌릴 수 없습니다.`:
     '공양할 5성 채집물을 선택해 주세요.';
 }
 function openSecretOffering(){
@@ -67,7 +67,7 @@ function startSecretOffering(){
 function showCaveAchievement(title,key){
   const host=$('secretAchievement');host.replaceChildren();
   const prose=document.createElement('div');
-  prose.textContent='산의 깊은 곳에서 발견한 귀한 영약이\n오랜 세월 잠들어 있던 불상 앞에 놓입니다.\n\n고요한 동굴에 황금빛이 번져갑니다.\n\n새로운 칭호를 획득했습니다.';
+  prose.textContent='산의 깊은 곳에서 발견한 귀한 영약이\n오랜 세월 잠들어 있던 불상 앞에 놓입니다.\n\n고요한 동굴에 황금빛이 번져갑니다.\n\n새로운 칭호를 획득했습니다.\n황금 불상의 보살핌이 24시간 이어집니다.\n칭호는 영원히 남습니다.';
   const name=document.createElement('strong');name.textContent='「'+title+'」';
   host.append(prose,name);host.classList.remove('hide');
   clearTimeout(achievementTimeout);achievementTimeout=setTimeout(()=>host.classList.add('hide'),4900);
@@ -81,11 +81,18 @@ function completeSecretOffering(){
     }
     save.inv[key]--;
     if(!save.inv[key])delete save.inv[key];
-    const title=isGoldenKey(key)?addSpecialTitle(key):'';
+    const gold=isGoldenKey(key),title=gold?addSpecialTitle(key):'';
+    const blessing=grantOfferingBuff(gold);
     persist();setGreens(me,totalCount());hudKey='';
-    glowSecretCaveCandles();
-    if(title){showCaveAchievement(title,key);tone(587,.5,'sine',.055,1,.18)}
-    else {toast('바친 영약 앞에 촛불이 조용히 흔들립니다.');tone(392,.3,'sine',.035)}
+    startCaveBlessingFx(gold);
+    netPublish('caveBlessing',{cv:1,gold:gold?1:0,x:caveBuddhaPoint.x,z:caveBuddhaPoint.z});
+    if(title){showCaveAchievement(title,key);tone(587,.6,'sine',.055,1,.18)}
+    else {
+      const hint=rollSansamOfferingHint();
+      if(hint){toast(hint);toastT=9.5;tone(523,.8,'sine',.035,1,.12)}
+      else toast(blessing.kind==='gold'?'황금 불상의 보살핌이 이어집니다.':'은은한 가호가 내려옵니다. 음식과 같은 힘이 40분간 이어집니다.');
+      tone(392,.6,'sine',.035);
+    }
     if(!$('bag').classList.contains('hide'))buildBag();
     sendPresence(true);
   }catch(error){

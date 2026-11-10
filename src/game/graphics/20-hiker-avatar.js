@@ -75,9 +75,15 @@ function makeHiker(jacket){
   const crook=mk(new THREE.TorusGeometry(.05,.016,6,10,Math.PI),T(0x6a6560),stick,.05,.22,0);
   const hoe=new THREE.Group();hoe.position.set(0,-.6,.02);armR.add(hoe);
   const handle=mk(new THREE.CylinderGeometry(.022,.026,.3,8),wood,hoe,0,0,.1);handle.rotation.x=Math.PI/2;
-  mk(new THREE.CylinderGeometry(.01,.01,.09,5),T(0x5a5a5a),hoe,0,-.02,.27).rotation.x=.5;
+  const ferrule=mk(new THREE.CylinderGeometry(.01,.01,.09,5),T(0x5a5a5a),hoe,0,-.02,.27);ferrule.rotation.x=.5;
   const blade=mk(new THREE.ConeGeometry(.075,.15,3),T(0x9aa0a6),hoe,0,-.08,.3);blade.rotation.x=Math.PI;blade.scale.z=.3;
-  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1};
+  // Own the hoe materials per hiker: never tint shared matCache materials,
+  // or a golden peer would change everybody's ordinary hoe to gold.
+  handle.material=handle.material.clone();
+  ferrule.material=ferrule.material.clone();
+  blade.material=blade.material.clone();
+  const hoeGlow=new THREE.PointLight(0xffd76f,0,7.5,1.55);hoeGlow.position.set(0,-.03,.24);hoeGlow.castShadow=false;hoe.add(hoeGlow);
+  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
 }
 function setGreens(h,n){n=Math.min(6,n);if(h.nGreens===n)return;h.nGreens=n;while(h.greens.children.length)h.greens.remove(h.greens.children[0]);
   for(let i=0;i<n;i++){leafM(h.greens,0,0,(i-2.5)*.025,.2,.05,i*.5,1.3,M(i%2?0x5a8a3a:0x6fa046))}}
@@ -86,9 +92,20 @@ function poseHiker(h,dt,speed){
   h.t+=dt;let lL=0,lR=0,aL=.08,aR=.08,aLz=.12,aRz=-.12,by=0,lean=0,hd=0;
   // The walking stick and hoe do not overlap the temporary cooking utensils.
   if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
+  const hasGoldenHoe=!!h.hasGoldenHoe,night=(typeof skyAtHour==='function'&&typeof gameMin!=='undefined')?skyAtHour(gameMin/60).night:0;
+  if(h.hoe){h.hoe.scale.setScalar(hasGoldenHoe?1.5:1);h.hoe.rotation.x=hasGoldenHoe&&h.mode==='goldhoe'?-1.18:0;h.hoe.rotation.z=hasGoldenHoe&&h.mode==='goldhoe'?.10:0;}
+  const hoeMats=hasGoldenHoe?[0xcda12c,0xd4ab39,0xffd869]:[0xa47a4a,0x5a5a5a,0x9aa0a6];
+  if(h.hoeHandle?.material?.color)h.hoeHandle.material.color.setHex(hoeMats[0]);
+  if(h.hoeHandle?.material?.emissive)h.hoeHandle.material.emissive.setHex(hasGoldenHoe?0x6a4b06:0x000000),h.hoeHandle.material.emissiveIntensity=hasGoldenHoe?(.22+night*.45):0;
+  if(h.hoeFerrule?.material?.color)h.hoeFerrule.material.color.setHex(hoeMats[1]);
+  if(h.hoeFerrule?.material?.emissive)h.hoeFerrule.material.emissive.setHex(hasGoldenHoe?0x715208:0x000000),h.hoeFerrule.material.emissiveIntensity=hasGoldenHoe?(.26+night*.55):0;
+  if(h.hoeBlade?.material?.color)h.hoeBlade.material.color.setHex(hoeMats[2]);
+  if(h.hoeBlade?.material?.emissive)h.hoeBlade.material.emissive.setHex(hasGoldenHoe?0x8a650c:0x000000),h.hoeBlade.material.emissiveIntensity=hasGoldenHoe?(.38+night*.68):0;
+  if(h.hoeGlow)h.hoeGlow.intensity=hasGoldenHoe?(.16+night*.95):0;
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
   else if(h.mode==='joy'||h.mode==='joyspin'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
+  else if(h.mode==='goldhoe'){const k=Math.min(1,h.t/.46);by=Math.abs(Math.sin(h.t*8))*.10*Math.max(.25,1-h.t/2.8);aL=-.38;aR=lerp(-.45,-3.08,k);aLz=.08;aRz=lerp(-.12,-.08,k);lL=-.12;lR=.10;lean=lerp(.06,-.20,k);hd=-.18;}
   else if(h.mode==='climb'){const st=(climbing?.steps||0),w=Math.sin(clock*5+st*1.6);lL=-.55+w*.4;lR=-.55-w*.4;aL=-2.35-w*.4;aR=-2.35+w*.4;lean=.38;by=.06;}
   else if(h.mode==='cook'){
     const k=h.cookTime||h.t||0,stage=h.cookStage??cookStageAt(k);

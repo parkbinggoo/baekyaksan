@@ -19,7 +19,8 @@ function act(tg){
     if(nearestClimbableRock()===rock)beginClimb(rock);
     return;
   }
-  if((tg.kind==='herb'||tg.kind==='honey')&&(tg.kind==='honey'?HONEY[tg.item.type]:HERBS[tg.item.type]).care&&nearTo(tg.pos,2.4)){const gap=(tg.kind==='honey'?HONEY[tg.item.type]:HERBS[tg.item.type]).care,it=tg.item;if((me.mode==='dig'&&curAct&&curAct.item===it)||(queued&&queued.item===it)||(it.hits>0&&clock-(it.lastHit||-9)<gap)){queued=null;careFail(tg);return}}
+  const careGap=careGapOfTarget(tg);
+  if(careGap&&nearTo(tg.pos,2.4)){const gap=careGap,it=tg.item;if((me.mode==='dig'&&curAct&&curAct.item===it)||(queued&&queued.item===it)||(it.hits>0&&clock-(it.lastHit||-9)<gap)){queued=null;careFail(tg);return}}
   const reach=tg.kind==='ground'?1.9:2.4;
   if(nearTo(tg.pos,reach)){target=null;pending=null;swing(tg)}
   else{target={x:tg.pos.x,z:tg.pos.z,stop:reach*.8};pending=tg}
@@ -31,7 +32,9 @@ function swing(tg){
 }
 const spots={};
 function impact(tg){
-  thud();
+  // Digging into snowy ground gets the same gentle, low-frequency snow texture.
+  const snowyDig=(tg.kind==='ground'||tg.kind==='herb'||tg.kind==='decoy')&&snowGroundCoverage(P.x,P.z,P.y)>.36;
+  if(snowyDig)playSnowDig();else thud();
   if(tg.kind==='herb'||tg.kind==='ground'||tg.kind==='fruit'||tg.kind==='decoy')dirt(tg.pos,16);else dirt(tg.pos,10,[0x7a4a30,0x5a3a24,0x5e8f3e]);
   if(tg.kind==='decoy'){
     const it=tg.item;if(!it||takenUntil(it.id))return;
@@ -43,7 +46,7 @@ function impact(tg){
   }else if(tg.kind==='herb'||tg.kind==='mush'||tg.kind==='fruit'||tg.kind==='honey'){
     const it=tg.item;if(takenUntil(it.id))return;it.hits++;it.lastHit=clock;
     if(it.mesh){it.mesh.userData.shake=.3;shaking.add(it)}
-    if(it.hits>=it.need){collect(it.kind,it.type,tg.pos,it)}else{pip(tg.pos,it.hits,it.need);if(it.hits===1&&((it.kind==='herb'&&HERBS[it.type].care)||it.kind==='honey'))setTimeout(()=>floatMsg(tg.pos,it.kind==='honey'?'벌들이 예민하다… 천천히':'뿌리가 여리다… 천천히'),350)}
+    if(it.hits>=it.need){collect(it.kind,it.type,tg.pos,it)}else{pip(tg.pos,it.hits,it.need);if(it.hits===1&&careGapOfItem(it.kind,it)>0)setTimeout(()=>floatMsg(tg.pos,it.kind==='honey'?'벌들이 예민하다… 천천히':it.kind==='mush'?'조각나지 않게 천천히 캐자':'뿌리가 여리다… 천천히'),350)}
   }else if(tg.kind==='tree'){
     const t=tg.tree;
     // Trees without any attached, available collectible are 'empty trees'.
@@ -100,7 +103,8 @@ function collect(kind,type,pos,it){
   if(it){markTaken(it.id,Date.now()+RESPAWN_MS,true,originalType);if(it.mesh&&it.mesh.parent){if(kind==='herb'){const sp=SPI[originalType];pulls.push({m:it.mesh,t:0,y0:it.mesh.position.y,d:(sp?.root?sp.root.len+(sp.root.deep?.15:.05):0)+.25})}else it.mesh.parent.remove(it.mesh)}for(const c of chunks.values()){const i=c.items.indexOf(it);if(i>=0)c.items.splice(i,1)}}
   save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
   if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
-  recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
+  recordHerbHarvest(originalType,itemInfo(originalType),!!it&&
+    (!!itemInfo(originalType)?.care||!!(it.golden&&itemInfo(originalType)?.rar===5)));persist();
   const isSansam=originalType==='sansam';
   me.mode=isSansam?'joyspin':'joy';me.t=0;joyT=isSansam?3.65:2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));

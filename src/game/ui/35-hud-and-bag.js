@@ -6,6 +6,7 @@ let hudKey='';
 function updHud(){const alt=Math.max(0,Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K))),ph=phaseOf(gameMin/60),ck=clockText(),k=alt+'|'+ck+'|'+totalCount()+'|'+discoveredCount()+'|'+bagLimit()+'|'+playerRank+'|'+(inSecretCave?'cave':'mountain');if(k!==hudKey){hudKey=k;$('altLabel').textContent=inSecretCave?'장소':'해발';$('altMeters').textContent=inSecretCave?'비밀 동굴':`${alt.toLocaleString()}m`;$('clock').textContent=`${ph} · ${ck}`;$('count').textContent=`가방 ${totalCount()}/${bagLimit()} · 도감 ${discoveredCount()}/${HERB_KEYS.length+MUSH_KEYS.length+Object.keys(FRUITS).length+HONEY_KEYS.length}종`}
   const buff=$('mealBuff'),active=mealBoosted();buff.classList.toggle('hide',!active);
   if(active)buff.textContent=`🍲 산속 한 끼 · 속도, 점프 증가 · 남은 ${Math.ceil((save.mealBuffUntil-Date.now())/60000)}분`;
+  updateOfferingBuffHud();
   const m=Math.floor(alt/300);if(lastMile<0)lastMile=m;if(m>lastMile){lastMile=m;toast(`해발 ${m*300}m — ${MILES[Math.min(MILES.length-1,m-1)]}`);tone(392,.4,'sine',.06);tone(587,.6,'sine',.05,1,.15)}}
 $('bagBtn').onclick=()=>{buildBag();$('bag').classList.remove('hide')};
 $('bagClose').onclick=()=>$('bag').classList.add('hide');
