@@ -26,7 +26,6 @@ const SND={
   cuckoo(t){const p=R(-.6,.6),reps=2+Math.floor(R(0,3));for(let i=0;i<reps;i++){const tt=t+i*.95;voice(tt,.22,(g,t0,d)=>osc(g,'sine',t0,d,690,650),.034,p);voice(tt+.3,.38,(g,t0,d)=>osc(g,'sine',t0,d,540,510),.034,p)}},
   dove(t){const p=R(-.7,.7);[[0,.34],[.48,.2],[.75,.36]].forEach(([o,dd])=>voice(t+o,dd,(g,t0,d)=>osc(g,'triangle',t0,d,430,370),.03,p))},
   woodpecker(t,v=.07,p=R(-.8,.8)){const n=12+Math.floor(R(0,8));for(let i=0;i<n;i++)voice(t+i/19,.025,(g,t0,d)=>noise(g,t0,d,1050,1.6),v*.65*(1-i/n*.5),p)},
-  cicada(t){const p=R(-.7,.7),dur=R(2.5,4.2);voice(t,dur,(g,t0,d)=>{const am=AMB.a.createGain();am.gain.value=.5;const lf=AMB.a.createOscillator();lf.frequency.setValueAtTime(5,t0);lf.frequency.linearRampToValueAtTime(9,t0+d);const lg=AMB.a.createGain();lg.gain.value=.5;lf.connect(lg);lg.connect(am.gain);lf.start(t0);lf.stop(t0+d);am.connect(g);noise(am,t0,d,2350,1.7);osc(am,'sine',t0,d,2600,2250,'lin')},.009,p)},
   higurashi(t){const p=R(-.7,.7);for(let i=0;i<6;i++)voice(t+i*.32,.3,(g,t0,d)=>osc(g,'sine',t0,d,2650,2200),.009,p)},
   crow(t){const p=R(-.8,.8),reps=2+Math.floor(R(0,2));for(let i=0;i<reps;i++)voice(t+i*.5,.32,(g,t0,d)=>{const lp=AMB.a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1250;lp.connect(g);osc(lp,'sawtooth',t0,d,560,380);noise(lp,t0,d,760,1.1)},.027,p)},
   cricket(t){const p=R(-.9,.9),f=R(2300,3000);for(let k=0;k<3;k++)voice(t+k*.055,.06,(g,t0,d)=>osc(g,'sine',t0,d,f,f*.96),.009,p)},
@@ -45,7 +44,7 @@ const SND={
   frog(t){const p=R(-.8,.8);for(let i=0;i<2+Math.floor(R(0,3));i++)voice(t+i*.22,.14,(g,t0,d)=>{const lp=AMB.a.createBiquadFilter();lp.type='lowpass';lp.frequency.value=700;lp.connect(g);osc(lp,'square',t0,d,R(160,210),130)},.03,p)},
   bubble(t){const p=R(-.4,.4);voice(t,.055,(g,t0,d)=>osc(g,'sine',t0,d,R(330,560),R(550,850)),.0025,p)},
 };
-const CHORUS={'새벽':{bird:.025,scops:.018,owl:.022,cricket:.6},'아침':{bird:.12,woodpecker:.024,dove:.10,cuckoo:.025},'낮':{cicada:.09,bird:.065,dove:.055,cuckoo:.025,woodpecker:.015},'저녁':{higurashi:.07,crow:.035,bird:.018,owl:.018,scops:.012,cricket:.7},'밤':{cricket:1.3,scops:.025,owl:.028}};
+const CHORUS={'새벽':{bird:.025,scops:.018,owl:.022,cricket:.6},'아침':{bird:.12,woodpecker:.024,dove:.10,cuckoo:.025},'낮':{bird:.065,dove:.055,cuckoo:.025,woodpecker:.015},'저녁':{higurashi:.07,crow:.035,bird:.018,owl:.018,scops:.012,cricket:.7},'밤':{cricket:1.3,scops:.025,owl:.028}};
 let ambT=0;
 function updAmbience(dt){
   if(!AMB)return;const a=AMB.a;if(a.state==='suspended')return;

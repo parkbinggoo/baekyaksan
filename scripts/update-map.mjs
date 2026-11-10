@@ -4,12 +4,12 @@ import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest=JSON.parse(await readFile(join(root,'src/game/manifest.json'),'utf8'));
-const mapPath=join(root,'CODE_MAP.md');
+const mapPath=join(root,'docs/CODE_MAP.md');
 const text=await readFile(mapPath,'utf8');
 const start='<!-- AUTO-MAP-START -->';
 const end='<!-- AUTO-MAP-END -->';
 const a=text.indexOf(start),b=text.indexOf(end);
-if(a<0||b<=a)throw new Error('CODE_MAP.md 자동 생성 영역 표시가 누락되었습니다.');
+if(a<0||b<=a)throw new Error('docs/CODE_MAP.md 자동 생성 영역 표시가 누락되었습니다.');
 const rows=['| 구분 | 소스 파일 | 원본 줄 | 현재 줄 수 | 담당 기능 |','|---|---|---:|---:|---|'];
 for(const f of manifest.files){
  const body=await readFile(join(root,'src/game',f.file),'utf8');
@@ -19,4 +19,4 @@ for(const f of manifest.files){
 }
 const next=text.slice(0,a+start.length)+'\n'+rows.join('\n')+'\n'+text.slice(b);
 await writeFile(mapPath,next,'utf8');
-console.log(`코드 맵 갱신: CODE_MAP.md (${manifest.files.length}개 모듈)`);
+console.log(`코드 맵 갱신: docs/CODE_MAP.md (${manifest.files.length}개 모듈)`);
