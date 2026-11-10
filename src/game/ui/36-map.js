@@ -12,6 +12,20 @@ function dms(v,pos,neg,decimals=1){
 }
 const DIRS=['북','북북동','북동','동북동','동','동남동','남동','남남동','남','남남서','남서','서남서','서','서북서','북서','북북서'];
 const bearingOf=h=>(Math.atan2(Math.sin(h),-Math.cos(h))*180/Math.PI+360)%360;
+
+/* HUD compass: world north follows the unmodified map coordinates. */
+let hudCompassDeg=null;
+function updateHudCompass(){
+  const wrap=$('hudCompass'),needle=$('hudCompassNeedle');if(!wrap||!needle)return;
+  wrap.classList.toggle('hide',!!inSecretCave);
+  if(inSecretCave)return;
+  // Rotate the red tip relative to the camera so it always indicates true
+  // in-game north (-Z), without changing the map or the summit direction.
+  const desired=-bearingOf(camYaw);
+  if(hudCompassDeg===null)hudCompassDeg=desired;
+  else hudCompassDeg+=((desired-hudCompassDeg+540)%360)-180;
+  needle.style.transform=`translate(-50%,-50%) rotate(${hudCompassDeg.toFixed(1)}deg)`;
+}
 const dirName=b=>DIRS[Math.round(b/22.5)%16];
 delete save.trail;
 let mapOpen=false;const mapZoom=.25;let mapBase=null,mapBaseAt=null;

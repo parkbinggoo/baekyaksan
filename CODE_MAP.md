@@ -13,7 +13,7 @@ index.html
       └─ #rankSpecialTab → #rankSpecialContent → #secretTitleList (공양 칭호 목록/장착/해제)
 
 styles/12-hud-navigation.css
- ├─ HUD 2×3 주황색 직사각형 버튼, PC/모바일 반응형
+ ├─ HUD 2×3 버튼 순서는 유지, 기존 반투명 한지색·둥근 모서리·약 40px 높이 복원 (v1.2.6-ui.3)
  ├─ 설정 시트·탭 선택 시각 효과·접근성 포커스
  └─ 기존 styles/00~11 로직 및 게임 배경 유지
 
@@ -139,8 +139,8 @@ index.html (화면 구조)
 | ui | `src/game/ui/33-world-labels.js` | 3263–3270 | 8줄 | 캐릭터·채집 세계 좌표 라벨 |
 | input | `src/game/input/34-pointer-and-keyboard.js` | 3271–3308 | 43줄 | 마우스·터치·키보드 조작 |
 | input | `src/game/input/34a-forage-hit-assist.js` | —–— | 60줄 | 작은 약초·버섯·채집물의 화면 터치 오차범위 보정 (모델/난이도 불변) |
-| ui | `src/game/ui/35-hud-and-bag.js` | 3309–3345 | 49줄 | 상단 상태 HUD·가방·도감 UI |
-| ui | `src/game/ui/36-map.js` | 3346–3438 | 93줄 | 지도·나침반·위치 표기 |
+| ui | `src/game/ui/35-hud-and-bag.js` | 3309–3345 | 51줄 | 상단 상태 HUD·가방·도감 UI |
+| ui | `src/game/ui/36-map.js` | 3346–3438 | 107줄 | 지도·나침반·위치 표기 |
 | network | `src/game/network/37-radio.js` | 3439–3461 | 23줄 | 무전기 UI·상태 메시지 |
 | network | `src/game/network/38-multiplayer.js` | 3462–3622 | 164줄 | MQTT 접속·플레이어 동기화·랭크 표시 |
 | world | `src/game/world/39-collisions-and-camera.js` | 3623–3643 | 21줄 | 바위·나무 충돌 및 카메라 가림 처리 |
@@ -155,9 +155,9 @@ index.html (화면 구조)
 | gameplay | `src/game/gameplay/47b-five-star-sense.js` | —–— | 79줄 | 레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림 |
 | world | `src/game/world/48-wildlife-update.js` | 4320–4435 | 116줄 | 동물 AI 및 이름표 갱신 |
 | gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 92줄 | 바위 등반 타이밍·기절·점프 연결 |
-| world | `src/game/world/53-secret-cave-world.js` | —–— | 293줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
+| world | `src/game/world/53-secret-cave-world.js` | —–— | 294줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
 | gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 128줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
-| core | `src/game/core/50-game-update.js` | 4528–4605 | 80줄 | 프레임별 게임 로직·물리·상태 갱신 |
+| core | `src/game/core/50-game-update.js` | 4528–4605 | 81줄 | 프레임별 게임 로직·물리·상태 갱신 |
 | save | `src/game/save/51-profile-and-files.js` | 4606–4843 | 244줄 | 프로필 키·JSON 저장·복원·기록 내보내기 |
 | core | `src/game/core/51a-settings-terrain-refresh.js` | —–— | 73줄 | 설정 > 지형 새로고침: 프로필 위치 보존·자동 복귀·청크 복구 대체 |
 | core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 142줄 | 시작·버튼 이벤트·메인 렌더 루프 |

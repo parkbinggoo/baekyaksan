@@ -284,7 +284,8 @@ function updateSecretCaveInterior(dt){
     showCaveAction('secretOfferOpenBtn');
   }else showCaveAction('');
   presT+=dt;if(presT>.25){presT=0;sendPresence(false)}
-  hudT+=dt;if(hudT>.35){hudT=0;updHud();$('alt').innerHTML='<small>장소</small>비밀 동굴';}
+  updateHudCompass();
+  hudT+=dt;if(hudT>.35){hudT=0;updHud();}
   saveT+=dt;if(saveT>3){saveT=0;persist()}
   if(toastT>0){toastT-=dt;if(toastT<=0)$('toast').classList.remove('on')}
   if(foundTimer>0){foundTimer-=dt;if(foundTimer<=0)$('found').classList.remove('on')}

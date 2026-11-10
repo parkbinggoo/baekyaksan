@@ -70,6 +70,7 @@ function updateGame(dt){
   updateRareSense(dt);
   updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
   updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);
+  updateHudCompass();
   hudT+=dt;if(hudT>.25){hudT=0;updHud()}
   presT+=dt;if(presT>.25){presT=0;sendPresence(false)}
   if(mapOpen){mapT+=dt;if(mapT>.15){mapT=0;drawMap()}}

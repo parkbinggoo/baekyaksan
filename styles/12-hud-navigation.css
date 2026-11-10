@@ -2,35 +2,44 @@
  * 2-column, 3-row reference order: rank/settings, photo/radio, map/bag.
  * Unlike map or inventory, these controls stay at the top right of the game.
  */
+/* v1.2.6-ui.3: Restore the original paper-style HUD buttons, while keeping
+ * the 2-column order and all settings/rank menu behaviour from ui.2.
+ * Visual properties here match the old .btn styles from 01/05/08 CSS. */
 #hud .btns{
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
-  width:clamp(190px,24vw,256px);
+  width:clamp(178px,22vw,232px);
   max-width:56vw;
   gap:8px;
   align-items:stretch;
   justify-content:stretch;
   pointer-events:auto;
 }
-#hud .btns .menuTile,
-#hud .btns .menuTile:hover{
-  display:flex;align-items:center;justify-content:center;
-  width:100%;min-width:0;min-height:65px;
-  padding:9px 3px;
-  background:rgba(236,114,69,.93);
-  color:#1d2420;
-  font-family:'Nanum Myeongjo',Georgia,serif;
-  font-weight:800;font-size:clamp(15px,1.65vw,21px);
-  line-height:1.25;letter-spacing:-.025em;
-  text-shadow:none;
-  border:1px solid rgba(130,61,39,.45);
-  border-radius:2px;
-  box-shadow:0 3px 10px rgba(18,29,20,.15);
-  touch-action:manipulation;
+#hud .btns .menuTile{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  min-width:0;
+  min-height:40px;
+  padding:9px 14px;
+  font-family:'Gowun Dodum',system-ui,sans-serif;
+  font-size:14px;
+  font-weight:400;
+  letter-spacing:normal;
+  line-height:normal;
   white-space:nowrap;
+  color:var(--ink);
+  background:rgba(244,239,227,.92);
+  border:1px solid rgba(31,43,40,.30);
+  border-radius:10px;
+  box-shadow:0 6px 18px rgba(20,30,28,.12);
+  text-shadow:none;
+  touch-action:manipulation;
 }
-#hud .btns .menuTile:active{background:#f49b66;transform:translateY(1px)}
-#hud .btns .menuTile:focus-visible{outline:3px solid #203d2e;outline-offset:3px}
+#hud .btns .menuTile:hover{background:#fff}
+#hud .btns .menuTile:active{background:#fff}
+#hud .btns .menuTile:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
 
 /* Central settings sheet: controls are moved here rather than duplicated. */
 #settingsPanel{
@@ -73,12 +82,23 @@
 #rankPanel #rankSpecialContent .secret-title-list{max-height:57dvh;overflow:auto}
 #rankPanel #rankSpecialContent .secret-title-choice{width:100%}
 @media (max-width:760px),(pointer:coarse){
-  #hud .btns{width:min(54vw,210px);max-width:54vw;gap:6px;flex-wrap:initial}
-  #hud .btns .menuTile,#hud .btns .menuTile:hover{
-    min-height:58px;padding:6px 2px;
-    font-size:clamp(13px,3.7vw,18px);
-    background:rgba(236,114,69,.86);
-    color:#15231b;border-color:rgba(84,42,27,.56);text-shadow:none;
+  #hud .btns{width:min(54vw,210px);max-width:54vw;gap:5px;flex-wrap:initial}
+  #hud .btns .menuTile,
+  #hud .btns .menuTile:hover,
+  #hud .btns .menuTile:active{
+    min-height:40px;
+    padding:9px 5px;
+    font-family:'Gowun Dodum',system-ui,sans-serif;
+    font-size:12.5px;
+    font-weight:400;
+    letter-spacing:normal;
+    line-height:normal;
+    background:rgba(244,239,227,.45);
+    color:#17251e;
+    border:1px solid rgba(27,43,34,.6);
+    border-radius:9px;
+    text-shadow:0 1px 2px rgba(255,255,255,.85);
+    box-shadow:0 6px 18px rgba(20,30,28,.12);
   }
   #hud .plate{max-width:40vw;padding:7px 9px}
   #hud .plate #alt{font-size:18px;white-space:nowrap}
@@ -86,6 +106,41 @@
 }
 @media (max-width:345px){
   #hud .btns{width:51vw;max-width:51vw;gap:4px}
-  #hud .btns .menuTile,#hud .btns .menuTile:hover{min-height:51px;font-size:12.5px}
+  #hud .btns .menuTile,
+  #hud .btns .menuTile:hover{min-height:40px;padding:8px 2px;font-size:11.8px}
   #hud .plate{max-width:41vw;font-size:11px}
+}
+
+/* v1.2.6-ui.2: compass using original map orientation, separate settlement line. */
+#alt{display:flex;align-items:center;gap:3px;white-space:nowrap}
+#alt small{margin-right:2px}
+#altMeters{font-variant-numeric:tabular-nums}
+.hudCompass{
+  position:relative;display:inline-block;flex:none;width:27px;height:27px;
+  border:1px solid rgba(31,43,40,.65);border-radius:50%;
+  background:rgba(248,243,224,.88);box-shadow:inset 0 0 0 2px rgba(244,239,227,.8);
+  vertical-align:middle;margin-right:2px;
+}
+.hudCompassNorth{position:absolute;top:0px;left:50%;transform:translateX(-50%);
+  font:bold 8px Arial,sans-serif;color:#a94734;line-height:1}
+.hudCompassNeedle{
+  position:absolute;left:50%;top:55%;width:0;height:0;
+  transform:translate(-50%,-50%);transform-origin:center center;
+}
+.hudCompassNeedle:before{
+  content:'';position:absolute;left:-3.5px;top:-9px;
+  width:0;height:0;border-left:3.5px solid transparent;
+  border-right:3.5px solid transparent;border-bottom:9px solid #b84932;
+}
+.hudCompassNeedle:after{
+  content:'';position:absolute;left:-3.5px;top:0;
+  width:0;height:0;border-left:3.5px solid transparent;
+  border-right:3.5px solid transparent;border-top:8px solid #65746a;
+}
+.bagWallet{font-size:14px;font-weight:700;line-height:1.6;
+  margin:0 0 16px;padding:0 0 9px;border-bottom:1px solid rgba(31,43,40,.16)}
+@media(max-width:760px),(pointer:coarse){
+  #hud .plate #alt{font-size:clamp(14px,4.1vw,19px)}
+  #hud .plate #alt small{font-size:10px;margin-right:1px}
+  .hudCompass{width:23px;height:23px;margin-right:1px}
 }

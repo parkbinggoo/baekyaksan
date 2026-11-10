@@ -25,6 +25,12 @@ assert.match(html,/<div id="secretTitleList" class="secret-title-list"/);
 assert(!html.includes('id="specialTitlesBtn"'),'special titles are not a top-level button');
 assert(!html.includes('id="secretTitlePanel"'),'special titles use a tab, not a second modal');
 assert.match(css,/#hud \.btns\s*\{\s*display:grid/);
+assert.match(css, /#hud \.btns \.menuTile\s*\{[\s\S]*?min-height:40px/, 'restore the compact 40px original-size buttons');
+assert.match(css, /background:rgba\(244,239,227,\.92\)/, 'original desktop paper-colour buttons');
+assert.match(css, /background:rgba\(244,239,227,\.45\)/, 'original mobile translucent buttons');
+assert.match(css, /font-family:'Gowun Dodum'/, 'original sans-serif HUD button font');
+assert.doesNotMatch(css, /236\s*,\s*114\s*,\s*69/, 'orange top-menu background must be absent');
+
 assert.match(offering,/function openSpecialTitles\(\)\{openRankMenu\('special'\)\}/);
 assert(!offering.includes("$('secretTitlePanel')"));
 assert.match(start,/\$\('terrainRefreshBtn'\)\.addEventListener\('click',refreshWorldFromSettings\)/);

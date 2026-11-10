@@ -3,7 +3,7 @@ const MILES=['솔바람이 등을 민다','능선 너머로 다른 산들이 내
 let lastMile=-1,toastT=0;
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');toastT=3}
 let hudKey='';
-function updHud(){const alt=Math.max(0,Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K))),ph=phaseOf(gameMin/60),ck=clockText(),k=alt+'|'+ck+'|'+totalCount()+'|'+discoveredCount()+'|'+bagLimit()+'|'+playerRank;if(k!==hudKey){hudKey=k;$('alt').innerHTML=`<small>해발</small>${alt.toLocaleString()}m`;$('clock').textContent=`산속 시간 · ${ph} · ${ck}`;$('count').textContent=`가방 ${totalCount()}/${bagLimit()} · 도감 ${discoveredCount()}/${HERB_KEYS.length+MUSH_KEYS.length+Object.keys(FRUITS).length+HONEY_KEYS.length}종`}
+function updHud(){const alt=Math.max(0,Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K))),ph=phaseOf(gameMin/60),ck=clockText(),k=alt+'|'+ck+'|'+totalCount()+'|'+discoveredCount()+'|'+bagLimit()+'|'+playerRank+'|'+(inSecretCave?'cave':'mountain');if(k!==hudKey){hudKey=k;$('altLabel').textContent=inSecretCave?'장소':'해발';$('altMeters').textContent=inSecretCave?'비밀 동굴':`${alt.toLocaleString()}m`;$('clock').textContent=`${ph} · ${ck}`;$('count').textContent=`가방 ${totalCount()}/${bagLimit()} · 도감 ${discoveredCount()}/${HERB_KEYS.length+MUSH_KEYS.length+Object.keys(FRUITS).length+HONEY_KEYS.length}종`}
   const buff=$('mealBuff'),active=mealBoosted();buff.classList.toggle('hide',!active);
   if(active)buff.textContent=`🍲 산속 한 끼 · 속도, 점프 증가 · 남은 ${Math.ceil((save.mealBuffUntil-Date.now())/60000)}분`;
   const m=Math.floor(alt/300);if(lastMile<0)lastMile=m;if(m>lastMile){lastMile=m;toast(`해발 ${m*300}m — ${MILES[Math.min(MILES.length-1,m-1)]}`);tone(392,.4,'sine',.06);tone(587,.6,'sine',.05,1,.15)}}
@@ -13,9 +13,11 @@ $('bag').addEventListener('pointerdown',e=>{if(e.target.id==='bag')$('bag').clas
 function buildBag(){
   const host=$('bagBody');host.innerHTML='';
   const meta=document.createElement('div');meta.className='bagMeta';
-  meta.textContent=`가방 최대 ${bagLimit()}개 · 현재 ${totalCount()}/${bagLimit()}개 · 정산금 ${won(+save.won||0)} · 텐트에서 최대 110칸까지 10단계로 확장할 수 있습니다.`;
+  meta.textContent=`현재 ${totalCount()}/${bagLimit()}개`;
   host.appendChild(meta);
-  const twigs=document.createElement('div');twigs.className='bagMeta';twigs.textContent=`🪵 나뭇가지 ${save.inv[TWIG_KEY]||0}개 · 빈 나무를 두드려 획득 · 도감 제외 · 캠프파이어 6개 필요`;
+  const wallet=document.createElement('div');wallet.className='bagWallet';
+  wallet.textContent=`정산금 ${won(+save.won||0)}`;host.appendChild(wallet);
+  const twigs=document.createElement('div');twigs.className='bagMeta';twigs.textContent=`🪵 나뭇가지 ${save.inv[TWIG_KEY]||0}개 · 빈 나무를 두드려 획득 · 캠프파이어 6개 필요`;
   host.appendChild(twigs);
   const goldHave=GOLD_FIVE_BASES.filter(k=>(save.inv[goldenKey(k)]||0)>0);
   const goldFound=GOLD_FIVE_BASES.filter(k=>save.goldKnown?.[k]);
