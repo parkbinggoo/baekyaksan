@@ -449,6 +449,11 @@
       "purpose": "프로필 키·JSON 저장·복원·기록 내보내기"
     },
     {
+      "file": "core/51a-settings-terrain-refresh.js",
+      "originalLines": null,
+      "purpose": "설정 > 지형 새로고침: 프로필 위치 보존·자동 복귀·청크 복구 대체"
+    },
+    {
       "file": "core/52-start-and-event-bindings.js",
       "originalLines": [
         4844,

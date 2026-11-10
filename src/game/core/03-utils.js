@@ -1,9 +1,26 @@
 /* ================= UTIL ================= */
 const $ = id => document.getElementById(id);
-$('rankBtn').addEventListener('click',()=>{renderRankGuide();$('rankPanel').classList.remove('hide')});
-$('rankClose').addEventListener('click',()=>$('rankPanel').classList.add('hide'));
-$('rankPanel').addEventListener('pointerdown',e=>{if(e.target===$('rankPanel'))$('rankPanel').classList.add('hide')});
-addEventListener('keydown',e=>{if(e.code==='Escape')$('rankPanel').classList.add('hide')});
+function openRankMenu(tab='level'){
+  $('settingsPanel').classList.add('hide');$('settingsBtn').setAttribute('aria-expanded','false');
+  $('rankPanel').classList.remove('hide');showRankTab(tab);
+}
+function showRankTab(tab='level'){
+  const special=tab==='special';
+  $('rankLevelContent').classList.toggle('hide',special);
+  $('rankSpecialContent').classList.toggle('hide',!special);
+  $('rankLevelTab').classList.toggle('active',!special);
+  $('rankSpecialTab').classList.toggle('active',special);
+  $('rankLevelTab').setAttribute('aria-selected',String(!special));
+  $('rankSpecialTab').setAttribute('aria-selected',String(special));
+  if(special)renderSpecialTitlePanel();else renderRankGuide();
+}
+function closeRankMenu(){$('rankPanel').classList.add('hide')}
+$('rankBtn').addEventListener('click',()=>openRankMenu('level'));
+$('rankLevelTab').addEventListener('click',()=>showRankTab('level'));
+$('rankSpecialTab').addEventListener('click',()=>showRankTab('special'));
+$('rankClose').addEventListener('click',closeRankMenu);
+$('rankPanel').addEventListener('pointerdown',e=>{if(e.target===$('rankPanel'))closeRankMenu()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeRankMenu()});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;

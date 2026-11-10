@@ -1,3 +1,28 @@
+## v1.2.6 UI 수정판 — 사용 안내 (2026-11-10)
+
+이 배포판은 **백약산 v1.2.6 동굴 수정판**에서만 출발했습니다. v1.2.7의 3번 점프 새로고침은 포함하지 않았습니다.
+
+- 상단 버튼 2열 × 3행: `등급 | 설정` / `사진 | 무전` / `지도 | 가방 도감`.
+- **설정**: 기존 절전 전환, 기록 저장(JSON), 지형 새로고침.
+- **지형 새로고침**: 산길에 서 있을 때 누르면 현재 캐릭터/위치/보유 정보를 저장 후 페이지를 갱신합니다. 동일한 브라우저 탭에서 단기 일회성 자동복귀를 시도합니다. 자동 복귀를 못 하는 경우 새로고침 이전 저장 기록으로 직접 '이어서 하기'를 누르면 됩니다. 브라우저가 저장을 거부하면 앱을 종료하지 않고 주변 청크만 재생성합니다. 동굴/텐트/등반 중에는 사용 불가.
+- **등급**: `기존 등급` 탭에서 기존 경험/승급/5성 탐지, `특별 칭호` 탭에서 황금 5성 공양으로 얻은 칭호의 목록과 장착/해제를 관리합니다.
+- 저장 포맷, 기존 약초·황금 개체수, 멀티플레이 통신 포맷은 변경하지 않았습니다.
+
+### 테스트
+
+```bash
+npm run check
+npm test
+npm run audit
+```
+
+추가된 파일: `styles/12-hud-navigation.css`, `src/game/core/51a-settings-terrain-refresh.js`, `scripts/test-hud-navigation.mjs`.
+업데이트된 파일: `index.html`, `src/game/core/03-utils.js`, `src/game/core/52-start-and-event-bindings.js`, `src/game/gameplay/54-secret-offering-and-titles.js`, `src/game/world/53-secret-cave-world.js`, `src/game/manifest.json`, `dist/game.bundle.js`, `CODE_MAP.md`.
+
+**주의:** 정적 HTML/CSS 레이아웃과 JavaScript 테스트는 통과했지만 실제 Three.js WebGL 구동·iOS Safari 자동 복귀/멀티플레이 실기 테스트는 수행하지 못했습니다. 꼭 JSON 기록을 백업한 뒤 GitHub Pages에서 테스트하세요.
+
+---
+
 # v1.2.5 — 한국 야산 기반 희귀 채집물 균형 및 도감 0종 제거
 
 - **도감 92종 전체 초기 생성 확인:** 모든 일반 채집물은 적어도 1개 이상, 산길 범위에서도 1개 이상입니다.

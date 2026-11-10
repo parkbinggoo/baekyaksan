@@ -2,6 +2,53 @@
 
 > 기준: 첨부된 2026-11-09 단일 HTML 파일. `src/game/manifest.json`이 JavaScript 실행 순서의 기준입니다.
 
+## v1.2.6 UI 수정판 — 상단 메뉴·설정·등급 UX
+
+```text
+index.html
+ ├─ #hud .btns : 등급 / 설정 / 사진 / 무전 / 지도 / 가방 도감 (2열 × 3행)
+ ├─ #settingsPanel : #ecoBtn 절전 / #hudSaveBtn 기록 저장 / #terrainRefreshBtn 지형 새로고침
+ └─ #rankPanel
+      ├─ #rankLevelTab → #rankLevelContent (기존 등급/5성 감지 레벨 안내)
+      └─ #rankSpecialTab → #rankSpecialContent → #secretTitleList (공양 칭호 목록/장착/해제)
+
+styles/12-hud-navigation.css
+ ├─ HUD 2×3 주황색 직사각형 버튼, PC/모바일 반응형
+ ├─ 설정 시트·탭 선택 시각 효과·접근성 포커스
+ └─ 기존 styles/00~11 로직 및 게임 배경 유지
+
+src/game/core/03-utils.js
+ └─ openRankMenu(tab) → showRankTab(tab) → renderRankGuide() 또는 renderSpecialTitlePanel()
+
+src/game/gameplay/54-secret-offering-and-titles.js
+ └─ renderSpecialTitlePanel() → 특별 칭호 데이터(save.specialTitles)와 장착/해제 유지
+
+src/game/core/52-start-and-event-bindings.js
+ ├─ openGameSettings()/closeGameSettings() : 설정 모달
+ ├─ #ecoBtn → applyPerf() (기존 절전 설정)
+ ├─ #hudSaveBtn → openSaveConfirm() (기존 파일 저장)
+ └─ #terrainRefreshBtn → refreshWorldFromSettings()
+
+src/game/core/51a-settings-terrain-refresh.js
+ ├─ refreshWorldFromSettings() → 현재 위치 기록 persist()
+ ├─ sessionStorage에 최대 25초 유효한 일회성 인증 확인값 기록 (PIN 미저장)
+ ├─ window.location.reload() → resumeAfterSettingsReload()
+ └─ 저장/자동 복귀 실패 → softRepairNearbyTerrain() (청크만 현장 복구)
+
+src/game/world/29-chunks-and-ground.js
+ └─ disposeChunk()/updateChunks() : 설정 새로고침 실패 시 지형 재생성
+
+src/game/save/51-profile-and-files.js
+ └─ readProfileDoc()/applyRecord() : 기존 닉네임·인벤토리·위치 복원
+
+scripts/test-hud-navigation.mjs
+ └─ 버튼 순서 / 탭/칭호 / 1회성 복귀 / 점프 독립 검사
+```
+
+**버전 기준:** v1.2.6(동굴 지형 개선)을 기반으로 한 *UI 수정판*입니다. v1.2.7의 연속 3회 점프 복구 코드는 포함하지 않으며, 일반 점프 입력은 바꾸지 않습니다. 동굴·텐트·등반 중에는 새로고침 버튼을 사용하지 못하도록 보호합니다.
+
+**검증 한계:** JavaScript 검증과 헤드리스 Chromium의 정적 HTML/CSS 모바일·PC 레이아웃 검사까지 수행했으며, CDN Three.js를 포함한 실제 3D 게임 플레이·브라우저 새로고침 왕복은 미검증입니다.
+
 ## v1.2.5 — 5성 개체수 및 도감 누락 7종 복구
 
 ```text
@@ -29,7 +76,7 @@ world/29-chunks-and-ground.js: buildChunk()
 
 ```text
 index.html (화면 구조)
- ├─ styles/00~11 (CSS: 순서대로 적용)
+ ├─ styles/00~12 (CSS: 순서대로 적용)
  ├─ Three.js r128 (기존 CDN)
  ├─ MQTT 5.10.1 (기존 CDN)
  └─ dist/game.bundle.js  ← npm run build
@@ -56,7 +103,7 @@ index.html (화면 구조)
 | core | `src/game/core/00-bootstrap.js` | 465–468 | 4줄 | 런타임 검사·iOS 화면 효과 |
 | data | `src/game/data/01-item-catalog.js` | 469–535 | 67줄 | 약초·버섯·꿀 데이터, 가방·랜턴 단계, 판매 가격 |
 | data | `src/game/data/02-ranks.js` | 536–628 | 108줄 | 약초꾼 등급·승급 조건·가격 조회 |
-| core | `src/game/core/03-utils.js` | 629–645 | 17줄 | DOM 선택·수학·난수 유틸·승급 UI 이벤트 |
+| core | `src/game/core/03-utils.js` | 629–645 | 34줄 | DOM 선택·수학·난수 유틸·승급 UI 이벤트 |
 | audio | `src/game/audio/04-audio-core.js` | 646–677 | 32줄 | WebAudio 마스터·효과음·톤 |
 | core | `src/game/core/05-session-state.js` | 678–749 | 72줄 | 인벤토리·프로필 상태·채집 재생성·희귀 공유 상태 |
 | world | `src/game/world/06-terrain-height.js` | 750–768 | 19줄 | 지형 높이·능선·산길 수학 |
@@ -108,11 +155,12 @@ index.html (화면 구조)
 | gameplay | `src/game/gameplay/47b-five-star-sense.js` | —–— | 79줄 | 레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림 |
 | world | `src/game/world/48-wildlife-update.js` | 4320–4435 | 116줄 | 동물 AI 및 이름표 갱신 |
 | gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 92줄 | 바위 등반 타이밍·기절·점프 연결 |
-| world | `src/game/world/53-secret-cave-world.js` | —–— | 257줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
-| gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 132줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
+| world | `src/game/world/53-secret-cave-world.js` | —–— | 293줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
+| gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 128줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
 | core | `src/game/core/50-game-update.js` | 4528–4605 | 80줄 | 프레임별 게임 로직·물리·상태 갱신 |
 | save | `src/game/save/51-profile-and-files.js` | 4606–4843 | 244줄 | 프로필 키·JSON 저장·복원·기록 내보내기 |
-| core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 128줄 | 시작·버튼 이벤트·메인 렌더 루프 |
+| core | `src/game/core/51a-settings-terrain-refresh.js` | —–— | 73줄 | 설정 > 지형 새로고침: 프로필 위치 보존·자동 복귀·청크 복구 대체 |
+| core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 142줄 | 시작·버튼 이벤트·메인 렌더 루프 |
 <!-- AUTO-MAP-END -->
 
 ## 3. CSS 코드 맵

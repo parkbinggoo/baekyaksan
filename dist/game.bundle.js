@@ -179,10 +179,27 @@ function itemPrice(key){
 }
 /* ================= UTIL ================= */
 const $ = id => document.getElementById(id);
-$('rankBtn').addEventListener('click',()=>{renderRankGuide();$('rankPanel').classList.remove('hide')});
-$('rankClose').addEventListener('click',()=>$('rankPanel').classList.add('hide'));
-$('rankPanel').addEventListener('pointerdown',e=>{if(e.target===$('rankPanel'))$('rankPanel').classList.add('hide')});
-addEventListener('keydown',e=>{if(e.code==='Escape')$('rankPanel').classList.add('hide')});
+function openRankMenu(tab='level'){
+  $('settingsPanel').classList.add('hide');$('settingsBtn').setAttribute('aria-expanded','false');
+  $('rankPanel').classList.remove('hide');showRankTab(tab);
+}
+function showRankTab(tab='level'){
+  const special=tab==='special';
+  $('rankLevelContent').classList.toggle('hide',special);
+  $('rankSpecialContent').classList.toggle('hide',!special);
+  $('rankLevelTab').classList.toggle('active',!special);
+  $('rankSpecialTab').classList.toggle('active',special);
+  $('rankLevelTab').setAttribute('aria-selected',String(!special));
+  $('rankSpecialTab').setAttribute('aria-selected',String(special));
+  if(special)renderSpecialTitlePanel();else renderRankGuide();
+}
+function closeRankMenu(){$('rankPanel').classList.add('hide')}
+$('rankBtn').addEventListener('click',()=>openRankMenu('level'));
+$('rankLevelTab').addEventListener('click',()=>showRankTab('level'));
+$('rankSpecialTab').addEventListener('click',()=>showRankTab('special'));
+$('rankClose').addEventListener('click',closeRankMenu);
+$('rankPanel').addEventListener('pointerdown',e=>{if(e.target===$('rankPanel'))closeRankMenu()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeRankMenu()});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,t)=>a+(b-a)*t;
 const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
@@ -4431,134 +4448,169 @@ const CAVE_FLOOR=0;
 let caveSite=null,caveEntrance=null,caveInterior=null,caveReturnPos=null,inSecretCave=false;
 let caveReturnCameraYaw=0,cavePreviousFog=null,cavePreviousBackground=null,caveEntryLock=0;
 let caveCandles=[],caveLightPulse=0,caveInteractionElapsed=0;
-const caveBuddhaPoint={x:0,z:-32.8};
-function caveCurve(z){return Math.sin((5-z)*.13)*1.25+Math.sin((5-z)*.063)*.45}
-function caveWidth(z){return 1.37+Math.sin((5-z)*.09)*.14}
+const caveBuddhaPoint={x:0,z:-36.2};
+function caveCurve(z){return Math.sin((5-z)*.11)*1.12+Math.sin((5-z)*.047)*.38}
+function caveWidth(z){
+  const chamber=Math.exp(-Math.pow((z+34.5)/7.8,2))*1.45;
+  const bend=Math.sin((5-z)*.085)*.22;
+  return 2.15+chamber+bend;
+}
+function caveInnerWalkWidth(z){return Math.max(1.32,caveWidth(z)-1.08)}
+function caveArchHeight(z){
+  const chamber=Math.exp(-Math.pow((z+34.5)/8.5,2))*1.25;
+  return 2.95+chamber+Math.cos((z+6)*.065)*.10;
+}
 function caveStoneMaterial(col){return new THREE.MeshLambertMaterial({color:col,flatShading:true,side:THREE.DoubleSide})}
 function caveMesh(group,geo,mat,x,y,z,sx=1,sy=1,sz=1){
   const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);
   o.castShadow=false;o.receiveShadow=true;group.add(o);return o;
 }
 function chooseSecretCaveSite(){
-  // The same seed, noise and terrain make the chosen candidate deterministic
-  // across devices and sessions. No location, coordinate or gameplay hint is shown.
+  // Deterministic seeded search: favour wooded cliff bands with a rock wall
+  // and a small shoulder in front so the cave feels embedded in a real escarpment.
   const r=rngOf(SECRET_CAVE_SEED);let best=null;
-  for(let i=0;i<210;i++){
-    const z=-500-r()*3540,side=r()>.5?1:-1,x=pathX(z)+side*(28+r()*19);
-    const y=H(x,z),dx=Math.abs(H(x+1.2,z)-H(x-1.2,z)),dz=Math.abs(H(x,z+1.2)-H(x,z-1.2));
-    const incline=Math.hypot(dx,dz),water=streamD(x,z),alt=y*ALT_K;
-    if(!Number.isFinite(y)||water<8||alt<230||alt>2050||incline>3.8)continue;
-    const shade=fbm(x*.11+9,z*.11-7),score=.6+Math.abs(incline-.85)*-.3+shade*.5+r()*.8;
-    if(!best||score>best.score)best={x,z,y,score};
+  for(let i=0;i<360;i++){
+    const z=-640-r()*3020,side=r()>.5?1:-1,offset=54+r()*20,x=pathX(z)+side*offset;
+    const y=H(x,z),alt=y*ALT_K,water=streamD(x,z);
+    if(!Number.isFinite(y)||water<10||alt<900||alt>1700)continue;
+    const dx=Math.abs(H(x+1.2,z)-H(x-1.2,z)),dz=Math.abs(H(x,z+1.2)-H(x,z-1.2));
+    const slope=Math.hypot(dx,dz);
+    const towardPath=Math.abs(H(x-side*4,z)-y)+Math.abs(H(x-side*8,z)-y);
+    const cliffRise=Math.abs(H(x+side*5,z)-y)+Math.abs(H(x+side*9,z)-y);
+    const shoulder=Math.abs(H(x-side*2.8,z)-y)+Math.abs(H(x-side*5.6,z)-y);
+    const forest=fbm(x*.055-12,z*.055+8)+fbm(x*.12+17,z*.12-6)*.45;
+    const rockiness=Math.max(0,fbm(x*.075+31,z*.075-19));
+    if(slope<1.05||slope>4.9||cliffRise<2.2||towardPath>3.0)continue;
+    const score=(Math.min(3.8,slope)-1.05)*1.1 + cliffRise*.42 - shoulder*.75 + forest*.85 + rockiness*.55 + r()*.18;
+    if(!best||score>best.score){
+      const pathSideX=pathX(z)-x;
+      const yaw=Math.atan2(pathSideX,0-z)+side*Math.PI*.35;
+      best={x,z,y,score,yaw,side};
+    }
   }
-  if(!best){const z=-1830,x=pathX(z)+35;best={x,z,y:H(x,z),score:0}}
+  if(!best){const z=-1830,side=1,x=pathX(z)+58;best={x,z,y:H(x,z),score:0,yaw:0,side}}
   return best;
 }
 function makeCaveEntrance(){
-  const site=caveSite,g=new THREE.Group();g.position.set(site.x,site.y,site.z);
+  const site=caveSite,g=new THREE.Group();g.position.set(site.x,site.y,site.z);g.rotation.y=site.yaw||0;
   const stone=[0x575b4d,0x525747,0x656557,0x484d42].map(caveStoneMaterial),moss=caveStoneMaterial(0x3b5635);
   const rock=new THREE.IcosahedronGeometry(1,1),bush=new THREE.IcosahedronGeometry(1,0);
-  const greenMats=[0x42683c,0x355b31,0x52703b].map(caveStoneMaterial);
-  // Slightly recessed dark opening (one hiker wide), with stone shoulders.
-  caveMesh(g,new THREE.PlaneGeometry(1.28,2.22),new THREE.MeshBasicMaterial({color:0x090c09,side:THREE.DoubleSide}),0,1.19,-.6);
+  const greenMats=[0x42683c,0x355b31,0x52703b,0x5b7541].map(caveStoneMaterial);
+  // Cliff face and a dark one-hiker-wide opening tucked into it.
+  caveMesh(g,new THREE.BoxGeometry(8.8,6.0,1.8),stone[0],0,2.9,-1.65,1,1,1);
+  caveMesh(g,new THREE.BoxGeometry(7.4,5.0,1.25),stone[1],0,2.65,-.78,1,1,1);
+  caveMesh(g,new THREE.PlaneGeometry(1.48,2.55),new THREE.MeshBasicMaterial({color:0x080907,side:THREE.DoubleSide}),0,1.42,.05);
+  // Large boulders around the cliff mouth.
+  const bigLeft=caveMesh(g,rock,stone[2],-2.35,1.25,.22,1.45,1.85,1.55);bigLeft.rotation.set(.2,-.3,.4);
+  const bigRight=caveMesh(g,rock,stone[3],2.15,1.15,.28,1.35,1.55,1.45);bigRight.rotation.set(-.15,.45,-.2);
+  const cap=caveMesh(g,rock,stone[0],0,4.75,-.1,3.7,1.05,1.65);cap.rotation.set(.12,.1,.08);
+  for(let i=0;i<12;i++){
+    const a=Math.PI*(i/11),sx=Math.cos(a)*1.35,sy=1.22+Math.sin(a)*1.68;
+    const o=caveMesh(g,rock,stone[i%stone.length],sx,sy,.12,.58,.56,.7);o.rotation.set(i*.21,i*.31,i*.19);
+  }
   for(let i=0;i<18;i++){
-    const a=Math.PI*(i/17),sx=Math.cos(a)*1.18,sy=1.22+Math.sin(a)*1.3;
-    const o=caveMesh(g,rock,stone[i%stone.length],sx,sy,-.18,.55,.53,.65);
-    o.rotation.set(i*.21,i*.31,i*.19);
+    const dir=i%2?-1:1;
+    const o=caveMesh(g,rock,stone[(i+1)%4],dir*(1.1+(i%5)*.34),.25+(i%4)*.62,.08+(i%4)*.34,.58,.44,.82);o.rotation.y=i*.63;
   }
-  for(let i=0;i<10;i++){
-    const dir=i%2?-1:1,o=caveMesh(g,rock,stone[(i+1)%4],dir*(.88+(i%4)*.28),.25+(i%3)*.50,-.3+(i%4)*.43,.5,.39,.72);
-    o.rotation.y=i*.75;
-  }
-  // Thick vegetation and moss obscure roughly half of the narrow opening.
-  for(let i=0;i<26;i++){
-    const side=i%3===0?-1:1,a=i*2.399,wide=.6+(i%6)*.18;
-    const x=side*(.44+wide*.55),y=.25+(i%7)*.29,z=.13+(i%3)*.18;
-    const leaf=caveMesh(g,bush,i%4===0?moss:greenMats[i%3],x+Math.sin(a)*.22,y,z,.29+(i%4)*.07,.21,.33);
+  // Dense shrubs and slim trunks partly hide the opening, but keep the center readable.
+  for(let i=0;i<34;i++){
+    const side=i%3===0?-1:1,a=i*2.399,band=.8+(i%7)*.24;
+    let x=side*(.86+band*.58),y=.24+(i%9)*.27,z=.42+(i%3)*.2;
+    if(i%6===0){x=side*(.45+(i%4)*.14);y=.92+(i%5)*.18;z=.4}
+    const leaf=caveMesh(g,bush,i%4===0?moss:greenMats[i%greenMats.length],x+Math.sin(a)*.18,y,z,.31+(i%4)*.08,.22,.34);
     leaf.rotation.set(i*.21,i*.3,Math.sin(a)*.6);
   }
   const trunk=caveStoneMaterial(0x4b3d2e);
-  for(let i=0;i<4;i++){
-    const stem=caveMesh(g,new THREE.CylinderGeometry(.045,.075,1.8,5),trunk,(i%2?-1:1)*(.75+i*.13),1,.35,.8,1,.8);
-    stem.rotation.z=(i%2?-1:1)*.40;
+  for(let i=0;i<7;i++){
+    const side=i%2?-1:1,dist=1.7+i*.32;
+    const stem=caveMesh(g,new THREE.CylinderGeometry(.07,.12,2.8,5),trunk,side*dist,1.45,.72,.92,1,.92);
+    stem.rotation.z=(i%2?-1:1)*(.18+.06*(i%3));
   }
+  // Low moss apron / ledge so the cave reads as part of a wooded cliff.
+  caveMesh(g,new THREE.BoxGeometry(5.4,.35,1.4),moss,0,.06,.82,1,1,1);
   caveEntrance=g;scene.add(g);
 }
 function makeCaveTunnel(){
-  const group=new THREE.Group(),wall=caveStoneMaterial(0x4b4a40),floor=caveStoneMaterial(0x434337);
-  const ringCount=44,segments=14,positions=[],unders=[];
+  const group=new THREE.Group(),wall=caveStoneMaterial(0x4b4a40),floor=caveStoneMaterial(0x4a473d);
+  const ringCount=49,segments=18,positions=[],unders=[];
+  const archMin=-0.05,archMax=Math.PI+0.05;
   for(let i=0;i<ringCount;i++){
-    const z=7-i,xx=caveCurve(z),w=caveWidth(z),h=1.45;
+    const z=8-i,xx=caveCurve(z),w=caveWidth(z),h=caveArchHeight(z),wallLift=.78;
     for(let j=0;j<segments;j++){
-      const a=2*Math.PI*j/segments,rough=1+Math.sin(i*2.13+j*3.1)*.06;
-      const x=xx+Math.cos(a)*w*rough,y=h+Math.sin(a)*1.54*rough;
+      const t=j/(segments-1),a=lerp(archMin,archMax,t),rough=1+Math.sin(i*1.83+j*2.6)*.035;
+      const x=xx+Math.cos(a)*w*rough;
+      const y=Math.sin(a)*h*rough+wallLift;
       positions.push(x,y,z);
     }
     if(i<ringCount-1){
-      const zn=z-1,cx=caveCurve(z),cxNext=caveCurve(zn),ww=caveWidth(z);
-      unders.push(cx-ww,-.16,z,cx+ww,-.16,z,cxNext-ww,-.16,zn,
-        cx+ww,-.16,z,cxNext+ww,-.16,zn,cxNext-ww,-.16,zn);
+      const zn=z-1,cx=caveCurve(z),cxNext=caveCurve(zn),ww=caveInnerWalkWidth(z),wwNext=caveInnerWalkWidth(zn);
+      unders.push(cx-ww,CAVE_FLOOR-.04,z,cx+ww,CAVE_FLOOR-.04,z,cxNext-wwNext,CAVE_FLOOR-.04,zn,
+        cx+ww,CAVE_FLOOR-.04,z,cxNext+wwNext,CAVE_FLOOR-.04,zn,cxNext-wwNext,CAVE_FLOOR-.04,zn);
     }
   }
   const faces=[];
-  for(let i=0;i<ringCount-1;i++)for(let j=0;j<segments;j++){
-    const a=i*segments+j,b=i*segments+(j+1)%segments,c=(i+1)*segments+j,d=(i+1)*segments+(j+1)%segments;
+  for(let i=0;i<ringCount-1;i++)for(let j=0;j<segments-1;j++){
+    const a=i*segments+j,b=i*segments+j+1,c=(i+1)*segments+j,d=(i+1)*segments+j+1;
     faces.push(a,b,c,b,d,c);
   }
   const wallGeo=new THREE.BufferGeometry();wallGeo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));wallGeo.setIndex(faces);wallGeo.computeVertexNormals();
   caveMesh(group,wallGeo,wall,0,0,0);
   const floorGeo=new THREE.BufferGeometry();floorGeo.setAttribute('position',new THREE.Float32BufferAttribute(unders,3));floorGeo.computeVertexNormals();
   caveMesh(group,floorGeo,floor,0,0,0);
-  // Stone chips on either side, kept clear of the 1-person walking corridor.
+  // Side rubble and alcove stones: keep the walking path and the shrine view clear.
   const chip=new THREE.IcosahedronGeometry(1,0);
   const colors=[0x535247,0x585649,0x45473d,0x676353].map(caveStoneMaterial);
   const r=rngOf(0xa38bc144);
-  for(let i=0;i<140;i++){
-    const z=5-r()*40,side=r()>.5?1:-1,w=caveWidth(z),x=caveCurve(z)+side*(w*.87+r()*.18);
-    const d=.11+r()*.19,m=caveMesh(group,chip,colors[i%4],x,-.08+r()*.26,z,d,d*.65,d*1.7);m.rotation.y=r()*6.28;
+  for(let i=0;i<110;i++){
+    const z=5-r()*42,side=r()>.5?1:-1,w=caveInnerWalkWidth(z),x=caveCurve(z)+side*(w+.55+r()*.42);
+    const d=.13+r()*.24,m=caveMesh(group,chip,colors[i%4],x,.05+r()*.18,z,d,d*.58,d*1.55);m.rotation.y=r()*6.28;
   }
-  // The shrine chamber is deliberately wider than the winding passage.
+  // Widened shrine chamber, with side and rear stones only.
   const shrineRock=caveStoneMaterial(0x514e44),halo=caveStoneMaterial(0x555449);
-  for(let i=0;i<13;i++){
-    const a=i/13*Math.PI*2;
+  for(let i=0;i<10;i++){
+    const side=i%2?-1:1,row=Math.floor(i/2),zOff=-2.0-row*1.25;
     const m=caveMesh(group,chip,i%3?shrineRock:halo,
-      caveBuddhaPoint.x+Math.cos(a)*2.0,.72+Math.sin(i*2.4)*.65,
-      caveBuddhaPoint.z-.7+Math.sin(a)*1.5,.84,.9,1.0);
-    m.rotation.set(i*.21,i*.33,i*.10);
+      caveBuddhaPoint.x+side*(2.55+(row%2)*.55),.78+Math.sin(i*1.7)*.32,
+      caveBuddhaPoint.z+zOff,.92,1.0,1.18);
+    m.rotation.set(i*.14,i*.22,i*.06);
+  }
+  for(let i=0;i<5;i++){
+    const m=caveMesh(group,chip,i%2?shrineRock:halo,
+      caveBuddhaPoint.x+Math.sin(i*.8)*.6,1.18+Math.sin(i)*.25,
+      caveBuddhaPoint.z-3.1-(i*.42),1.05,1.12,1.05);
+    m.rotation.set(i*.17,i*.31,i*.03);
   }
   makeCaveBuddha(group);
   makeCaveCandles(group);
   // Light is allowed on interior layer only; exterior lighting stays unchanged.
-  const ambient=new THREE.AmbientLight(0xc5b7a0,.12);group.add(ambient);
+  const ambient=new THREE.AmbientLight(0xcab9a2,.15);group.add(ambient);
   group.traverse(obj=>obj.layers.set(1));caveInterior=group;scene.add(group);
 }
 function makeCaveBuddha(group){
   const g=new THREE.Group(),stone=caveStoneMaterial(0xa29b88),robe=caveStoneMaterial(0x8e897b),shadow=caveStoneMaterial(0x706c60);
   const ico=(c,x,y,z,sx,sy,sz,detail=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detail),c,x,y,z,sx,sy,sz);
-  caveMesh(g,new THREE.CylinderGeometry(.88,.99,.32,9),shadow,0,.02,0);
-  caveMesh(g,new THREE.CylinderGeometry(.70,.84,.26,9),stone,0,.28,0);
-  ico(robe,0,.65,0,.76,.30,.58,1); // cross-legged draped lap
-  ico(stone,0,1.34,0,.59,.83,.43,1); // broad carved torso
-  ico(robe,-.35,1.40,.07,.25,.66,.37,0); // robe from left shoulder
-  ico(stone,0,2.25,.02,.36,.45,.34,1); // head
-  ico(stone,0,2.66,.04,.24,.12,.25,0); // hair knot
-  for(const side of [-1,1])ico(stone,side*.34,2.28,.02,.07,.13,.10,0);
+  caveMesh(g,new THREE.CylinderGeometry(1.15,1.35,.34,10),shadow,0,.02,0);
+  caveMesh(g,new THREE.CylinderGeometry(.92,1.08,.28,10),stone,0,.30,0);
+  ico(robe,0,.72,0,.92,.34,.68,1);
+  ico(stone,0,1.54,.02,.72,1.02,.56,1);
+  ico(robe,-.42,1.62,.08,.29,.82,.42,0);
+  ico(stone,0,2.60,.02,.42,.58,.40,1);
+  ico(stone,0,3.06,.04,.28,.14,.28,0);
+  for(const side of [-1,1])ico(stone,side*.39,2.64,.02,.08,.15,.12,0);
   const eyes=caveStoneMaterial(0x67665e);
-  for(const s of [-1,1]){
-    caveMesh(g,new THREE.BoxGeometry(.11,.016,.013),eyes,s*.125,2.28,.323);
-  }
-  ico(stone,0,2.14,.36,.08,.13,.08,0); // nose
-  const mouth=caveMesh(g,new THREE.BoxGeometry(.15,.013,.018),eyes,0,2.05,.324);mouth.rotation.z=.03;
-  // One upright palm (traditional reassuring gesture), other hand rests on lap.
-  const arm=caveMesh(g,new THREE.CylinderGeometry(.15,.18,.68,6),stone,.55,1.56,.05);arm.rotation.z=-.38;
-  ico(stone,.64,1.90,.10,.17,.25,.11,0);
-  for(let i=0;i<4;i++)caveMesh(g,new THREE.CylinderGeometry(.031,.037,.20,5),stone,.53+i*.07,2.10,.11);
-  const left=caveMesh(g,new THREE.CylinderGeometry(.13,.17,.70,6),robe,-.55,1.18,.23);left.rotation.z=-.88;
-  ico(stone,-.17,.76,.49,.24,.09,.17,0);
-  g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.8);
+  for(const s of [-1,1])caveMesh(g,new THREE.BoxGeometry(.12,.016,.013),eyes,s*.15,2.62,.38);
+  ico(stone,0,2.44,.40,.09,.15,.09,0);
+  const mouth=caveMesh(g,new THREE.BoxGeometry(.18,.014,.018),eyes,0,2.30,.382);mouth.rotation.z=.03;
+  // One upright palm, one resting hand.
+  const arm=caveMesh(g,new THREE.CylinderGeometry(.16,.20,.84,6),stone,.70,1.78,.05);arm.rotation.z=-.35;
+  ico(stone,.80,2.16,.11,.20,.30,.12,0);
+  for(let i=0;i<4;i++)caveMesh(g,new THREE.CylinderGeometry(.033,.039,.24,5),stone,.67+i*.08,2.39,.12);
+  const left=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.86,6),robe,-.68,1.28,.26);left.rotation.z=-.88;
+  ico(stone,-.20,.82,.52,.28,.10,.20,0);
+  g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.6);
   group.add(g);
-  // Shallow stone offering tray in front of the Buddha.
-  const stand=caveMesh(group,new THREE.CylinderGeometry(.52,.65,.24,8),stone,caveBuddhaPoint.x,.16,caveBuddhaPoint.z+1.1);
+  // Keep the foreground clear: small, low offering tray only.
+  const stand=caveMesh(group,new THREE.CylinderGeometry(.40,.48,.14,8),stone,caveBuddhaPoint.x,.09,caveBuddhaPoint.z+1.72);
   stand.userData.isOfferingTray=true;
 }
 function makeCaveCandles(group){
@@ -4566,8 +4618,8 @@ function makeCaveCandles(group){
   const flameMat=new THREE.MeshBasicMaterial({color:0xffac45,transparent:true,opacity:.92});
   const flameGeo=new THREE.ConeGeometry(.065,.20,5),waxGeo=new THREE.CylinderGeometry(.085,.10,.27,7);
   const places=[];
-  for(let z=2;z>=-29;z-=5.2){const w=caveWidth(z);places.push([caveCurve(z)-w*.76,z],[caveCurve(z)+w*.76,z])}
-  for(const [dx,dz] of [[-1.1,0],[1.1,0],[-1.1,1.25],[1.1,1.25]])places.push([caveBuddhaPoint.x+dx,caveBuddhaPoint.z+dz]);
+  for(let z=2;z>=-31;z-=5.2){const w=caveInnerWalkWidth(z);places.push([caveCurve(z)-w*.94,z],[caveCurve(z)+w*.94,z])}
+  for(const [dx,dz] of [[-1.5,-.1],[1.5,-.1],[-1.35,1.45],[1.35,1.45],[-2.0,-1.35],[2.0,-1.35]])places.push([caveBuddhaPoint.x+dx,caveBuddhaPoint.z+dz]);
   caveCandles=[];
   for(let i=0;i<places.length;i++){
     const [x,z]=places[i],s=new THREE.Group();s.position.set(x,.07,z);group.add(s);
@@ -4576,9 +4628,9 @@ function makeCaveCandles(group){
     const f=caveMesh(s,flameGeo,flameMat.clone(),0,.43,0);
     caveCandles.push({flame:f,phase:i*2.33});
   }
-  for(const z of [0,-12,-24,-32]){
-    const light=new THREE.PointLight(0xff9f4e,z===-32?1.0:.71,7.3,2.0);
-    light.position.set(caveCurve(z),1.15,z);group.add(light);
+  for(const z of [0,-12,-24,-35]){
+    const light=new THREE.PointLight(0xff9f4e,z===-35?1.0:.74,8.6,2.0);
+    light.position.set(caveCurve(z),1.3,z);group.add(light);
     caveCandles.push({light,phase:z*1.8,base:light.intensity});
   }
 }
@@ -4614,7 +4666,7 @@ function enterSecretCave(){
   target=null;pending=null;curAct=null;queued=null;
   cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;
   scene.fog=null;scene.background=new THREE.Color(0x090a08);camera.layers.set(1);
-  camera.position.set(caveCurve(6),1.86,6.0);camera.lookAt(P.x,1.25,P.z);
+  camera.position.set(caveCurve(6),2.05,6.1);camera.lookAt(P.x,1.35,P.z);
   me.root.traverse(o=>o.layers.enable(1));
   $('jumpBtn').classList.add('hide');$('mapView').classList.add('hide');mapOpen=false;
   showCaveAction('');toast('희미한 촛불이 바위 틈 깊숙이 이어진다…');sendPresence(true);
@@ -4634,8 +4686,8 @@ function leaveSecretCave(){
 function updateSecretCaveExterior(dt){
   if(!caveSite||mode!=='game'||inTent){showCaveAction('');return}
   const d=Math.hypot(P.x-caveSite.x,P.z-caveSite.z);
-  caveEntrance.visible=d<175;
-  showCaveAction(d<3.3&&Date.now()>caveEntryLock&&!P.air?'secretCaveEnterBtn':'');
+  caveEntrance.visible=d<185;
+  showCaveAction(d<3.4&&Date.now()>caveEntryLock&&!P.air?'secretCaveEnterBtn':'');
 }
 function updateSecretCaveInterior(dt){
   syncKST();animateSecretCaveCandles(dt);
@@ -4645,11 +4697,12 @@ function updateSecretCaveInterior(dt){
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);camYaw+=rot*dt*1.6;
   let move=0;
   if(!caveOffering&&$('secretOfferingPanel').classList.contains('hide')&&
-      $('secretTitlePanel').classList.contains('hide')&&Math.hypot(fwd,str)>.08){
+      $('rankPanel').classList.contains('hide')&&Math.hypot(fwd,str)>.08){
     const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
     const v=Math.max(1,Math.hypot(fwd,str)),vx=(fx*fwd+rx*str)/v,vz=(fz*fwd+rz*str)/v;
-    move=1;P.z=clamp(P.z+vz*dt*2.7,-33,5.6);
-    P.x=clamp(P.x+vx*dt*2.7,caveCurve(P.z)-.62,caveCurve(P.z)+.62);
+    move=1;P.z=clamp(P.z+vz*dt*2.7,-37.2,5.8);
+    const walkHalf=caveInnerWalkWidth(P.z);
+    P.x=clamp(P.x+vx*dt*2.7,caveCurve(P.z)-walkHalf,caveCurve(P.z)+walkHalf);
     P.h=Math.atan2(vx,vz);
   }
   P.y=CAVE_FLOOR;P.speed=move;
@@ -4658,15 +4711,15 @@ function updateSecretCaveInterior(dt){
   me.root.rotation.y+=diff*Math.min(1,dt*11);
   poseHiker(me,dt,P.speed);
   updateSecretOffering(dt);
-  // Camera cannot pass through the narrow tunnel walls; it stays close and
-  // centred on the bent passage instead of using the exterior occlusion engine.
-  const cd=Math.min(camDist,2.55),cz=P.z-Math.cos(camYaw)*cd*.8;
-  const cx=clamp(P.x-Math.sin(camYaw)*cd*.8,caveCurve(cz)-.60,caveCurve(cz)+.60);
-  camera.position.lerp(v3.set(cx,1.88,clamp(cz,-35.8,6.2)),1-Math.exp(-dt*10));
+  // Camera stays close and centered inside the bent passage and wider chamber.
+  const cd=Math.min(camDist,3.0),cz=P.z-Math.cos(camYaw)*cd*.82;
+  const walkHalf=caveInnerWalkWidth(cz);
+  const cx=clamp(P.x-Math.sin(camYaw)*cd*.82,caveCurve(cz)-walkHalf*.92,caveCurve(cz)+walkHalf*.92);
+  camera.position.lerp(v3.set(cx,2.05,clamp(cz,-39.2,6.4)),1-Math.exp(-dt*10));
   camera.lookAt(P.x,P.y+1.30,P.z);
   updOthers(dt);updateMyRankTag();
-  if(P.z>3.6)showCaveAction('secretCaveLeaveBtn');
-  else if(Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)<4.1&&!caveOffering){
+  if(P.z>3.8)showCaveAction('secretCaveLeaveBtn');
+  else if(Math.hypot(P.x-caveBuddhaPoint.x,P.z-caveBuddhaPoint.z)<5.0&&!caveOffering){
     showCaveAction('secretOfferOpenBtn');
   }else showCaveAction('');
   presT+=dt;if(presT>.25){presT=0;sendPresence(false)}
@@ -4797,17 +4850,13 @@ function renderSpecialTitlePanel(){
     b.onclick=()=>{setSpecialTitle(title);renderSpecialTitlePanel()};host.appendChild(b);
   }
 }
-function openSpecialTitles(){renderSpecialTitlePanel();$('secretTitlePanel').classList.remove('hide')}
+function openSpecialTitles(){openRankMenu('special')}
 $('secretOfferOpenBtn').addEventListener('click',openSecretOffering);
 $('secretOfferingConfirm').addEventListener('click',startSecretOffering);
 $('secretOfferingCancel').addEventListener('click',closeOffering);
 $('secretOfferingPanel').addEventListener('click',e=>{if(e.target===$('secretOfferingPanel'))closeOffering()});
-$('specialTitlesBtn').addEventListener('click',openSpecialTitles);
-$('secretTitleClose').addEventListener('click',()=>$('secretTitlePanel').classList.add('hide'));
-$('secretTitlePanel').addEventListener('click',e=>{if(e.target===$('secretTitlePanel'))$('secretTitlePanel').classList.add('hide')});
 addEventListener('keydown',e=>{if(e.key==='Escape'){
   if(!$('secretOfferingPanel').classList.contains('hide'))closeOffering();
-  if(!$('secretTitlePanel').classList.contains('hide'))$('secretTitlePanel').classList.add('hide');
 }});
 /* ================= GAME LOOP ================= */
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
@@ -5133,6 +5182,79 @@ async function importProfileFile(file){
   }catch(e){profileNotice('올바른 백약산 저장 파일인지 확인해 주세요: '+(e.message||''),true)}
   finally{$('loadSaveInput').value=''}
 }
+/* ===== SETTINGS-ONLY TERRAIN / BACKGROUND REFRESH =====
+ * Manual button under Settings. Never invoked by normal jumps or climbs.
+ * Saves the current browser profile and resumes once after a page reload.
+ * Uses only a short-lived, consumed-once session entry (no raw PIN).
+ */
+const SETTINGS_RELOAD_KEY='baekyaksan-settings-resume-v1';
+const SETTINGS_RELOAD_MAX_AGE_MS=25000;
+let settingsReloadPending=false;
+function softRepairNearbyTerrain(){
+  // Fallback for browsers denying session storage; never log the player out.
+  try{
+    target=null;pending=null;
+    for(const c of [...chunks.values()])disposeChunk(c);
+    chunkFailures.clear();chunkQueue=[];chunkKey='';chunkBuildT=0;
+    lastClimbRockCheck=0;cachedClimbRock=null;
+    updateChunks(P.x,P.z,true,0);
+    onResize();
+    toast('주변 지형을 다시 불러왔습니다.');
+  }catch(e){console.warn('백약산 지형 자체 복구 오류:',e);toast('지형 복구가 완전하지 않습니다. 일반 새로고침을 이용해 주세요.')}
+}
+function refreshWorldFromSettings(){
+  if(settingsReloadPending||mode!=='game')return;
+  if(inSecretCave||inTent||caveOffering||climbing){
+    toast('동굴·텐트·등반 중에는 바깥 산길에서 새로고침해 주세요.');return;
+  }
+  if(!activeCredential||!activeProfileKey){
+    closeGameSettings();softRepairNearbyTerrain();return;
+  }
+  save.pos={x:+P.x.toFixed(2),z:+P.z.toFixed(2)};
+  persist();
+  try{
+    const cred=activeCredential;
+    if(!readProfileDoc(cred))throw new Error('기기에 저장한 기록을 확인할 수 없습니다.');
+    sessionStorage.setItem(SETTINGS_RELOAD_KEY,JSON.stringify({
+      at:Date.now(),nick:cred.nick,verifier:cred.verifier
+    }));
+    settingsReloadPending=true;closeGameSettings();
+    toast('지형과 배경을 새로고칩니다. 산행 기록과 현재 위치를 유지합니다.');
+    setTimeout(()=>{
+      try{window.location.reload()}catch(e){
+        settingsReloadPending=false;
+        try{sessionStorage.removeItem(SETTINGS_RELOAD_KEY)}catch(_e){}
+        softRepairNearbyTerrain();
+      }
+    },350);
+  }catch(e){
+    console.warn('설정 새로고침의 자동 복귀 준비 실패',e);
+    closeGameSettings();softRepairNearbyTerrain();
+  }
+}
+function resumeAfterSettingsReload(){
+  let payload;
+  try{
+    const value=sessionStorage.getItem(SETTINGS_RELOAD_KEY);
+    if(!value)return false;
+    sessionStorage.removeItem(SETTINGS_RELOAD_KEY);
+    payload=JSON.parse(value);
+  }catch(e){console.warn('새로고침 복귀 기록을 읽지 못했습니다.',e);return false}
+  if(!payload||!Number.isFinite(payload.at)||Date.now()-payload.at>SETTINGS_RELOAD_MAX_AGE_MS||
+     Date.now()<payload.at-2000||typeof payload.nick!=='string'||
+     !/^[a-f0-9]{64}$/.test(payload.verifier||''))return false;
+  const cred={nick:cleanNick(payload.nick),verifier:payload.verifier,key:PROFILE_STORE_PREFIX+payload.verifier};
+  try{
+    const doc=readProfileDoc(cred);
+    if(!doc)return false;
+    applyRecord(cred,doc.progress);
+    $('nick').value=cred.nick;
+    beginGame();
+    try{updateChunks(P.x,P.z,true,0)}catch(e){console.warn('첫 지형 복구 재시도:',e)}
+    toast('지형 새로고침 완료 · 기존 산행을 이어갑니다.');
+    return true;
+  }catch(e){console.warn('백약산 자동 이어하기 실패',e);return false}
+}
 /* ================= START ================= */
 try{$('nick').value=localStorage.getItem('baekyaksan-last-nick')||save.nick||''}catch(e){$('nick').value=save.nick||''}
 const sw=$('swatches');JACKETS.forEach((c,i)=>{const b=document.createElement('button');b.className='sw'+(i===(save.color|0)?' on':'');b.style.background='#'+c.toString(16).padStart(6,'0');b.title='옷 색';b.onclick=e=>{e.stopPropagation();save.color=i;setSwatchSelection()};sw.appendChild(b)});
@@ -5256,6 +5378,20 @@ function frame(now){requestAnimationFrame(frame);
   }}
 addEventListener('resize',onResize);addEventListener('resize',()=>{if(inTent)syncTentChestButton()});applyPerf();requestAnimationFrame(frame);
 $('ecoBtn').onclick=()=>{PERF.eco=!PERF.eco;applyPerf();chunkKey='';toast(PERF.eco?'절전 모드: 화질과 시야를 줄여 가볍게 돌립니다':'절전 모드 해제')};
+// UI navigation: settings owns eco, save and explicit terrain refresh.
+function closeGameSettings(){
+  $('settingsPanel').classList.add('hide');$('settingsBtn').setAttribute('aria-expanded','false');
+}
+function openGameSettings(){
+  closeRankMenu();$('settingsPanel').classList.remove('hide');$('settingsBtn').setAttribute('aria-expanded','true');
+}
+$('settingsBtn').addEventListener('click',openGameSettings);
+$('settingsClose').addEventListener('click',closeGameSettings);
+$('settingsPanel').addEventListener('pointerdown',e=>{if(e.target===$('settingsPanel'))closeGameSettings()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeGameSettings()});
+$('terrainRefreshBtn').addEventListener('click',refreshWorldFromSettings);
+// Refresh operates only through the settings button; jumping is unchanged.
+setTimeout(()=>resumeAfterSettingsReload(),120);
 function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());

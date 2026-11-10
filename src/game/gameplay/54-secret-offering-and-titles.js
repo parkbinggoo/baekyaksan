@@ -118,15 +118,11 @@ function renderSpecialTitlePanel(){
     b.onclick=()=>{setSpecialTitle(title);renderSpecialTitlePanel()};host.appendChild(b);
   }
 }
-function openSpecialTitles(){renderSpecialTitlePanel();$('secretTitlePanel').classList.remove('hide')}
+function openSpecialTitles(){openRankMenu('special')}
 $('secretOfferOpenBtn').addEventListener('click',openSecretOffering);
 $('secretOfferingConfirm').addEventListener('click',startSecretOffering);
 $('secretOfferingCancel').addEventListener('click',closeOffering);
 $('secretOfferingPanel').addEventListener('click',e=>{if(e.target===$('secretOfferingPanel'))closeOffering()});
-$('specialTitlesBtn').addEventListener('click',openSpecialTitles);
-$('secretTitleClose').addEventListener('click',()=>$('secretTitlePanel').classList.add('hide'));
-$('secretTitlePanel').addEventListener('click',e=>{if(e.target===$('secretTitlePanel'))$('secretTitlePanel').classList.add('hide')});
 addEventListener('keydown',e=>{if(e.key==='Escape'){
   if(!$('secretOfferingPanel').classList.contains('hide'))closeOffering();
-  if(!$('secretTitlePanel').classList.contains('hide'))$('secretTitlePanel').classList.add('hide');
 }});

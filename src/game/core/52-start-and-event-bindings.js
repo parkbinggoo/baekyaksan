@@ -121,6 +121,20 @@ function frame(now){requestAnimationFrame(frame);
   }}
 addEventListener('resize',onResize);addEventListener('resize',()=>{if(inTent)syncTentChestButton()});applyPerf();requestAnimationFrame(frame);
 $('ecoBtn').onclick=()=>{PERF.eco=!PERF.eco;applyPerf();chunkKey='';toast(PERF.eco?'절전 모드: 화질과 시야를 줄여 가볍게 돌립니다':'절전 모드 해제')};
+// UI navigation: settings owns eco, save and explicit terrain refresh.
+function closeGameSettings(){
+  $('settingsPanel').classList.add('hide');$('settingsBtn').setAttribute('aria-expanded','false');
+}
+function openGameSettings(){
+  closeRankMenu();$('settingsPanel').classList.remove('hide');$('settingsBtn').setAttribute('aria-expanded','true');
+}
+$('settingsBtn').addEventListener('click',openGameSettings);
+$('settingsClose').addEventListener('click',closeGameSettings);
+$('settingsPanel').addEventListener('pointerdown',e=>{if(e.target===$('settingsPanel'))closeGameSettings()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeGameSettings()});
+$('terrainRefreshBtn').addEventListener('click',refreshWorldFromSettings);
+// Refresh operates only through the settings button; jumping is unchanged.
+setTimeout(()=>resumeAfterSettingsReload(),120);
 function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*(mealBoosted()?MEAL_JUMP_MULT:1);P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
