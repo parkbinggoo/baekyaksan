@@ -44,8 +44,9 @@ function chooseSecretCaveSite(){
     if(slope<1.05||slope>4.9||cliffRise<2.2||towardPath>3.0)continue;
     const score=(Math.min(3.8,slope)-1.05)*1.1 + cliffRise*.42 - shoulder*.75 + forest*.85 + rockiness*.55 + r()*.18;
     if(!best||score>best.score){
-      const pathSideX=pathX(z)-x;
-      const yaw=Math.atan2(pathSideX,0-z)+side*Math.PI*.35;
+      const frontDx=pathX(z)-x;
+      const frontDz=8 + Math.max(-10, Math.min(10, -z*.0025));
+      const yaw=Math.atan2(frontDx,frontDz);
       best={x,z,y,score,yaw,side};
     }
   }
@@ -57,38 +58,42 @@ function makeCaveEntrance(){
   const stone=[0x575b4d,0x525747,0x656557,0x484d42].map(caveStoneMaterial),moss=caveStoneMaterial(0x3b5635);
   const rock=new THREE.IcosahedronGeometry(1,1),bush=new THREE.IcosahedronGeometry(1,0);
   const greenMats=[0x42683c,0x355b31,0x52703b,0x5b7541].map(caveStoneMaterial);
-  // Cliff face and a dark one-hiker-wide opening tucked into it.
-  caveMesh(g,new THREE.BoxGeometry(8.8,6.0,1.8),stone[0],0,2.9,-1.65,1,1,1);
-  caveMesh(g,new THREE.BoxGeometry(7.4,5.0,1.25),stone[1],0,2.65,-.78,1,1,1);
-  caveMesh(g,new THREE.PlaneGeometry(1.48,2.55),new THREE.MeshBasicMaterial({color:0x080907,side:THREE.DoubleSide}),0,1.42,.05);
-  // Large boulders around the cliff mouth.
-  const bigLeft=caveMesh(g,rock,stone[2],-2.35,1.25,.22,1.45,1.85,1.55);bigLeft.rotation.set(.2,-.3,.4);
-  const bigRight=caveMesh(g,rock,stone[3],2.15,1.15,.28,1.35,1.55,1.45);bigRight.rotation.set(-.15,.45,-.2);
-  const cap=caveMesh(g,rock,stone[0],0,4.75,-.1,3.7,1.05,1.65);cap.rotation.set(.12,.1,.08);
-  for(let i=0;i<12;i++){
-    const a=Math.PI*(i/11),sx=Math.cos(a)*1.35,sy=1.22+Math.sin(a)*1.68;
-    const o=caveMesh(g,rock,stone[i%stone.length],sx,sy,.12,.58,.56,.7);o.rotation.set(i*.21,i*.31,i*.19);
+  // Natural cliff frame: no thick flat facade, just side/upper rock masses hugging the slope.
+  const leftWall=caveMesh(g,rock,stone[0],-2.0,1.95,-.52,1.55,2.35,1.85);leftWall.rotation.set(.12,-.32,.18);
+  const rightWall=caveMesh(g,rock,stone[1],2.05,1.85,-.46,1.62,2.2,1.92);rightWall.rotation.set(-.14,.28,-.12);
+  const topLintel=caveMesh(g,rock,stone[2],0,4.12,-.62,2.85,1.12,1.55);topLintel.rotation.set(.08,.06,.04);
+  const backRock=caveMesh(g,rock,stone[3],0,2.45,-1.58,2.75,2.25,1.38);backRock.rotation.set(.07,.18,-.05);
+  const mouthMat=new THREE.MeshBasicMaterial({color:0x080907,side:THREE.DoubleSide});
+  caveMesh(g,new THREE.PlaneGeometry(1.52,2.72),mouthMat,0,1.50,.28);
+  for(let i=0;i<16;i++){
+    const a=Math.PI*(i/15),rx=Math.cos(a)*1.32,ry=1.05+Math.sin(a)*1.82;
+    const rim=caveMesh(g,rock,stone[i%stone.length],rx,ry,.04,.46,.52,.62);rim.rotation.set(i*.17,i*.28,i*.13);
   }
+  for(let i=0;i<10;i++){
+    const side=i%2?-1:1;
+    const ledge=caveMesh(g,rock,stone[(i+1)%4],side*(1.35+(i%3)*.42),.32+(i%4)*.48,-.12+(i%3)*.16,.42,.34,.58);
+    ledge.rotation.y=i*.51;
+  }
+  // Moss and shrubs partially hide the mouth, but the center remains readable only at close range.
   for(let i=0;i<18;i++){
-    const dir=i%2?-1:1;
-    const o=caveMesh(g,rock,stone[(i+1)%4],dir*(1.1+(i%5)*.34),.25+(i%4)*.62,.08+(i%4)*.34,.58,.44,.82);o.rotation.y=i*.63;
+    const side=i%2?-1:1;
+    let x=side*(.78+(i%4)*.22),y=.28+(i%6)*.20,z=.44+(i%2)*.10;
+    if(i%5===0){x=side*(.42+(i%3)*.12);y=.88+(i%3)*.16;z=.36}
+    const leaf=caveMesh(g,bush,greenMats[i%greenMats.length],x,y,z,.26+(i%3)*.07,.20,.28);
+    leaf.rotation.set(i*.14,i*.25,Math.sin(i)*.45);
   }
-  // Dense shrubs and slim trunks partly hide the opening, but keep the center readable.
-  for(let i=0;i<34;i++){
-    const side=i%3===0?-1:1,a=i*2.399,band=.8+(i%7)*.24;
-    let x=side*(.86+band*.58),y=.24+(i%9)*.27,z=.42+(i%3)*.2;
-    if(i%6===0){x=side*(.45+(i%4)*.14);y=.92+(i%5)*.18;z=.4}
-    const leaf=caveMesh(g,bush,i%4===0?moss:greenMats[i%greenMats.length],x+Math.sin(a)*.18,y,z,.31+(i%4)*.08,.22,.34);
-    leaf.rotation.set(i*.21,i*.3,Math.sin(a)*.6);
+  caveMesh(g,new THREE.BoxGeometry(4.3,.28,1.15),moss,0,.05,.82,1,1,1);
+  // Two nearby pines to help hide the entrance until the player stands in front.
+  function addPine(x,z,h,rot=0){
+    const trunkMat=caveStoneMaterial(0x4b3d2e),leafMat=caveStoneMaterial(0x355f34);
+    const trunk=caveMesh(g,new THREE.CylinderGeometry(.09,.12,h*0.58,6),trunkMat,x,h*0.29,z);trunk.rotation.z=rot;
+    const c1=caveMesh(g,new THREE.ConeGeometry(h*0.28,h*0.58,6),leafMat,x,h*0.72,z,.95,1,.95);
+    const c2=caveMesh(g,new THREE.ConeGeometry(h*0.22,h*0.48,6),leafMat,x,h*0.98,z,.95,1,.95);
+    const c3=caveMesh(g,new THREE.ConeGeometry(h*0.16,h*0.36,6),leafMat,x,h*1.18,z,.95,1,.95);
+    c1.rotation.y=c2.rotation.y=c3.rotation.y=rot*1.3;
   }
-  const trunk=caveStoneMaterial(0x4b3d2e);
-  for(let i=0;i<7;i++){
-    const side=i%2?-1:1,dist=1.7+i*.32;
-    const stem=caveMesh(g,new THREE.CylinderGeometry(.07,.12,2.8,5),trunk,side*dist,1.45,.72,.92,1,.92);
-    stem.rotation.z=(i%2?-1:1)*(.18+.06*(i%3));
-  }
-  // Low moss apron / ledge so the cave reads as part of a wooded cliff.
-  caveMesh(g,new THREE.BoxGeometry(5.4,.35,1.4),moss,0,.06,.82,1,1,1);
+  addPine(-2.65,1.72,2.9,.08);
+  addPine(2.48,1.45,3.35,-.06);
   caveEntrance=g;scene.add(g);
 }
 function makeCaveTunnel(){
@@ -219,8 +224,9 @@ function showCaveAction(which){
   for(const id of ids)$(id).classList.toggle('hide',which!==id);
 }
 function enterSecretCave(){
+  const entry=getSecretCaveEntryLocal();
   if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
-    Math.hypot(P.x-caveSite.x,P.z-caveSite.z)>3.3||me.mode==='dig'||P.air)return;
+    entry.d>2.05||Math.abs(entry.x)>.82||entry.z<.74||entry.z>2.15||me.mode==='dig'||P.air)return;
   caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
   clearRareSense();
   inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
@@ -244,11 +250,20 @@ function leaveSecretCave(){
   if(IS_TOUCH)$('jumpBtn').classList.remove('hide');
   showCaveAction('');sendPresence(true);
 }
+
+function getSecretCaveEntryLocal(){
+  if(!caveSite)return {x:999,z:999,d:999};
+  const dx=P.x-caveSite.x,dz=P.z-caveSite.z,yaw=-(caveSite.yaw||0);
+  const lx=dx*Math.cos(yaw)-dz*Math.sin(yaw);
+  const lz=dx*Math.sin(yaw)+dz*Math.cos(yaw);
+  return {x:lx,z:lz,d:Math.hypot(dx,dz)};
+}
 function updateSecretCaveExterior(dt){
   if(!caveSite||mode!=='game'||inTent){showCaveAction('');return}
-  const d=Math.hypot(P.x-caveSite.x,P.z-caveSite.z);
-  caveEntrance.visible=d<185;
-  showCaveAction(d<3.4&&Date.now()>caveEntryLock&&!P.air?'secretCaveEnterBtn':'');
+  const entry=getSecretCaveEntryLocal();
+  caveEntrance.visible=entry.d<185;
+  const canEnter=entry.d<2.05&&Math.abs(entry.x)<.82&&entry.z>.74&&entry.z<2.15&&Date.now()>caveEntryLock&&!P.air;
+  showCaveAction(canEnter?'secretCaveEnterBtn':'');
 }
 function updateSecretCaveInterior(dt){
   syncKST();animateSecretCaveCandles(dt);
