@@ -49,6 +49,8 @@ const CHORUS={'새벽':{bird:.06,scops:.018,owl:.022,cricket:.6},'아침':{bird:
 let ambT=0;
 function updAmbience(dt){
   if(!AMB)return;const a=AMB.a;if(a.state==='suspended')return;
+  AMB.master.gain.setTargetAtTime((inSecretCave||inTent)? .09 : .79,a.currentTime,.50);
+  if(inSecretCave||inTent){AMB.water.gain.setTargetAtTime(0,a.currentTime,.2);return;}
   const ds=streamD(P.x,P.z),wf=clamp(1-(ds-1)/15,0,1);
   AMB.water.gain.setTargetAtTime(wf*wf*.085,a.currentTime,.9);
   ambT+=dt;if(ambT<.25)return;const step=ambT;ambT=0;

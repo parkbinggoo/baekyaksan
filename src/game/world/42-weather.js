@@ -7,7 +7,8 @@ const WEATHER_TYPES=[
   {name:'흐림',type:1,cloud:.65,rain:0},
   {name:'소나기',type:2,cloud:.78,rain:.72},
   {name:'비',type:2,cloud:.85,rain:.62},
-  {name:'장마',type:2,cloud:1,rain:1}
+  {name:'장마',type:2,cloud:1,rain:1},
+  {name:'천둥번개',type:2,cloud:1,rain:.94,thunder:true}
 ];
 function weatherRandom(index,salt){
   let x=(WEATHER_SEED^Math.imul(index+1,0x9e3779b1)^Math.imul(salt+1,0x85ebca6b))>>>0;
@@ -16,10 +17,10 @@ function weatherRandom(index,salt){
 }
 function weatherEvent(index,prevKind){
   const pick=weatherRandom(index,0);
-  let kind=pick<.36?0:pick<.54?1:pick<.75?2:pick<.86?3:pick<.96?4:5;
-  if((prevKind===3||prevKind===4||prevKind===5)&&kind===0)kind=2;
+  let kind=pick<.36?0:pick<.54?1:pick<.75?2:pick<.86?3:pick<.955?4:pick<.97?5:6;
+  if((prevKind===3||prevKind===4||prevKind===5||prevKind===6)&&kind===0)kind=2;
   const r=weatherRandom(index,1),minute=60000;
-  const ranges=[[35,95],[18,48],[24,66],[3,8],[12,28],[55,130]];
+  const ranges=[[35,95],[18,48],[24,66],[3,8],[12,28],[55,130],[8,23]];
   const [lo,hi]=ranges[kind];
   return {kind,duration:(lo+(hi-lo)*r)*minute};
 }
@@ -65,6 +66,24 @@ function updateRain(dt,elevation){
   rainGeo.setDrawRange(0,Math.round(rainCount*rainIntensity));
   for(let i=0;i<rainCount;i++){const j=i*3;rainXYZ[j+1]-=dt*(10+7*weatherRain);if(rainXYZ[j+1]<0){rainXYZ[j+1]+=16;rainXYZ[j]=(rainRand()-.5)*26;rainXYZ[j+2]=(rainRand()-.5)*26;}}
   rainGeo.attributes.position.needsUpdate=true;rainPoints.position.set(P.x,P.y+1,P.z);
+}
+// The same timestamp/seed generates lightning for all visitors; no network packet is needed.
+const stormFlashLight=new THREE.PointLight(0xd6e5ff,0,160,1.7);stormFlashLight.castShadow=false;scene.add(stormFlashLight);
+let lastThunderCycle='';
+function updateThunderstorm(){
+  stormFlashLight.intensity=0;
+  if(weatherKind!==6||inTent||inSecretCave||weatherRain<.38)return;
+  const now=Date.now(),elapsed=now-weatherStart,cycle=Math.floor(elapsed/17000);
+  const flashAt=weatherStart+cycle*17000+5800+weatherRandom(weatherIndex*10000+cycle,7)*7400;
+  const diff=now-flashAt;
+  if(diff>=0&&diff<230){
+    // A brief double flash; lightning is brighter than its rainy surroundings.
+    const pulse=diff<80?1:diff<145?.13:diff<215?.65:0;
+    stormFlashLight.intensity=pulse*9;
+    stormFlashLight.position.set(P.x+25*Math.sin(cycle*2.3),P.y+43,P.z-18);
+    const key=weatherIndex+':'+cycle;
+    if(lastThunderCycle!==key){lastThunderCycle=key;playThunder(.5+weatherRandom(weatherIndex*10000+cycle,8)*2.0)}
+  }
 }
 // Local alpine snow: the higher the hiker climbs, the denser the snow becomes.
 // This is deterministic altitude-based scenery, not a new per-player random weather.

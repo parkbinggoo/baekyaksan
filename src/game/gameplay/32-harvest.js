@@ -12,7 +12,7 @@ const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
   if(inSecretCave)return;
-  if(Date.now()<faintUntil||cooking||climbing||me.mode==='joy'||(tg.item&&takenUntil(tg.item.id)))return;
+  if(Date.now()<faintUntil||cooking||climbing||(me.mode==='joy'||me.mode==='joyspin')||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;
     toast('바위 위에 붙어 있다. 근처에서 오르기 버튼을 이용하자.');
@@ -101,9 +101,16 @@ function collect(kind,type,pos,it){
   save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
   if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
   recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
-  me.mode='joy';me.t=0;joyT=2.3;curAct=null;queued=null;
+  const isSansam=originalType==='sansam';
+  me.mode=isSansam?'joyspin':'joy';me.t=0;joyT=isSansam?3.65:2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));
   chime(info.rar);setGreens(me,totalCount());
+  if(isSansam){
+    playSansamCelebration();saySansamFound();
+    const name=cleanNick(save.nick)||'산객',message='심봤다~~~! 귀한 산삼을 발견했습니다! 🎉';
+    showRadioLine(name,message);
+    if(netJoined)netPublish('sansamFound',{name});
+  }
   lastFound={k:type,t:Date.now()};
   showInfoCard(kind,type,false);
   sendPresence(true);

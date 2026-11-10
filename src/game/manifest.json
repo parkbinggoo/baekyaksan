@@ -379,6 +379,10 @@
       "purpose": "숲 소리·시각별 환경음"
     },
     {
+      "file": "audio/44a-world-events-sound.js",
+      "purpose": "모닥불·요리·텐트·멧돼지·동굴·천둥·설원 발자국·산삼 축하 효과음"
+    },
+    {
       "file": "gameplay/45-careful-harvest.js",
       "originalLines": [
         3969,

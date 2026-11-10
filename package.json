@@ -1,13 +1,13 @@
 {
   "name": "baekyaksan-modular",
-  "version": "1.2.6-ui.3",
+  "version": "1.2.6-ui.5-sound",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node scripts/build.mjs && node scripts/check.mjs",
     "dev": "node scripts/build.mjs && node scripts/dev.mjs",
-    "test": "node scripts/test-features.mjs && node scripts/test-rare-sense.mjs && node scripts/test-golden-guide.mjs && node scripts/test-forage-hit-assist.mjs && node scripts/test-five-star-population.mjs && node scripts/test-ecology-balance.mjs && node scripts/test-hud-navigation.mjs && node scripts/test-compass-hud.mjs",
+    "test": "node scripts/test-features.mjs && node scripts/test-rare-sense.mjs && node scripts/test-golden-guide.mjs && node scripts/test-forage-hit-assist.mjs && node scripts/test-five-star-population.mjs && node scripts/test-ecology-balance.mjs && node scripts/test-hud-navigation.mjs && node scripts/test-compass-hud.mjs && node scripts/test-weather-and-sounds.mjs",
     "audit": "node scripts/audit-population.mjs"
   },
   "description": "백약산 3D 프로젝트: 기능별 JS 소스 + CSS + 원본 HTML 구조"

@@ -86,6 +86,6 @@ function updateBoarWarning(){
     }
   }
   const el=$('boarWarning');el.classList.toggle('hide',!close);
-  if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!')}
+  if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!');playBoarTension()}
   boarAlertActive=close;
 }

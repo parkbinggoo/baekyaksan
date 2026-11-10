@@ -88,7 +88,7 @@ function poseHiker(h,dt,speed){
   if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
-  else if(h.mode==='joy'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
+  else if(h.mode==='joy'||h.mode==='joyspin'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
   else if(h.mode==='climb'){const st=(climbing?.steps||0),w=Math.sin(clock*5+st*1.6);lL=-.55+w*.4;lR=-.55-w*.4;aL=-2.35-w*.4;aR=-2.35+w*.4;lean=.38;by=.06;}
   else if(h.mode==='cook'){
     const k=h.cookTime||h.t||0,stage=h.cookStage??cookStageAt(k);
@@ -123,6 +123,6 @@ function poseHiker(h,dt,speed){
   h.armL.rotation.x=lerp(h.armL.rotation.x,aL,f);h.armR.rotation.x=lerp(h.armR.rotation.x,aR,f);
   h.armL.rotation.z=lerp(h.armL.rotation.z,aLz,f);h.armR.rotation.z=lerp(h.armR.rotation.z,aRz,f);
   h.legL.rotation.y=lerp(h.legL.rotation.y,h.mode==='sit'?.16:0,f);h.legR.rotation.y=lerp(h.legR.rotation.y,h.mode==='sit'?-.16:0,f);
-  h.body.position.y=lerp(h.body.position.y,by,h.mode==='joy'?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
-  if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar(h.mode==='joy'?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
+  h.body.position.y=lerp(h.body.position.y,by,(h.mode==='joy'||h.mode==='joyspin')?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
+  if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar((h.mode==='joy'||h.mode==='joyspin')?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
 }

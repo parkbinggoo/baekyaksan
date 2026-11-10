@@ -229,7 +229,7 @@ function enterSecretCave(){
     entry.d>2.05||Math.abs(entry.x)>.82||entry.z<.74||entry.z>2.15||me.mode==='dig'||P.air)return;
   caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
   clearRareSense();
-  inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
+  inSecretCave=true;updateRainSound();beginCaveSound();P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
   target=null;pending=null;curAct=null;queued=null;
   cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;
   scene.fog=null;scene.background=new THREE.Color(0x090a08);camera.layers.set(1);
@@ -240,7 +240,7 @@ function enterSecretCave(){
 }
 function leaveSecretCave(){
   if(!inSecretCave||caveOffering)return;
-  inSecretCave=false;
+  inSecretCave=false;endCaveSound();
   scene.fog=cavePreviousFog;scene.background=cavePreviousBackground;camera.layers.set(0);
   me.root.traverse(o=>o.layers.set(0));
   const p=caveReturnPos||{x:pathX(24),z:24,h:Math.PI};
@@ -266,7 +266,8 @@ function updateSecretCaveExterior(dt){
   showCaveAction(canEnter?'secretCaveEnterBtn':'');
 }
 function updateSecretCaveInterior(dt){
-  syncKST();animateSecretCaveCandles(dt);
+  syncKST();animateSecretCaveCandles(dt);tickCaveSound(dt);
+  if(AMB&&AC){AMB.master.gain.setTargetAtTime(.075,AC.currentTime,.40);AMB.water.gain.setTargetAtTime(0,AC.currentTime,.18)}
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0;
   const lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;

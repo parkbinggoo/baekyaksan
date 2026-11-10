@@ -149,7 +149,7 @@ function addCampFuel(){if(!selectedCamp||cooking)return;const t=selectedCamp,c=c
  const fuel=c.fuel+use,fireUntil=fuel>=CAMP_FUEL_N?now+CAMP_FIRE_MS:0;
  updateCampState(t.id,fireUntil?0:fuel,fireUntil,now,true);
  persist();hudKey='';setGreens(me,totalCount());
- if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3)}
+ if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3);playFireLight()}
  else{refreshCampPanel();toast(`🪵 나뭇가지 ${use}개를 넣었다 · ${fuel}/${CAMP_FUEL_N}`)};
 }
 function cookPosition(c){const dx=c.x-c.tent.x,dz=c.z-c.tent.z,d=Math.hypot(dx,dz)||1;return {x:c.x+dx/d*1.18,z:c.z+dz/d*1.18}}
@@ -189,13 +189,14 @@ function finishCampCook(){if(!cooking)return;
 }
 function tickCampCooking(dt){if(!cooking)return;
  const c=cooking.tent.camp,elapsed=clock-cooking.started,stage=cookStageAt(elapsed);
+ if(stage===4){cookSfxClock+=dt;if(cookSfxClock>.56){cookSfxClock=0;eventNoise({duration:.25,volume:.040,lowpass:2600,highpass:350})}}else cookSfxClock=0;
  me.cookTime=elapsed;me.cookStage=stage;me.mode='cook';
  P.h=Math.atan2(c.x-P.x,c.z-P.z);
  const dx=P.x-c.x,dz=P.z-c.z,dist=Math.hypot(dx,dz)||1;
  const ux=dx/dist,uz=dz/dist,rx=uz,rz=-ux,py=P.y-c.group.position.y;
  const smooth=u=>{u=clamp(u,0,1);return u*u*(3-2*u)};
  if(cooking.lastStage!==stage){
-   cooking.lastStage=stage;
+   cooking.lastStage=stage;playCookingStage(stage);
    const text=['후라이팬을 꺼낸다…','🔥 후라이팬을 불 위에 얹는다.','🥬 산에서 캔 재료를 하나씩 넣는다.','🧂 소금을 톡톡 뿌린다.','🍳 후라이팬을 흔들며 볶는다!',`🍲 ${cooking.recipeName} 완성!`,'🍴 포크를 꺼낸다.','😋 맛있게 한 입씩 먹는다.'];
    if(stage>0)toast(text[stage]);
  }

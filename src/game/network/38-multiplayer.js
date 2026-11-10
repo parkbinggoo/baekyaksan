@@ -3,7 +3,7 @@ const MQTT_BROKER='wss://broker.emqx.io:8084/mqtt';
 const GAME_ROOM='baekyaksan-herbs-public-v2';
 const MQTT_TOPIC=GAME_ROOM+'/presence/';
 const myId=(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,'').slice(0,16):Math.random().toString(36).slice(2,18));
-const others=new Map(),peerSeen=new Map();
+const others=new Map(),peerSeen=new Map(),sansamNoticeTime=new Map();
 const myRankTag=document.createElement('div');myRankTag.className='nametag rankNameTag';myRankTag.style.display='none';$('labels').appendChild(myRankTag);
 const myRankTagPos=new THREE.Vector3();
 let mqttClient=null,mqttOnline=false,netJoined=false,netChecking=false,netJoinTime=Date.now(),netRetryNotice=false;
@@ -13,7 +13,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   const packet=Object.assign({id:myId,type,joined:netJoinTime,t:Date.now()},extra||{});
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
-function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
+function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
   return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle()};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
@@ -86,6 +86,12 @@ function connectRoom(){
        return;
       }
       if(d.type==='radio'){if(typeof d.msg==='string'&&d.msg.length<=180)showRadioLine(cleanNick(d.name)||'산객',d.msg);return}
+      if(d.type==='sansamFound'){
+        if(typeof d.name==='string'&&Number.isFinite(d.t)&&Math.abs(Date.now()-d.t)<12000&&Date.now()-(sansamNoticeTime.get(d.id)||0)>9000){
+          sansamNoticeTime.set(d.id,Date.now());showRadioLine(cleanNick(d.name)||'산객','심봤다~~~! 귀한 산삼을 발견했습니다! 🎉');
+          playSansamCelebration();
+        }return;
+      }
       if(d.type==='caveOffer'){if(d.cv===1&&inSecretCave&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&Math.hypot(d.x-caveBuddhaPoint.x,d.z-caveBuddhaPoint.z)<9)glowSecretCaveCandles();return}
       if(d.type==='boarDisperse'){
         const peer=others.get(d.id);
@@ -120,7 +126,7 @@ function upOther(p){
   o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
-  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
+  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
   setTitleTag(o.el,o.specialTitle,o.rank,(o.mode==='faint'?'💤 ':'')+(o.nick||'산객'));
 }
 let presT=0;
@@ -145,6 +151,7 @@ function updOthers(dt){
     o.av.root.position.set(o.x,o.y+(down?.28:0),o.z);o.av.root.rotation.y=o.h;
     o.av.root.rotation.x=lerp(o.av.root.rotation.x,down?-Math.PI/2:0,Math.min(1,dt*12));
     poseHiker(o.av,dt,down?0:1);
+    if(o.mode==='joyspin')o.av.root.rotation.y+=Math.min(1,o.av.t/3.4)*Math.PI*4;
     const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent&&!!o.inCave===!!inSecretCave;
     const night=skyAtHour(gameMin/60).night;
     const nearEnough=far<55;

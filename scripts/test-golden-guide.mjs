@@ -64,6 +64,8 @@ const harvestCtx={save:{inv:{},known:{},goldKnown:{}},isGoldenKey:k=>k.startsWit
   recordHerbHarvest:()=>{},persist:()=>eventRecord.push('persist'),
   P:{x:0,y:0,z:0},me:{mode:'idle',t:0},joyT:0,curAct:null,queued:null,
   burst:()=>{},hearts:()=>{},chime:()=>{},setGreens:()=>{},
+  playSansamCelebration:()=>eventRecord.push('sansam-celebration'),saySansamFound:()=>{},
+  cleanNick:s=>String(s||'').slice(0,12),showRadioLine:()=>{},netJoined:false,netPublish:()=>{},
   showInfoCard:(kind,key)=>eventRecord.push(key),sendPresence:()=>{},
   Date,Math,
 };

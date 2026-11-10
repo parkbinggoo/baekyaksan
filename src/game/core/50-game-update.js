@@ -2,7 +2,7 @@
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
 function updateGame(dt){
   if(inSecretCave){updateSecretCaveInterior(dt);return}
-  syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);
+  syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);updateThunderstorm();
   const fainted=updFaint();if(!fainted&&!inTent)updateAnimals(dt);else if(boarAlertActive){$('boarWarning').classList.add('hide');boarAlertActive=false;}
   for(const c of chunks.values())for(const it of c.items)if(it.kind==='fruit'&&it.mesh&&it.fall!==false){
     const age=Math.max(0,(Date.now()-it.born)/1000),u=Math.min(1,age/2.8);
@@ -13,7 +13,7 @@ function updateGame(dt){
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0,lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);if(rot){camYaw+=rot*dt*1.8;lastDrag=clock}
-  const busy=fainted||me.mode==='dig'||me.mode==='joy'||!!cooking||inTent||!!climbing;
+  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing;
   let moveAmt=0,mvx=0,mvz=0;
   if(!busy&&(Math.abs(fwd)>.08||Math.abs(str)>.08)){target=null;pending=null;
     const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
@@ -45,13 +45,14 @@ function updateGame(dt){
   if(P.air){P.vy-=14*dt;P.y+=P.vy*dt;if(P.y<=gy){P.y=gy;P.air=false;P.vy=0}}else P.y=lerp(P.y,gy,1-Math.exp(-dt*25));
   if(fainted){me.mode='faint'}
   else if(me.mode==='dig'){if(!hitDone&&me.t>DIG_T*.62){hitDone=true;if(curAct)impact(curAct)}if(me.mode==='dig'&&me.t>=DIG_T){me.mode='idle';me.t=0;if(queued){const q=queued;queued=null;if(nearTo(q.pos,2.6))swing(q)}}}
-  else if(me.mode==='joy'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
+  else if(me.mode==='joy'||me.mode==='joyspin'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
   else if(cooking)me.mode='cook';
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
   me.root.position.set(P.x,P.y+(fainted?.28:0),P.z);
   me.root.rotation.x=lerp(me.root.rotation.x,fainted?-Math.PI/2:climbing?-.20:0,Math.min(1,dt*12));
   {let dh=P.h-me.root.rotation.y;dh=Math.atan2(Math.sin(dh),Math.cos(dh));me.root.rotation.y+=dh*Math.min(1,dt*14)}poseHiker(me,dt,fainted?0:P.speed);
+  if(me.mode==='joyspin')me.root.rotation.y+=Math.min(1,me.t/3.4)*Math.PI*4;
   for(const it of shaking){const m=it.mesh;if(!m||!m.parent){shaking.delete(it);continue}const u=m.userData;u.shake-=dt;if(u.shake>0)m.rotation.z=Math.sin(clock*60)*.36*u.shake;else{m.rotation.z=0;shaking.delete(it)}}
   if(target&&clock-lastDrag>2){let dh=P.h-camYaw;dh=Math.atan2(Math.sin(dh),Math.cos(dh));if(Math.abs(dh)<1.4)camYaw+=dh*Math.min(1,dt*1.2)}
   const cy=camYaw,tx=P.x,ty=P.y+1.45,tz=P.z,dist=camDist;
@@ -69,7 +70,7 @@ function updateGame(dt){
   updateSecretCaveExterior(dt);
   updateRareSense(dt);
   updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
-  updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);
+  updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);updateWorldSounds(dt);
   updateHudCompass();
   hudT+=dt;if(hudT>.25){hudT=0;updHud()}
   presT+=dt;if(presT>.25){presT=0;sendPresence(false)}

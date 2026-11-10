@@ -35,7 +35,7 @@ function changeTent(enter,t){
  if(tentSwitching||enter===inTent)return;
  if(enter&&(!t||Date.now()<faintUntil))return;
  if(enter&&netJoined&&tentVacancies(t)<=0){toast('이 텐트는 현재 2명으로 가득 찼습니다');return}
- tentSwitching=true;
+ tentSwitching=true;playTentZip(enter);
  const overlay=$('tentTransition');overlay.classList.add('on');
  setTimeout(()=>{
    if(enter&&netJoined&&tentVacancies(t)<=0){tentSwitching=false;overlay.classList.remove('on');toast('이 텐트는 현재 2명으로 가득 찼습니다');return}

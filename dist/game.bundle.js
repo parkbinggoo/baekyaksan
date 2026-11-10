@@ -561,7 +561,7 @@ function addCampFuel(){if(!selectedCamp||cooking)return;const t=selectedCamp,c=c
  const fuel=c.fuel+use,fireUntil=fuel>=CAMP_FUEL_N?now+CAMP_FIRE_MS:0;
  updateCampState(t.id,fireUntil?0:fuel,fireUntil,now,true);
  persist();hudKey='';setGreens(me,totalCount());
- if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3)}
+ if(fireUntil){closeCampPanel();toast('🔥 모닥불이 켜졌다! 불을 다시 누르면 요리할 수 있습니다');chime(3);playFireLight()}
  else{refreshCampPanel();toast(`🪵 나뭇가지 ${use}개를 넣었다 · ${fuel}/${CAMP_FUEL_N}`)};
 }
 function cookPosition(c){const dx=c.x-c.tent.x,dz=c.z-c.tent.z,d=Math.hypot(dx,dz)||1;return {x:c.x+dx/d*1.18,z:c.z+dz/d*1.18}}
@@ -601,13 +601,14 @@ function finishCampCook(){if(!cooking)return;
 }
 function tickCampCooking(dt){if(!cooking)return;
  const c=cooking.tent.camp,elapsed=clock-cooking.started,stage=cookStageAt(elapsed);
+ if(stage===4){cookSfxClock+=dt;if(cookSfxClock>.56){cookSfxClock=0;eventNoise({duration:.25,volume:.040,lowpass:2600,highpass:350})}}else cookSfxClock=0;
  me.cookTime=elapsed;me.cookStage=stage;me.mode='cook';
  P.h=Math.atan2(c.x-P.x,c.z-P.z);
  const dx=P.x-c.x,dz=P.z-c.z,dist=Math.hypot(dx,dz)||1;
  const ux=dx/dist,uz=dz/dist,rx=uz,rz=-ux,py=P.y-c.group.position.y;
  const smooth=u=>{u=clamp(u,0,1);return u*u*(3-2*u)};
  if(cooking.lastStage!==stage){
-   cooking.lastStage=stage;
+   cooking.lastStage=stage;playCookingStage(stage);
    const text=['후라이팬을 꺼낸다…','🔥 후라이팬을 불 위에 얹는다.','🥬 산에서 캔 재료를 하나씩 넣는다.','🧂 소금을 톡톡 뿌린다.','🍳 후라이팬을 흔들며 볶는다!',`🍲 ${cooking.recipeName} 완성!`,'🍴 포크를 꺼낸다.','😋 맛있게 한 입씩 먹는다.'];
    if(stage>0)toast(text[stage]);
  }
@@ -823,7 +824,7 @@ function changeTent(enter,t){
  if(tentSwitching||enter===inTent)return;
  if(enter&&(!t||Date.now()<faintUntil))return;
  if(enter&&netJoined&&tentVacancies(t)<=0){toast('이 텐트는 현재 2명으로 가득 찼습니다');return}
- tentSwitching=true;
+ tentSwitching=true;playTentZip(enter);
  const overlay=$('tentTransition');overlay.classList.add('on');
  setTimeout(()=>{
    if(enter&&netJoined&&tentVacancies(t)<=0){tentSwitching=false;overlay.classList.remove('on');toast('이 텐트는 현재 2명으로 가득 찼습니다');return}
@@ -1359,7 +1360,7 @@ function poseHiker(h,dt,speed){
   if(h.stick)h.stick.visible=h.mode!=='cook'&&h.mode!=='bow';if(h.hoe)h.hoe.visible=h.mode!=='cook'&&h.mode!=='bow';
   if(h.mode==='walk'){h.phase+=dt*(2.6+speed*1.6);const s=Math.sin(h.phase);lL=s*.6;lR=-s*.6;aL=-s*.45;aR=s*.45;by=Math.abs(Math.cos(h.phase))*.035;lean=.1;h.torso.rotation.z=Math.sin(h.phase)*.03}
   else if(h.mode==='dig'){const k=h.t/DIG_T;aR=k<.5?lerp(.1,-2.7,ease(k/.5)):k<.7?lerp(-2.7,-.55,(k-.5)/.2):-.55;aL=k<.5?lerp(0,-1.2,k*2):-.4;lean=k>.5?.45:.1;lL=.3;lR=-.2;hd=.2}
-  else if(h.mode==='joy'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
+  else if(h.mode==='joy'||h.mode==='joyspin'){const k=h.t;by=Math.abs(Math.sin(k*7))*.42*Math.max(0,1-k/2.2);aL=-2.85+Math.sin(k*16)*.15;aR=-2.85-Math.sin(k*16)*.15;aLz=-.45;aRz=.45;lL=-.5*Math.abs(Math.sin(k*7));lR=lL;lean=-.12;hd=-.25}
   else if(h.mode==='climb'){const st=(climbing?.steps||0),w=Math.sin(clock*5+st*1.6);lL=-.55+w*.4;lR=-.55-w*.4;aL=-2.35-w*.4;aR=-2.35+w*.4;lean=.38;by=.06;}
   else if(h.mode==='cook'){
     const k=h.cookTime||h.t||0,stage=h.cookStage??cookStageAt(k);
@@ -1394,8 +1395,8 @@ function poseHiker(h,dt,speed){
   h.armL.rotation.x=lerp(h.armL.rotation.x,aL,f);h.armR.rotation.x=lerp(h.armR.rotation.x,aR,f);
   h.armL.rotation.z=lerp(h.armL.rotation.z,aLz,f);h.armR.rotation.z=lerp(h.armR.rotation.z,aRz,f);
   h.legL.rotation.y=lerp(h.legL.rotation.y,h.mode==='sit'?.16:0,f);h.legR.rotation.y=lerp(h.legR.rotation.y,h.mode==='sit'?-.16:0,f);
-  h.body.position.y=lerp(h.body.position.y,by,h.mode==='joy'?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
-  if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar(h.mode==='joy'?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
+  h.body.position.y=lerp(h.body.position.y,by,(h.mode==='joy'||h.mode==='joyspin')?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
+  if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar((h.mode==='joy'||h.mode==='joyspin')?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
 }
 /* ================= FLORA: 한국 자생 약초·나물 64종 =================
    (법정 멸종위기종인 산작약·석곡 등은 제외)
@@ -2961,7 +2962,7 @@ const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
   if(inSecretCave)return;
-  if(Date.now()<faintUntil||cooking||climbing||me.mode==='joy'||(tg.item&&takenUntil(tg.item.id)))return;
+  if(Date.now()<faintUntil||cooking||climbing||(me.mode==='joy'||me.mode==='joyspin')||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;
     toast('바위 위에 붙어 있다. 근처에서 오르기 버튼을 이용하자.');
@@ -3050,9 +3051,16 @@ function collect(kind,type,pos,it){
   save.inv[type]=(save.inv[type]||0)+1; save.known=save.known||{}; save.known[originalType]=1;
   if(golden){save.goldKnown=save.goldKnown||{};save.goldKnown[originalType]=1}
   recordHerbHarvest(originalType,itemInfo(originalType),(kind==='herb'||kind==='honey')&&!!it);persist();
-  me.mode='joy';me.t=0;joyT=2.3;curAct=null;queued=null;
+  const isSansam=originalType==='sansam';
+  me.mode=isSansam?'joyspin':'joy';me.t=0;joyT=isSansam?3.65:2.3;curAct=null;queued=null;
   burst(new THREE.Vector3(pos.x,pos.y+.4,pos.z),info.rar>=4?40:20,info.rar>=4);hearts(new THREE.Vector3(P.x,P.y+2.1,P.z));
   chime(info.rar);setGreens(me,totalCount());
+  if(isSansam){
+    playSansamCelebration();saySansamFound();
+    const name=cleanNick(save.nick)||'산객',message='심봤다~~~! 귀한 산삼을 발견했습니다! 🎉';
+    showRadioLine(name,message);
+    if(netJoined)netPublish('sansamFound',{name});
+  }
   lastFound={k:type,t:Date.now()};
   showInfoCard(kind,type,false);
   sendPresence(true);
@@ -3355,7 +3363,7 @@ const MQTT_BROKER='wss://broker.emqx.io:8084/mqtt';
 const GAME_ROOM='baekyaksan-herbs-public-v2';
 const MQTT_TOPIC=GAME_ROOM+'/presence/';
 const myId=(typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,'').slice(0,16):Math.random().toString(36).slice(2,18));
-const others=new Map(),peerSeen=new Map();
+const others=new Map(),peerSeen=new Map(),sansamNoticeTime=new Map();
 const myRankTag=document.createElement('div');myRankTag.className='nametag rankNameTag';myRankTag.style.display='none';$('labels').appendChild(myRankTag);
 const myRankTagPos=new THREE.Vector3();
 let mqttClient=null,mqttOnline=false,netJoined=false,netChecking=false,netJoinTime=Date.now(),netRetryNotice=false;
@@ -3365,7 +3373,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   const packet=Object.assign({id:myId,type,joined:netJoinTime,t:Date.now()},extra||{});
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
-function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
+function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
   return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle()};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
@@ -3438,6 +3446,12 @@ function connectRoom(){
        return;
       }
       if(d.type==='radio'){if(typeof d.msg==='string'&&d.msg.length<=180)showRadioLine(cleanNick(d.name)||'산객',d.msg);return}
+      if(d.type==='sansamFound'){
+        if(typeof d.name==='string'&&Number.isFinite(d.t)&&Math.abs(Date.now()-d.t)<12000&&Date.now()-(sansamNoticeTime.get(d.id)||0)>9000){
+          sansamNoticeTime.set(d.id,Date.now());showRadioLine(cleanNick(d.name)||'산객','심봤다~~~! 귀한 산삼을 발견했습니다! 🎉');
+          playSansamCelebration();
+        }return;
+      }
       if(d.type==='caveOffer'){if(d.cv===1&&inSecretCave&&Number.isFinite(d.x)&&Number.isFinite(d.z)&&Math.hypot(d.x-caveBuddhaPoint.x,d.z-caveBuddhaPoint.z)<9)glowSecretCaveCandles();return}
       if(d.type==='boarDisperse'){
         const peer=others.get(d.id);
@@ -3472,7 +3486,7 @@ function upOther(p){
   o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
-  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
+  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
   setTitleTag(o.el,o.specialTitle,o.rank,(o.mode==='faint'?'💤 ':'')+(o.nick||'산객'));
 }
 let presT=0;
@@ -3497,6 +3511,7 @@ function updOthers(dt){
     o.av.root.position.set(o.x,o.y+(down?.28:0),o.z);o.av.root.rotation.y=o.h;
     o.av.root.rotation.x=lerp(o.av.root.rotation.x,down?-Math.PI/2:0,Math.min(1,dt*12));
     poseHiker(o.av,dt,down?0:1);
+    if(o.mode==='joyspin')o.av.root.rotation.y+=Math.min(1,o.av.t/3.4)*Math.PI*4;
     const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent&&!!o.inCave===!!inSecretCave;
     const night=skyAtHour(gameMin/60).night;
     const nearEnough=far<55;
@@ -3577,7 +3592,8 @@ const WEATHER_TYPES=[
   {name:'흐림',type:1,cloud:.65,rain:0},
   {name:'소나기',type:2,cloud:.78,rain:.72},
   {name:'비',type:2,cloud:.85,rain:.62},
-  {name:'장마',type:2,cloud:1,rain:1}
+  {name:'장마',type:2,cloud:1,rain:1},
+  {name:'천둥번개',type:2,cloud:1,rain:.94,thunder:true}
 ];
 function weatherRandom(index,salt){
   let x=(WEATHER_SEED^Math.imul(index+1,0x9e3779b1)^Math.imul(salt+1,0x85ebca6b))>>>0;
@@ -3586,10 +3602,10 @@ function weatherRandom(index,salt){
 }
 function weatherEvent(index,prevKind){
   const pick=weatherRandom(index,0);
-  let kind=pick<.36?0:pick<.54?1:pick<.75?2:pick<.86?3:pick<.96?4:5;
-  if((prevKind===3||prevKind===4||prevKind===5)&&kind===0)kind=2;
+  let kind=pick<.36?0:pick<.54?1:pick<.75?2:pick<.86?3:pick<.955?4:pick<.97?5:6;
+  if((prevKind===3||prevKind===4||prevKind===5||prevKind===6)&&kind===0)kind=2;
   const r=weatherRandom(index,1),minute=60000;
-  const ranges=[[35,95],[18,48],[24,66],[3,8],[12,28],[55,130]];
+  const ranges=[[35,95],[18,48],[24,66],[3,8],[12,28],[55,130],[8,23]];
   const [lo,hi]=ranges[kind];
   return {kind,duration:(lo+(hi-lo)*r)*minute};
 }
@@ -3635,6 +3651,24 @@ function updateRain(dt,elevation){
   rainGeo.setDrawRange(0,Math.round(rainCount*rainIntensity));
   for(let i=0;i<rainCount;i++){const j=i*3;rainXYZ[j+1]-=dt*(10+7*weatherRain);if(rainXYZ[j+1]<0){rainXYZ[j+1]+=16;rainXYZ[j]=(rainRand()-.5)*26;rainXYZ[j+2]=(rainRand()-.5)*26;}}
   rainGeo.attributes.position.needsUpdate=true;rainPoints.position.set(P.x,P.y+1,P.z);
+}
+// The same timestamp/seed generates lightning for all visitors; no network packet is needed.
+const stormFlashLight=new THREE.PointLight(0xd6e5ff,0,160,1.7);stormFlashLight.castShadow=false;scene.add(stormFlashLight);
+let lastThunderCycle='';
+function updateThunderstorm(){
+  stormFlashLight.intensity=0;
+  if(weatherKind!==6||inTent||inSecretCave||weatherRain<.38)return;
+  const now=Date.now(),elapsed=now-weatherStart,cycle=Math.floor(elapsed/17000);
+  const flashAt=weatherStart+cycle*17000+5800+weatherRandom(weatherIndex*10000+cycle,7)*7400;
+  const diff=now-flashAt;
+  if(diff>=0&&diff<230){
+    // A brief double flash; lightning is brighter than its rainy surroundings.
+    const pulse=diff<80?1:diff<145?.13:diff<215?.65:0;
+    stormFlashLight.intensity=pulse*9;
+    stormFlashLight.position.set(P.x+25*Math.sin(cycle*2.3),P.y+43,P.z-18);
+    const key=weatherIndex+':'+cycle;
+    if(lastThunderCycle!==key){lastThunderCycle=key;playThunder(.5+weatherRandom(weatherIndex*10000+cycle,8)*2.0)}
+  }
 }
 // Local alpine snow: the higher the hiker climbs, the denser the snow becomes.
 // This is deterministic altitude-based scenery, not a new per-player random weather.
@@ -3852,6 +3886,8 @@ const CHORUS={'새벽':{bird:.06,scops:.018,owl:.022,cricket:.6},'아침':{bird:
 let ambT=0;
 function updAmbience(dt){
   if(!AMB)return;const a=AMB.a;if(a.state==='suspended')return;
+  AMB.master.gain.setTargetAtTime((inSecretCave||inTent)? .09 : .79,a.currentTime,.50);
+  if(inSecretCave||inTent){AMB.water.gain.setTargetAtTime(0,a.currentTime,.2);return;}
   const ds=streamD(P.x,P.z),wf=clamp(1-(ds-1)/15,0,1);
   AMB.water.gain.setTargetAtTime(wf*wf*.085,a.currentTime,.9);
   ambT+=dt;if(ambT<.25)return;const step=ambT;ambT=0;
@@ -3859,6 +3895,144 @@ function updAmbience(dt){
   for(const k in tbl)if(Math.random()<tbl[k]*step*thin)SND[k](t0+Math.random()*.2);
   if(ph==='밤'&&wf>.2&&Math.random()<.6*wf*step)SND.frog(t0);
   if(wf>.55&&Math.random()<.38*wf*step)SND.bubble(t0+Math.random()*.2);
+}
+/* === CONTEXTUAL SOUND · WebAudio only / no network audio assets ===
+ * Calls to ac() remain user-gesture guarded by the browser; no timers or sources
+ * are created while audio is suspended, muted, or the tab is hidden.
+ */
+let soundNoiseBuffer=null,fireSfxClock=0,stepSfxDistance=0,cookSfxClock=0,lastStepX=null,lastStepZ=null;
+let caveAudio=null,rainAudio=null;
+function eventAudioReady(){
+  if(!soundOn||!AC||AC.state!=='running'||document.hidden)return null;
+  return AC;
+}
+function eventNoiseBuffer(a){
+  if(soundNoiseBuffer&&soundNoiseBuffer.sampleRate===a.sampleRate)return soundNoiseBuffer;
+  const len=Math.round(a.sampleRate*2),buf=a.createBuffer(1,len,a.sampleRate),arr=buf.getChannelData(0);
+  for(let i=0;i<len;i++)arr[i]=Math.random()*2-1;
+  soundNoiseBuffer=buf;return buf;
+}
+function eventNoise({delay=0,duration=.25,volume=.04,lowpass=1200,highpass=0,pan=0}={}){
+  const a=eventAudioReady();if(!a)return;
+  const t=a.currentTime+delay,s=a.createBufferSource(),lp=a.createBiquadFilter(),g=a.createGain();
+  s.buffer=eventNoiseBuffer(a);s.loop=duration>1.8;
+  lp.type='lowpass';lp.frequency.value=lowpass;
+  let head=lp;
+  if(highpass){const hp=a.createBiquadFilter();hp.type='highpass';hp.frequency.value=highpass;head=hp;lp.connect(hp)}
+  const stereo=a.createStereoPanner?a.createStereoPanner():null;
+  g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(volume,t+Math.min(.09,duration*.18));
+  g.gain.setValueAtTime(volume*.72,t+duration*.45);g.gain.exponentialRampToValueAtTime(.0001,t+duration);
+  s.connect(lp);if(stereo){head.connect(stereo);stereo.pan.value=pan;stereo.connect(g)}else head.connect(g);
+  g.connect(audioOutput);s.start(t,Math.random()*1.1);s.stop(t+duration+.025);
+}
+function playFireLight(){eventNoise({duration:.45,volume:.065,lowpass:2200,highpass:350});tone(165,.28,'triangle',.025,.65)}
+function playTentZip(enter){
+  eventNoise({duration:enter?.64:.52,volume:.10,lowpass:5300,highpass:650});
+  tone(enter?580:730,.30,'triangle',.024,enter?1.6:.55,.08);
+  eventNoise({delay:.28,duration:.16,volume:.035,lowpass:900});
+}
+function playCookingStage(stage){
+  if(stage===0){eventNoise({duration:.19,volume:.044,lowpass:1100});tone(370,.07,'triangle',.025,.7)}
+  if(stage===1){tone(540,.22,'triangle',.04,.63);eventNoise({delay:.06,duration:.16,volume:.035,lowpass:700})}
+  if(stage===2){for(let i=0;i<3;i++)eventNoise({delay:i*.16,duration:.10,volume:.026,lowpass:1350})}
+  if(stage===3){for(let i=0;i<4;i++)eventNoise({delay:i*.09,duration:.045,volume:.033,lowpass:4600,highpass:950})}
+  if(stage===4){eventNoise({duration:1.0,volume:.070,lowpass:3400,highpass:390});tone(250,.22,'triangle',.026,1.24)}
+  if(stage===5){for(let i=0;i<3;i++)tone([523,659,784][i],.26,'sine',.035,1,i*.15)}
+  if(stage===6){tone(820,.11,'triangle',.033,.62)}
+  if(stage===7){eventNoise({duration:.12,volume:.018,lowpass:1250})}
+}
+function playBoarTension(){
+  // Small original two-second tension cue; not a loud alarm.
+  tone(146,2.2,'sine',.034,.85);
+  tone(220,1.8,'triangle',.019,.75,.14);
+  tone(164,.6,'sine',.023,.77,1.05);
+  eventNoise({duration:1.9,volume:.015,lowpass:410,highpass:65});
+}
+function playSnowStep(){
+  eventNoise({duration:.19,volume:.068,lowpass:2400,highpass:480,pan:(Math.random()-.5)*.12});
+  eventNoise({delay:.045,duration:.12,volume:.044,lowpass:530,highpass:70});
+}
+function playThunder(delayed=0){
+  // Deep rolling noise layered with sub-bass, following the light flash.
+  eventNoise({delay:delayed,duration:3.5,volume:.23,lowpass:510,highpass:28});
+  eventNoise({delay:delayed+.16,duration:2.7,volume:.12,lowpass:1600,highpass:55});
+  for(let i=0;i<3;i++)tone(70+i*16,1.9,'sine',.042,.46,delayed+i*.36);
+}
+function playSansamCelebration(){
+  // Five-note triumphant motif, intentionally original and gentle on mobile.
+  const notes=[392,523.25,659.25,783.99,1046.5,1318.5];
+  notes.forEach((f,i)=>tone(f,.35,'triangle',.050,1,i*.135));
+  tone(523.25,1.05,'sine',.042,1,.84);
+  tone(783.99,.92,'sine',.03,1,.92);
+}
+function saySansamFound(){
+  try{
+    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window))return;
+    const utter=new SpeechSynthesisUtterance('심봤다!');utter.lang='ko-KR';utter.rate=.84;utter.pitch=1.15;utter.volume=.75;
+    window.speechSynthesis.speak(utter);
+  }catch(e){/* WebSpeech is optional on Safari. Musical cue is always available. */}
+}
+function beginCaveSound(){
+  const a=eventAudioReady();if(!a||caveAudio)return;
+  if(AMB){AMB.master.gain.setTargetAtTime(.075,a.currentTime,.32);AMB.water.gain.setTargetAtTime(0,a.currentTime,.18)}
+  const main=a.createGain(),drone=a.createGain(),caveWind=a.createGain();
+  main.gain.value=.0001;main.connect(audioOutput);drone.gain.value=.52;drone.connect(main);caveWind.gain.value=.12;caveWind.connect(main);
+  const nodes=[];
+  for(const [freq,vol,kind] of [[98,.045,'sine'],[146.83,.024,'sine'],[196,.030,'triangle'],[293.66,.014,'sine'],[392,.008,'sine']]){
+    const o=a.createOscillator(),g=a.createGain();o.type=kind;o.frequency.value=freq;g.gain.value=vol;
+    o.connect(g);g.connect(drone);o.start();nodes.push(o);
+  }
+  const wind=a.createBufferSource(),filter=a.createBiquadFilter();wind.buffer=eventNoiseBuffer(a);wind.loop=true;
+  filter.type='lowpass';filter.frequency.value=360;wind.connect(filter);filter.connect(caveWind);wind.start();nodes.push(wind);
+  main.gain.setTargetAtTime(1,a.currentTime,.95);
+  caveAudio={main,drone,nodes,a,elapsed:0};
+}
+function endCaveSound(){
+  if(AMB&&AC){AMB.master.gain.setTargetAtTime(.79,AC.currentTime,.60)}
+  if(!caveAudio)return;
+  const {main,nodes,a}=caveAudio;caveAudio=null;
+  main.gain.cancelScheduledValues(a.currentTime);main.gain.setTargetAtTime(.0001,a.currentTime,.22);
+  for(const node of nodes)try{node.stop(a.currentTime+1.4)}catch(e){}
+}
+function tickCaveSound(dt){
+  if(!inSecretCave||inTent||!soundOn){endCaveSound();return}
+  if(!caveAudio)beginCaveSound();
+  if(caveAudio){caveAudio.elapsed+=dt;
+    caveAudio.drone.gain.setTargetAtTime(.48+Math.sin(caveAudio.elapsed*.20)*.085,caveAudio.a.currentTime,.5);
+  }
+}
+function updateRainSound(){
+  const a=eventAudioReady();if(!a)return;
+  if(!rainAudio){
+    const src=a.createBufferSource(),hp=a.createBiquadFilter(),lp=a.createBiquadFilter(),gain=a.createGain();
+    src.buffer=eventNoiseBuffer(a);src.loop=true;hp.type='highpass';hp.frequency.value=400;
+    lp.type='lowpass';lp.frequency.value=2400;gain.gain.value=.0001;
+    src.connect(hp);hp.connect(lp);lp.connect(gain);gain.connect(audioOutput);src.start();rainAudio={a,gain};
+  }
+  const volume=mode==='game'&&!inTent&&!inSecretCave&&Date.now()>=faintUntil?.026*weatherRain:0;
+  rainAudio.gain.gain.setTargetAtTime(volume,rainAudio.a.currentTime,.45);
+}
+function updateWorldSounds(dt){
+  updateRainSound();
+  if(!eventAudioReady()||mode!=='game'||inTent||inSecretCave||Date.now()<faintUntil)return;
+  // Positional, sparsely scheduled crackle; volume follows distance to the fire.
+  fireSfxClock+=dt;
+  if(fireSfxClock>.30){fireSfxClock=0;
+    for(const t of tents){if(!t.camp||campState(t).fireUntil<Date.now())continue;
+      const d=Math.hypot(P.x-t.camp.x,P.z-t.camp.z);
+      if(d<17&&Math.random()<.48*(1-d/18)){eventNoise({duration:.10+Math.random()*.2,volume:.045*(1-d/19),lowpass:2100,highpass:280});break}
+    }
+  }
+  // The playable snowy floor uses these exact altitude and patch thresholds.
+  const travelled=lastStepX===null?0:Math.hypot(P.x-lastStepX,P.z-lastStepZ);
+  lastStepX=P.x;lastStepZ=P.z;
+  const alt=P.y*ALT_K;
+  const patch=clamp(.63+vn(P.x*.044+4,P.z*.044-3)*.36,0,1);
+  const coverage=clamp((alt-1530)/900,0,1)*clamp((patch-.22)*1.8,0,1);
+  if(P.speed>.10&&travelled>.012&&travelled<2.5&&!P.air&&!climbing&&!onRock&&coverage>.36){
+    stepSfxDistance+=travelled;
+    if(stepSfxDistance>1.35){stepSfxDistance=0;playSnowStep()}
+  }else stepSfxDistance=0;
 }
 /* ================= 조심히 캐야 하는 약초 ================= */
 const CARE={sansam:1.2,cheonma:1.0,ma:1.0,deodeok:.85,doraji:.8,jandae:.8,keunjorong:.9,jichi:.9,danggwi:.8,sanmaneul:.75,dokhwal:.7,seokchangpo:.9,gorancho:1.05,doldanpung:.8};
@@ -4163,7 +4337,7 @@ function updateBoarWarning(){
     }
   }
   const el=$('boarWarning');el.classList.toggle('hide',!close);
-  if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!')}
+  if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!');playBoarTension()}
   boarAlertActive=close;
 }
 // Five-star perception is a local HUD skill; it never reveals coordinates or
@@ -4684,7 +4858,7 @@ function enterSecretCave(){
     entry.d>2.05||Math.abs(entry.x)>.82||entry.z<.74||entry.z>2.15||me.mode==='dig'||P.air)return;
   caveReturnPos={x:P.x,z:P.z,y:P.y,h:P.h};caveReturnCameraYaw=camYaw;
   clearRareSense();
-  inSecretCave=true;P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
+  inSecretCave=true;updateRainSound();beginCaveSound();P.x=caveCurve(5);P.z=5;P.y=CAVE_FLOOR;P.vy=0;P.air=false;P.h=Math.PI;camYaw=P.h;
   target=null;pending=null;curAct=null;queued=null;
   cavePreviousFog=scene.fog;cavePreviousBackground=scene.background;
   scene.fog=null;scene.background=new THREE.Color(0x090a08);camera.layers.set(1);
@@ -4695,7 +4869,7 @@ function enterSecretCave(){
 }
 function leaveSecretCave(){
   if(!inSecretCave||caveOffering)return;
-  inSecretCave=false;
+  inSecretCave=false;endCaveSound();
   scene.fog=cavePreviousFog;scene.background=cavePreviousBackground;camera.layers.set(0);
   me.root.traverse(o=>o.layers.set(0));
   const p=caveReturnPos||{x:pathX(24),z:24,h:Math.PI};
@@ -4721,7 +4895,8 @@ function updateSecretCaveExterior(dt){
   showCaveAction(canEnter?'secretCaveEnterBtn':'');
 }
 function updateSecretCaveInterior(dt){
-  syncKST();animateSecretCaveCandles(dt);
+  syncKST();animateSecretCaveCandles(dt);tickCaveSound(dt);
+  if(AMB&&AC){AMB.master.gain.setTargetAtTime(.075,AC.currentTime,.40);AMB.water.gain.setTargetAtTime(0,AC.currentTime,.18)}
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0;
   const lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
@@ -4894,7 +5069,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'){
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
 function updateGame(dt){
   if(inSecretCave){updateSecretCaveInterior(dt);return}
-  syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);
+  syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);updateThunderstorm();
   const fainted=updFaint();if(!fainted&&!inTent)updateAnimals(dt);else if(boarAlertActive){$('boarWarning').classList.add('hide');boarAlertActive=false;}
   for(const c of chunks.values())for(const it of c.items)if(it.kind==='fruit'&&it.mesh&&it.fall!==false){
     const age=Math.max(0,(Date.now()-it.born)/1000),u=Math.min(1,age/2.8);
@@ -4905,7 +5080,7 @@ function updateGame(dt){
   const up=(keys.KeyW||keys.ArrowUp)?1:0,dn=(keys.KeyS||keys.ArrowDown)?1:0,lf=(keys.KeyA||keys.ArrowLeft)?1:0,rt=(keys.KeyD||keys.ArrowRight)?1:0;
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);if(rot){camYaw+=rot*dt*1.8;lastDrag=clock}
-  const busy=fainted||me.mode==='dig'||me.mode==='joy'||!!cooking||inTent||!!climbing;
+  const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing;
   let moveAmt=0,mvx=0,mvz=0;
   if(!busy&&(Math.abs(fwd)>.08||Math.abs(str)>.08)){target=null;pending=null;
     const fx=Math.sin(camYaw),fz=Math.cos(camYaw),rx=Math.sin(camYaw-Math.PI/2),rz=Math.cos(camYaw-Math.PI/2);
@@ -4937,13 +5112,14 @@ function updateGame(dt){
   if(P.air){P.vy-=14*dt;P.y+=P.vy*dt;if(P.y<=gy){P.y=gy;P.air=false;P.vy=0}}else P.y=lerp(P.y,gy,1-Math.exp(-dt*25));
   if(fainted){me.mode='faint'}
   else if(me.mode==='dig'){if(!hitDone&&me.t>DIG_T*.62){hitDone=true;if(curAct)impact(curAct)}if(me.mode==='dig'&&me.t>=DIG_T){me.mode='idle';me.t=0;if(queued){const q=queued;queued=null;if(nearTo(q.pos,2.6))swing(q)}}}
-  else if(me.mode==='joy'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
+  else if(me.mode==='joy'||me.mode==='joyspin'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
   else if(cooking)me.mode='cook';
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
   me.root.position.set(P.x,P.y+(fainted?.28:0),P.z);
   me.root.rotation.x=lerp(me.root.rotation.x,fainted?-Math.PI/2:climbing?-.20:0,Math.min(1,dt*12));
   {let dh=P.h-me.root.rotation.y;dh=Math.atan2(Math.sin(dh),Math.cos(dh));me.root.rotation.y+=dh*Math.min(1,dt*14)}poseHiker(me,dt,fainted?0:P.speed);
+  if(me.mode==='joyspin')me.root.rotation.y+=Math.min(1,me.t/3.4)*Math.PI*4;
   for(const it of shaking){const m=it.mesh;if(!m||!m.parent){shaking.delete(it);continue}const u=m.userData;u.shake-=dt;if(u.shake>0)m.rotation.z=Math.sin(clock*60)*.36*u.shake;else{m.rotation.z=0;shaking.delete(it)}}
   if(target&&clock-lastDrag>2){let dh=P.h-camYaw;dh=Math.atan2(Math.sin(dh),Math.cos(dh));if(Math.abs(dh)<1.4)camYaw+=dh*Math.min(1,dt*1.2)}
   const cy=camYaw,tx=P.x,ty=P.y+1.45,tz=P.z,dist=camDist;
@@ -4961,7 +5137,7 @@ function updateGame(dt){
   updateSecretCaveExterior(dt);
   updateRareSense(dt);
   updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);
-  updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);
+  updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);updateWorldSounds(dt);
   updateHudCompass();
   hudT+=dt;if(hudT>.25){hudT=0;updHud()}
   presT+=dt;if(presT>.25){presT=0;sendPresence(false)}
