@@ -11,7 +11,7 @@ function ensureGoldenHoeUiElements(){
   const panels=[
     {id:'goldenHoePanel',ids:['goldenHoeProgress','goldenHoeProgressBar','goldenHoeInstruction','goldenHoeDigBtn'],markup:`
       <div class="goldenHoeEyebrow">숨겨진 산의 유물</div>
-      <div class="goldenHoePanelHead"><strong>✦ 황금 호미</strong><span id="goldenHoeProgress">0 / 30</span></div>
+      <div class="goldenHoePanelHead"><strong>✦ 황금 호미</strong><span id="goldenHoeProgress">0회<br>/ 30회</span></div>
       <div class="goldenHoeTrack" aria-hidden="true"><div id="goldenHoeProgressBar"></div></div>
       <p id="goldenHoeInstruction">바위 틈의 황금 호미 · 조심스럽게 30번 캐내세요.</p>
       <button id="goldenHoeDigBtn" type="button">조심히 캐기</button>`},
@@ -40,7 +40,7 @@ function ensureGoldenHoeUiElements(){
   // Recover the associated stylesheet if an older HTML document omitted it.
   if(missing&&!document.querySelector('link[href*="14-golden-hoe-ui.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';
-    link.href='./styles/14-golden-hoe-ui.css?v=1.2.8-entryfix';document.head.appendChild(link);
+    link.href='./styles/14-golden-hoe-ui.css?v=1.2.8-buddha-hoe2';document.head.appendChild(link);
   }
 }
 let caveAuraNear=false,hoeAuraNear=false,lastAuraNoticeAt=-10000;
@@ -63,8 +63,9 @@ function updateMysteriousAuraAlert(){
 function updateGoldenHoePanel(){
   const panel=$('goldenHoePanel');
   if(!panel)return;
+  const nearHoe=!!goldenHoeMesh&&Math.hypot(P.x-goldenHoeMesh.position.x,P.z-goldenHoeMesh.position.z)<=1.25;
   if(mode!=='game'||inTent||inSecretCave||save.goldenHoeOwned||goldenHoeBusy()||
-     !onRock||onRock!==goldenHoeRock||!goldenHoeMesh?.visible){
+     !onRock||onRock!==goldenHoeRock||!goldenHoeMesh?.visible||!nearHoe){
     panel.classList.add('hide');return;
   }
   panel.classList.remove('hide');
@@ -72,7 +73,7 @@ function updateGoldenHoePanel(){
   if(clock-goldenHoePanelLastUpdate<.10)return;
   goldenHoePanelLastUpdate=clock;
   const n=goldenHoeAttempt?.hits||0,cool=goldenHoeCooldownLeft();
-  $('goldenHoeProgress').textContent=n+' / '+GOLDEN_HOE_REQUIRED_HITS;
+  $('goldenHoeProgress').innerHTML=n+'회<br>/ '+GOLDEN_HOE_REQUIRED_HITS+'회';
   $('goldenHoeProgressBar').style.width=(100*n/GOLDEN_HOE_REQUIRED_HITS)+'%';
   const button=$('goldenHoeDigBtn');button.disabled=cool>0;
   button.textContent=cool>0?'재도전 대기 중':'조심히 캐기';

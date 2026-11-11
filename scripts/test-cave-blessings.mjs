@@ -127,7 +127,7 @@ assert(faintCtx.faintUntil>Date.now(),'without protection rock fall causes real 
 assert.equal(faintSaves,1);
 assert.equal(accidentCalls,1);
 // The special ceremony includes all-candle surge, Buddha emissive illumination, aura and shake.
-assert.match(cave,/prepareCaveBlessingFx\(group,g,\[stone,robe,shadow\]\)/);
+assert.match(cave,/prepareCaveBlessingFx\(group,g,\[[^\]]*stone[^\]]*robe[^\]]*shadow[^\]]*\]\)/);
 assert.match(cave,/updateCaveBlessingFx\(dt\)/);
 assert.match(cave,/applyCaveBlessingShake\(camera\)/);
 assert.match(fx,/for\(const m of caveBuddhaMaterials\)/);

@@ -153,77 +153,144 @@ function makeCaveTunnel(){
   group.traverse(obj=>obj.layers.set(1));caveInterior=group;scene.add(group);
 }
 function makeCaveBuddha(group){
-  const g=new THREE.Group(),stone=caveStoneMaterial(0xa39b89),robe=caveStoneMaterial(0x8d887a),shadow=caveStoneMaterial(0x6f6a5f),detail=caveStoneMaterial(0x7b7668),dark=caveStoneMaterial(0x666257);
+  const g=new THREE.Group(),
+    stone=caveStoneMaterial(0xa79e8f),
+    robe=caveStoneMaterial(0x8f897d),
+    shadow=caveStoneMaterial(0x6e685d),
+    detail=caveStoneMaterial(0x7e786b),
+    dark=caveStoneMaterial(0x5e5a50),
+    warm=new THREE.MeshLambertMaterial({color:0xc8bdaa,flatShading:true});
   const ico=(c,x,y,z,sx,sy,sz,detailLevel=1)=>caveMesh(g,new THREE.IcosahedronGeometry(1,detailLevel),c,x,y,z,sx,sy,sz);
-  // Lotus-like stone base.
-  caveMesh(g,new THREE.CylinderGeometry(1.20,1.42,.24,10),shadow,0,.02,0);
-  caveMesh(g,new THREE.CylinderGeometry(1.02,1.18,.20,10),stone,0,.24,0);
+  const sph=(c,x,y,z,sx,sy,sz,seg=8)=>caveMesh(g,new THREE.SphereGeometry(1,seg,seg),c,x,y,z,sx,sy,sz);
+
+  // Lotus pedestal / plinth.
+  caveMesh(g,new THREE.CylinderGeometry(1.34,1.52,.20,10),shadow,0,.00,0);
+  caveMesh(g,new THREE.CylinderGeometry(1.18,1.34,.18,10),stone,0,.18,0);
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    const petal=caveMesh(g,new THREE.ConeGeometry(.15,.34,5),detail,Math.cos(a)*.94,.22,Math.sin(a)*.14,.74,.66,.86);
+    petal.rotation.x=Math.PI*.53;petal.rotation.z=Math.cos(a)*.25;petal.rotation.y=a;
+  }
+  caveMesh(g,new THREE.CylinderGeometry(1.00,1.12,.12,10),stone,0,.31,0);
+
+  // Folded legs and lap with clearer knee separation.
+  const lap=caveMesh(g,new THREE.CylinderGeometry(.86,1.02,.34,8),robe,0,.60,.14);lap.rotation.x=.06;
+  const leftKnee=ico(robe,-.54,.57,.26,.46,.23,.36,0);
+  const rightKnee=ico(robe,.54,.57,.26,.46,.23,.36,0);
+  const centerFold=ico(detail,0,.50,.44,.44,.10,.20,0);
+  centerFold.rotation.x=.16;
+  for(const side of [-1,1]){
+    const shin=caveMesh(g,new THREE.CylinderGeometry(.10,.12,.72,6),robe,side*.47,.44,.28,.95,1,.95);
+    shin.rotation.z=side*.95;shin.rotation.x=.16;
+  }
+
+  // Waist, torso and shoulders. Keep articulation between lower body, abdomen and chest.
+  const waist=caveMesh(g,new THREE.CylinderGeometry(.54,.64,.30,8),robe,0,.88,.10);waist.rotation.x=.03;
+  const abdomen=ico(robe,0,1.16,.08,.70,.36,.56,1);
+  const chest=ico(stone,0,1.58,.08,.82,.54,.58,1);
+  const shoulderBar=caveMesh(g,new THREE.CylinderGeometry(.11,.13,1.28,7),stone,0,1.84,.07);
+  shoulderBar.rotation.z=Math.PI/2; shoulderBar.rotation.x=.08;
+  sph(stone,-.56,1.78,.10,.17,.17,.17,6);
+  sph(stone,.56,1.80,.08,.17,.17,.17,6);
+
+  // Robe drape and layered cloth.
+  const leftDrape=caveMesh(g,new THREE.CylinderGeometry(.17,.22,1.12,6),robe,-.62,1.34,.20);leftDrape.rotation.z=.88;
+  const rightDrape=caveMesh(g,new THREE.CylinderGeometry(.16,.20,1.04,6),robe,.67,1.52,.12);rightDrape.rotation.z=-.34;
+  const sash=caveMesh(g,new THREE.BoxGeometry(.86,.07,.10),detail,.04,1.10,.42);sash.rotation.x=.08;
+  for(let i=0;i<5;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.90-.08*i,.045,.09),detail,-.02,1.20+i*.16,.44-i*.015);
+    fold.rotation.z=.10-i*.03;fold.rotation.x=.10;
+  }
+  for(let i=0;i<4;i++){
+    const fold=caveMesh(g,new THREE.BoxGeometry(.60-.06*i,.04,.08),detail,-.30,1.16+i*.18,.52-i*.015);
+    fold.rotation.z=.34;fold.rotation.x=.12;
+  }
+  const robeCascade=caveMesh(g,new THREE.CylinderGeometry(.07,.11,.76,5),detail,-.15,1.42,.46);
+  robeCascade.rotation.z=.20;
+
+  // Neck and head with clearer distinction.
+  caveMesh(g,new THREE.CylinderGeometry(.15,.18,.22,7),shadow,0,2.10,.05);
+  const jaw=ico(stone,0,2.40,.06,.43,.24,.37,1);
+  const face=ico(stone,0,2.70,.06,.50,.44,.43,1);
+  const cranium=ico(stone,0,3.00,.03,.42,.30,.36,1);
+  const ushnisha=ico(detail,0,3.27,.03,.30,.24,.28,0);
+
+  // Hair curls and cap.
+  for(let row=0;row<5;row++){
+    const count=6-row;
+    for(let i=0;i<count;i++){
+      const off=(i-(count-1)/2)*.115;
+      const curl=sph(detail,off,3.03+row*.09,.23-row*.045,.050,.050,.050,5);
+      curl.position.x+=Math.sin((i+row)*1.4)*.008;
+      curl.position.z+=Math.cos((i-row)*1.1)*.01;
+    }
+  }
   for(let i=0;i<10;i++){
     const a=i/10*Math.PI*2;
-    const petal=caveMesh(g,new THREE.ConeGeometry(.16,.38,5),detail,Math.cos(a)*.88,.22,Math.sin(a)*.12,.72,.7,.85);
-    petal.rotation.x=Math.PI*.52;petal.rotation.z=Math.cos(a)*.28;petal.rotation.y=a;
+    sph(detail,Math.cos(a)*.25,2.98,Math.sin(a)*.18,.048,.048,.048,5);
   }
-  // Seated body and robe mass.
-  ico(robe,0,.74,.03,1.02,.42,.82,1);
-  ico(robe,0,1.22,.02,1.05,.74,.74,1);
-  ico(stone,0,1.62,.03,.74,1.06,.58,1);
-  // Robe shoulder drape and layered cloth.
-  const leftDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,1.08,6),robe,-.62,1.36,.16);leftDrape.rotation.z=.86;
-  const rightDrape=caveMesh(g,new THREE.CylinderGeometry(.18,.24,.98,6),robe,.66,1.54,.09);rightDrape.rotation.z=-.36;
-  for(let i=0;i<4;i++){
-    const fold=caveMesh(g,new THREE.BoxGeometry(.92-.1*i,.05,.10),detail,-.08,.95+i*.18,.48-i*.02);
-    fold.rotation.z=.10-i*.03;fold.rotation.x=.08;
+  for(let i=0;i<6;i++){
+    const a=(i/5-.5)*.9;
+    sph(detail,Math.sin(a)*.12,3.24+Math.cos(a)*.02,.12+Math.cos(a)*.04,.042,.042,.042,5);
   }
-  for(let i=0;i<3;i++){
-    const fold=caveMesh(g,new THREE.BoxGeometry(.64-.07*i,.045,.09),detail,-.36,.98+i*.20,.55);
-    fold.rotation.z=.34;fold.rotation.x=.1;
-  }
-  // Folded legs / lap.
-  ico(robe,-.42,.58,.24,.54,.22,.36,0);
-  ico(robe,.36,.58,.22,.58,.23,.38,0);
-  ico(detail,-.05,.50,.43,.70,.11,.22,0);
-  // Neck and head.
-  caveMesh(g,new THREE.CylinderGeometry(.16,.20,.20,6),shadow,0,2.12,.02);
-  ico(stone,0,2.62,.02,.48,.60,.44,1);
-  ico(stone,0,2.98,.05,.38,.28,.34,1);
-  // Ushnisha / top knot.
-  ico(detail,0,3.24,.04,.24,.18,.22,0);
+
   // Ears.
   for(const side of [-1,1]){
-    const ear=ico(stone,side*.42,2.63,.02,.09,.19,.12,0);
-    ear.rotation.z=side*.12;
+    const ear=caveMesh(g,new THREE.CylinderGeometry(.07,.09,.34,6),stone,side*.42,2.63,.04);
+    ear.rotation.z=side*.10;
   }
-  // Facial details: brow, eyes, nose, mouth, urna dot.
-  const brow=caveMesh(g,new THREE.BoxGeometry(.38,.03,.03),dark,0,2.73,.34);brow.rotation.z=.02;
-  for(const s of [-1,1]){
-    const eye=caveMesh(g,new THREE.BoxGeometry(.10,.012,.012),dark,s*.15,2.63,.37);eye.rotation.z=s*-.06;
+
+  // Face details for a gentler expression.
+  const browBar=caveMesh(g,new THREE.BoxGeometry(.30,.024,.028),detail,0,2.82,.36);browBar.rotation.z=.01;
+  for(const side of [-1,1]){
+    const browWing=caveMesh(g,new THREE.BoxGeometry(.10,.018,.02),dark,side*.16,2.81,.372);
+    browWing.rotation.z=side<0?.22:-.22;
+    const eye=caveMesh(g,new THREE.CylinderGeometry(.010,.010,.11,6),dark,side*.145,2.69,.392);
+    eye.rotation.z=Math.PI/2 + side*.08; eye.rotation.x=.20;
+    const lidUpper=caveMesh(g,new THREE.BoxGeometry(.08,.010,.010),detail,side*.145,2.71,.396);
+    lidUpper.rotation.z=side<0?.16:-.16;
+    const lidLower=caveMesh(g,new THREE.BoxGeometry(.06,.008,.008),stone,side*.145,2.665,.392);
+    lidLower.rotation.z=side<0?-.06:.06;
   }
-  const nose=ico(detail,0,2.49,.40,.06,.13,.08,0);
-  const mouth=caveMesh(g,new THREE.BoxGeometry(.17,.013,.014),dark,0,2.34,.382);mouth.rotation.z=.02;
-  const urna=caveMesh(g,new THREE.SphereGeometry(.035,6,6),new THREE.MeshLambertMaterial({color:0xc7c0a9,flatShading:true}),0,2.56,.40);
-  // Hands: right blessing hand with fingers, left hand resting on lap.
-  const rightArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.92,6),stone,.70,1.80,.07);rightArm.rotation.z=-.34;
-  const rightPalm=ico(stone,.82,2.16,.13,.21,.31,.12,0);
+  const noseBridge=caveMesh(g,new THREE.BoxGeometry(.034,.12,.026),detail,0,2.56,.396);
+  const nose=ico(detail,0,2.46,.405,.062,.14,.08,0);
+  const nostrilL=caveMesh(g,new THREE.SphereGeometry(.010,5,5),dark,-.022,2.42,.430);
+  const nostrilR=caveMesh(g,new THREE.SphereGeometry(.010,5,5),dark,.022,2.42,.430);
+  const philtrum=caveMesh(g,new THREE.BoxGeometry(.016,.05,.008),detail,0,2.38,.405);
+  const smileMid=caveMesh(g,new THREE.BoxGeometry(.10,.012,.014),dark,0,2.31,.398);
+  const smileL=caveMesh(g,new THREE.BoxGeometry(.055,.012,.014),dark,-.078,2.325,.400);smileL.rotation.z=.30;
+  const smileR=caveMesh(g,new THREE.BoxGeometry(.055,.012,.014),dark,.078,2.325,.400);smileR.rotation.z=-.30;
+  const lowerLip=caveMesh(g,new THREE.BoxGeometry(.08,.010,.010),stone,0,2.285,.392);
+  const urnaBase=caveMesh(g,new THREE.CylinderGeometry(.020,.020,.016,6),detail,0,2.58,.409);urnaBase.rotation.x=Math.PI/2;
+  const urna=caveMesh(g,new THREE.SphereGeometry(.035,7,7),warm,0,2.58,.420);
+
+  // Hands and arms with clearer palms / fingers.
+  const rightUpper=caveMesh(g,new THREE.CylinderGeometry(.12,.15,.46,6),stone,.58,1.85,.09);rightUpper.rotation.z=-.68;
+  const rightFore=caveMesh(g,new THREE.CylinderGeometry(.11,.13,.48,6),stone,.78,2.08,.12);rightFore.rotation.z=-.08;
+  const rightPalm=sph(stone,.82,2.30,.14,.18,.27,.10,6);
   for(let i=0;i<4;i++){
-    const finger=caveMesh(g,new THREE.CylinderGeometry(.028,.034,.25,5),stone,.70+i*.082,2.40,.14);
-    finger.rotation.z=-.04+i*.03;
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.024,.028,.23,5),stone,.71+i*.07,2.50,.15);
+    finger.rotation.z=-.02+i*.02;
   }
-  const thumb=caveMesh(g,new THREE.CylinderGeometry(.026,.03,.17,5),stone,.63,2.28,.15);thumb.rotation.z=.72;
-  const leftArm=caveMesh(g,new THREE.CylinderGeometry(.15,.19,.94,6),robe,-.70,1.25,.23);leftArm.rotation.z=.92;
-  const leftPalm=ico(stone,-.20,.82,.52,.30,.11,.21,0);
+  const thumb=caveMesh(g,new THREE.CylinderGeometry(.024,.028,.16,5),stone,.63,2.38,.16);thumb.rotation.z=.72;
+
+  const leftUpper=caveMesh(g,new THREE.CylinderGeometry(.12,.15,.48,6),robe,-.52,1.38,.20);leftUpper.rotation.z=.86;
+  const leftFore=caveMesh(g,new THREE.CylinderGeometry(.11,.13,.42,6),stone,-.32,1.02,.40);leftFore.rotation.z=1.16;leftFore.rotation.x=.22;
+  const leftPalm=sph(stone,-.12,.83,.52,.28,.10,.18,6);
   for(let i=0;i<4;i++){
-    const finger=caveMesh(g,new THREE.CylinderGeometry(.022,.027,.17,5),stone,-.32+i*.068,.86,.55);
-    finger.rotation.x=.95;finger.rotation.z=.10-i*.06;
+    const finger=caveMesh(g,new THREE.CylinderGeometry(.02,.024,.15,5),stone,-.24+i*.062,.87,.55);
+    finger.rotation.x=.98;finger.rotation.z=.10-i*.05;
   }
-  const leftThumb=caveMesh(g,new THREE.CylinderGeometry(.02,.024,.12,5),stone,-.31,.79,.49);leftThumb.rotation.z=.9;leftThumb.rotation.x=.7;
-  // Chest bead / robe clasp detail.
+  const leftThumb=caveMesh(g,new THREE.CylinderGeometry(.018,.022,.11,5),stone,-.25,.79,.50);leftThumb.rotation.z=.90;leftThumb.rotation.x=.72;
+
+  // Chest / robe accents.
   caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.18,1.58,.39);
   caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,-.06,1.48,.42);
   caveMesh(g,new THREE.CylinderGeometry(.05,.05,.03,6),detail,.02,1.36,.44);
+
   g.position.set(caveBuddhaPoint.x,0,caveBuddhaPoint.z-.6);
   group.add(g);
-  prepareCaveBlessingFx(group,g,[stone,robe,shadow]);
-  // Keep the foreground clear: small, low offering tray only.
+  prepareCaveBlessingFx(group,g,[stone,robe,shadow,detail,warm]);
   const stand=caveMesh(group,new THREE.CylinderGeometry(.40,.48,.14,8),stone,caveBuddhaPoint.x,.09,caveBuddhaPoint.z+1.72);
   stand.userData.isOfferingTray=true;
 }
