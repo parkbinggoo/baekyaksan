@@ -27,10 +27,16 @@ assert.match(ui,/caveDistance<=30/);
 assert.match(ui,/hoeDistance<=30/);
 assert.match(ui,/caveDistance>36/);
 assert.match(ui,/hoeDistance>36/);
-for(const id of ['goldenHoePanel','goldenHoeDigBtn','goldenHoeAchievement','goldenHoeAchievementClose','goldenHoeProgressBar'])
+for(const id of ['goldenHoeAchievement','goldenHoeAchievementClose'])
   assert.match(html,new RegExp(`id="${id}"`));
-assert.match(css,/#goldenHoePanel\{/);
+for(const id of ['goldenHoePanel','goldenHoeDigBtn','goldenHoeProgressBar'])
+  assert(!html.includes(`id="${id}"`),'obsolete lower excavation panel must not be in HTML: '+id);
+assert(!/#goldenHoePanel\{/.test(css),'lower excavation panel stylesheet must be removed');
 assert.match(css,/#goldenHoeAchievement\{/);
+assert.match(css,/\.wl\.pip\.golden-hoe-pips\{/,'in-world 30 circles use regular harvesting pips');
+assert.match(rock,/worldLabel\(goldenHoeMesh\.position/,'30 hits show only temporary in-world pips');
+assert.match(rock,/\.44,9,7/,'the 3D hoe has a wider touch target');
+assert(!/updateGoldenHoePanel\(\)/.test(rock),'do not auto-open bottom panel on rock climb');
 assert(JSON.parse(manifest).files.some(f=>f.file==='gameplay/49a-golden-hoe-ui-and-aura.js'));
 assert.match(save,/goldenHoeOwned,goldenHoeCooldownUntil:/,'hoe persists between reloads');
 // Check exactly 30 careful strikes, then permanent ownership and an immediate
@@ -42,7 +48,7 @@ const ctx={THREE:{Raycaster:class{},Vector3:V3},Math,Date,performance,console,
   chunks:new Map([['host',{rocks:[host]}]]),scene,P:{x:0,z:0,y:1,speed:0},
   save:{goldenHoeOwned:false,goldenHoeCooldownUntil:0},
   clock:0,me:{mode:'idle',hasGoldenHoe:false,t:0},target:null,pending:null,curAct:null,queued:null,
-  onRock:null,pip(){},tone(){},floatMsg(){},toast(){},persist(){},setTimeout(){},sendPresence:()=>events.push('presence'),
+  onRock:null,pip(){},worldLabel(){},tone(){},floatMsg(){},toast(){},persist(){},setTimeout(){},sendPresence:()=>events.push('presence'),
   showGoldenHoeAchievement:()=>events.push('achievement')};
 vm.createContext(ctx);vm.runInContext(rock,ctx);
 vm.runInContext('goldenHoeRock=chooseGoldenHoeRock();onRock=goldenHoeRock;goldenHoeMesh={visible:true,position:new THREE.Vector3(),rotation:{z:0}}',ctx);
@@ -70,7 +76,7 @@ const $=id=>{if(!els.has(id)){
 const notices=[];const alertCtx={Math,clock:16,mode:'game',inSecretCave:false,inTent:false,
   save:{goldenHoeOwned:false,goldenHoeCooldownUntil:0},P:{x:29,z:0},caveSite:{x:0,z:0},
   goldenHoeRock:null,ensureGoldenHoeRock:()=>alertCtx.goldenHoeRock,
-  toast:s=>notices.push(s),$,
+  toast:s=>notices.push(s),$,document:{querySelector:()=>({}),getElementById:()=>null},
   goldenHoeAttempt:null,GOLDEN_HOE_REQUIRED_HITS:30,onRock:null,
   goldenHoeMesh:null,goldenHoeCooldownLeft:()=>0,
   goldenHoeBusy:()=>false,interactGoldenHoe(){},formatGoldenHoeCooldown:()=>'',
@@ -87,10 +93,18 @@ alertCtx.caveSite=null;alertCtx.P.x=28;alertCtx.goldenHoeRock={x:0,z:0};alertCtx
 vm.runInContext('updateMysteriousAuraAlert()',alertCtx);
 assert.equal(notices.length,3,'special rock also generates the same generic 30m notice');
 assert.equal(new Set(notices).size,1);
-alertCtx.onRock=alertCtx.goldenHoeRock;alertCtx.goldenHoeMesh={visible:true};
-alertCtx.goldenHoeAttempt={hits:17,lastHit:0};alertCtx.clock=51;
-vm.runInContext('goldenHoeRock=onRock;updateGoldenHoePanel()',alertCtx);
-assert.equal($('goldenHoeProgress').textContent,'17 / 30');
-assert.equal($('goldenHoeProgressBar').style.width,100*17/30+'%');
-assert.equal($('goldenHoeDigBtn').disabled,false);
-console.log('황금 호미 전용 UI 및 멀티 상태 검사 통과: 30회 성공, 빠른 채집 시 24시간 잠금, 획득 알림, 고정 바위, 30m 신비 알림, 재료 공유 방지, UI 진행률.');
+assert(!/goldenHoeDigBtn/.test(ui),'no button binding should remain');
+assert(!/function updateGoldenHoePanel/.test(ui),'no fixed excavation panel updater remains');
+assert.match(ui,/obsolete\.remove\(\)/,'stale cached HTML lower panel is explicitly removed');
+assert.match(rock,/goldenHoePipRows\(goldenHoeAttempt\.hits\)/,'floating progress uses 30 dots, not a number');
+const pipFn=rock.slice(rock.indexOf('function goldenHoePipRows(hits){'),rock.indexOf('let goldenHoeRock='));
+const pipCtx={GOLDEN_HOE_REQUIRED_HITS:30,Math};vm.createContext(pipCtx);vm.runInContext(pipFn,pipCtx);
+for(const hits of [0,1,14,15,16,29,30]){
+  const lines=vm.runInContext(`goldenHoePipRows(${hits})`,pipCtx).split('\n');
+  assert.equal(lines.length,2,'two rows are rendered');
+  assert.equal(lines[0].length,15);assert.equal(lines[1].length,15);
+  assert.equal(lines.join('').replace(/○/g,'').length,hits,'one extra filled dot per hit');
+  assert.equal(lines.join('').replace(/●/g,'').length,30-hits,'remaining dots stay hollow');
+}
+assert(!rock.includes('golden-hoe-count'), 'old two-line numeric label removed');
+console.log('황금 호미 및 멀티 상태 검사 통과: 30회 채집, 24시간 잠금, 획득 축하창, 고정 바위, 30m 신비 알림, 하단 채집창 제거, 15칸씩 2줄 총 30칸 원형 채집 진행 표시.');

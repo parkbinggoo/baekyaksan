@@ -19,6 +19,15 @@ function rockSurfaceY(rock,x,z){
 let lastClimbRockCheck=0,cachedClimbRock=null;
 const CLIMB_STEPS=5,CLIMB_BEAT_MS=1650;
 const GOLDEN_HOE_REQUIRED_HITS=30,GOLDEN_HOE_GAP=1.05,GOLDEN_HOE_COOLDOWN_MS=24*60*60*1000;
+// Exactly 30 regular-foraging-style circles. Split into two rows of 15 so
+// the floating progress remains legible on narrow mobile screens.
+function goldenHoePipRows(hits){
+  const filled=Math.max(0,Math.min(GOLDEN_HOE_REQUIRED_HITS,Math.floor(hits)||0));
+  const row=(start,count)=>'●'.repeat(Math.max(0,Math.min(count,filled-start)))+
+    '○'.repeat(count-Math.max(0,Math.min(count,filled-start)));
+  return row(0,15)+'\n'+row(15,15);
+}
+
 let goldenHoeRock=null,goldenHoeMesh=null,goldenHoeGlow=null,goldenHoeClaimFx=null,goldenHoeAttempt=null,goldenHoeHintedRock=null,goldenHoeFlashLight=null;
 function goldenHoeBusy(){return !!goldenHoeClaimFx}
 function goldenHoeCooldownLeft(now=Date.now()){return Math.max(0,(+save.goldenHoeCooldownUntil||0)-now)}
@@ -45,6 +54,12 @@ function makeGoldenHoeRockMesh(){
   const blade=new THREE.Mesh(new THREE.ConeGeometry(.14,.26,3),gold(0xffdf76));blade.rotation.x=Math.PI;blade.scale.z=.34;blade.position.set(0,.29,.37);g.add(blade);
   const guard=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.05,8),gold(0xe7bf52));guard.position.set(0,.50,.11);g.add(guard);
   const stoneGrip=new THREE.Mesh(new THREE.CylinderGeometry(.06,.072,.26,8),new THREE.MeshToonMaterial({color:0x84745f}));stoneGrip.rotation.x=.09;stoneGrip.position.set(0,.16,-.10);g.add(stoneGrip);
+  // Transparent collider keeps the 3D hoe tappable on small phone screens.
+  // Unlike the removed UI, this never blocks scenery or the character.
+  const touchTarget=new THREE.Mesh(new THREE.SphereGeometry(.44,9,7),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  touchTarget.position.set(0,.41,.12);touchTarget.castShadow=false;touchTarget.receiveShadow=false;
+  g.add(touchTarget);
   goldenHoeGlow=new THREE.PointLight(0xffda73,0,10,1.65);goldenHoeGlow.position.set(0,.62,.12);g.add(goldenHoeGlow);
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   scene.add(g);return g;
@@ -95,7 +110,10 @@ function interactGoldenHoe(){
   goldenHoeAttempt.lastHit=now;goldenHoeAttempt.hits++;
   me.mode='dig';me.t=0;curAct=null;queued=null;target=null;pending=null;
   if(goldenHoeMesh){goldenHoeMesh.rotation.z=.08+Math.sin(now*40)*.08}
-  pip(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.65,0)),goldenHoeAttempt.hits,GOLDEN_HOE_REQUIRED_HITS);
+  // The original round pip treatment, extended to 30 circles in two rows.
+  // No numeric counter or persistent excavation panel is displayed.
+  worldLabel(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.65,0)),
+    goldenHoePipRows(goldenHoeAttempt.hits),'pip golden-hoe-pips',.95);
   tone(355+goldenHoeAttempt.hits*4,.08,'sine',.055,1.05);
   if(goldenHoeAttempt.hits===1)setTimeout(()=>floatMsg(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.55,0)),'돌결을 따라 천천히…'),280);
   if(goldenHoeAttempt.hits>=GOLDEN_HOE_REQUIRED_HITS)completeGoldenHoeTry();
@@ -178,7 +196,7 @@ function climbAct(){if(inSecretCave)return;
  }
 }
 function updateRockClimbing(dt){
- updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);updateGoldenHoePanel();
+ updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);
  const btn=$('jumpBtn');
  if(mode!=='game'||inTent){btn.classList.add('hide');return}
  if(climbing){btn.classList.remove('hide');
