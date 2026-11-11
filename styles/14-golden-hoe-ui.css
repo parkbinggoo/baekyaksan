@@ -7,7 +7,7 @@
 .goldenHoeEyebrow{color:#8b6f35;font:700 11px/1.6 'Gowun Dodum',sans-serif;letter-spacing:.14em}
 .goldenHoePanelHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:3px 0 9px}
 .goldenHoePanelHead strong{font:800 19px/1.4 'Nanum Myeongjo',serif;color:#614820}
-.goldenHoePanelHead span{font:bold 13px 'Gowun Dodum',sans-serif;color:#9f7131;font-variant-numeric:tabular-nums}
+.goldenHoePanelHead span{display:flex;flex-direction:column;align-items:flex-end;font:bold 13px/1.12 'Gowun Dodum',sans-serif;color:#9f7131;font-variant-numeric:tabular-nums;white-space:nowrap}
 .goldenHoeTrack{height:6px;background:#ded2b8;border-radius:8px;overflow:hidden}
 #goldenHoeProgressBar{height:100%;width:0%;background:linear-gradient(90deg,#a47c2f,#edcb65);border-radius:8px;transition:width .18s}
 #goldenHoeInstruction{font:12px/1.65 'Gowun Dodum',sans-serif;word-break:keep-all;color:#63543b;margin:9px 0}
