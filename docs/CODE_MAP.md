@@ -155,8 +155,8 @@ index.html (화면 구조)
 | world | `src/game/world/47-wildlife-states.js` | 4184–4319 | 103줄 | 동물 움직임·위협·기절·멧돼지 경고 |
 | gameplay | `src/game/gameplay/47b-five-star-sense.js` | —–— | 79줄 | 레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림 |
 | world | `src/game/world/48-wildlife-update.js` | 4320–4435 | 116줄 | 동물 AI 및 이름표 갱신 |
-| gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 195줄 | 바위 등반 타이밍·기절·점프 연결 |
-| gameplay | `src/game/gameplay/49a-golden-hoe-ui-and-aura.js` | —–— | 96줄 | 황금 호미 진행·전용 획득창·동굴/호미 30m 접근 알림 |
+| gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 213줄 | 바위 등반 타이밍·기절·점프 연결 |
+| gameplay | `src/game/gameplay/49a-golden-hoe-ui-and-aura.js` | —–— | 62줄 | 황금 호미 진행·전용 획득창·동굴/호미 30m 접근 알림 |
 | world | `src/game/world/53-secret-cave-world.js` | —–— | 431줄 | 결정적 비밀 동굴 위치·입구·암벽 통로·촛불·석불·카메라 레이어 |
 | world | `src/game/world/53a-cave-blessing-visuals.js` | —–— | 63줄 | 공양 후 촛불 동시 흔들림·은은한 광원·황금 불상 빛·동굴 카메라 진동 |
 | gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 132줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |

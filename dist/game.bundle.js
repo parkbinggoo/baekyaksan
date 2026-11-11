@@ -4750,6 +4750,15 @@ function rockSurfaceY(rock,x,z){
 let lastClimbRockCheck=0,cachedClimbRock=null;
 const CLIMB_STEPS=5,CLIMB_BEAT_MS=1650;
 const GOLDEN_HOE_REQUIRED_HITS=30,GOLDEN_HOE_GAP=1.05,GOLDEN_HOE_COOLDOWN_MS=24*60*60*1000;
+// Exactly 30 regular-foraging-style circles. Split into two rows of 15 so
+// the floating progress remains legible on narrow mobile screens.
+function goldenHoePipRows(hits){
+  const filled=Math.max(0,Math.min(GOLDEN_HOE_REQUIRED_HITS,Math.floor(hits)||0));
+  const row=(start,count)=>'●'.repeat(Math.max(0,Math.min(count,filled-start)))+
+    '○'.repeat(count-Math.max(0,Math.min(count,filled-start)));
+  return row(0,15)+'\n'+row(15,15);
+}
+
 let goldenHoeRock=null,goldenHoeMesh=null,goldenHoeGlow=null,goldenHoeClaimFx=null,goldenHoeAttempt=null,goldenHoeHintedRock=null,goldenHoeFlashLight=null;
 function goldenHoeBusy(){return !!goldenHoeClaimFx}
 function goldenHoeCooldownLeft(now=Date.now()){return Math.max(0,(+save.goldenHoeCooldownUntil||0)-now)}
@@ -4776,6 +4785,12 @@ function makeGoldenHoeRockMesh(){
   const blade=new THREE.Mesh(new THREE.ConeGeometry(.14,.26,3),gold(0xffdf76));blade.rotation.x=Math.PI;blade.scale.z=.34;blade.position.set(0,.29,.37);g.add(blade);
   const guard=new THREE.Mesh(new THREE.CylinderGeometry(.06,.07,.05,8),gold(0xe7bf52));guard.position.set(0,.50,.11);g.add(guard);
   const stoneGrip=new THREE.Mesh(new THREE.CylinderGeometry(.06,.072,.26,8),new THREE.MeshToonMaterial({color:0x84745f}));stoneGrip.rotation.x=.09;stoneGrip.position.set(0,.16,-.10);g.add(stoneGrip);
+  // Transparent collider keeps the 3D hoe tappable on small phone screens.
+  // Unlike the removed UI, this never blocks scenery or the character.
+  const touchTarget=new THREE.Mesh(new THREE.SphereGeometry(.44,9,7),
+    new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+  touchTarget.position.set(0,.41,.12);touchTarget.castShadow=false;touchTarget.receiveShadow=false;
+  g.add(touchTarget);
   goldenHoeGlow=new THREE.PointLight(0xffda73,0,10,1.65);goldenHoeGlow.position.set(0,.62,.12);g.add(goldenHoeGlow);
   g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
   scene.add(g);return g;
@@ -4826,7 +4841,10 @@ function interactGoldenHoe(){
   goldenHoeAttempt.lastHit=now;goldenHoeAttempt.hits++;
   me.mode='dig';me.t=0;curAct=null;queued=null;target=null;pending=null;
   if(goldenHoeMesh){goldenHoeMesh.rotation.z=.08+Math.sin(now*40)*.08}
-  pip(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.65,0)),goldenHoeAttempt.hits,GOLDEN_HOE_REQUIRED_HITS);
+  // The original round pip treatment, extended to 30 circles in two rows.
+  // No numeric counter or persistent excavation panel is displayed.
+  worldLabel(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.65,0)),
+    goldenHoePipRows(goldenHoeAttempt.hits),'pip golden-hoe-pips',.95);
   tone(355+goldenHoeAttempt.hits*4,.08,'sine',.055,1.05);
   if(goldenHoeAttempt.hits===1)setTimeout(()=>floatMsg(goldenHoeMesh.position.clone().add(new THREE.Vector3(0,.55,0)),'돌결을 따라 천천히…'),280);
   if(goldenHoeAttempt.hits>=GOLDEN_HOE_REQUIRED_HITS)completeGoldenHoeTry();
@@ -4909,7 +4927,7 @@ function climbAct(){if(inSecretCave)return;
  }
 }
 function updateRockClimbing(dt){
- updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);updateGoldenHoePanel();
+ updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);
  const btn=$('jumpBtn');
  if(mode!=='game'||inTent){btn.classList.add('hide');return}
  if(climbing){btn.classList.remove('hide');
@@ -4931,46 +4949,35 @@ function updateRockClimbing(dt){
  * golden-hoe panel must NEVER abort the core entry/login binding code.
  */
 function ensureGoldenHoeUiElements(){
-  // The previous index.html does not contain the two new sections. GitHub
-  // Pages may temporarily serve cached HTML with a freshly uploaded bundle.
-  // Create optional UI nodes before binding events instead of throwing here.
-  const panels=[
-    {id:'goldenHoePanel',ids:['goldenHoeProgress','goldenHoeProgressBar','goldenHoeInstruction','goldenHoeDigBtn'],markup:`
-      <div class="goldenHoeEyebrow">숨겨진 산의 유물</div>
-      <div class="goldenHoePanelHead"><strong>✦ 황금 호미</strong><span id="goldenHoeProgress">0회<br>/ 30회</span></div>
-      <div class="goldenHoeTrack" aria-hidden="true"><div id="goldenHoeProgressBar"></div></div>
-      <p id="goldenHoeInstruction">바위 틈의 황금 호미 · 조심스럽게 30번 캐내세요.</p>
-      <button id="goldenHoeDigBtn" type="button">조심히 캐기</button>`},
-    {id:'goldenHoeAchievement',ids:['goldenHoeAchievementClose'],markup:`
-      <div class="goldenHoeAchievementSheet">
-        <div class="goldenHoeRay">✦</div>
-        <div class="goldenHoeEyebrow">백약산의 숨겨진 유산</div>
-        <h2>황금 호미를 얻었다!</h2>
-        <div class="goldenHoeEmblem" aria-hidden="true">⚒</div>
-        <p class="goldenHoeLore">오랜 세월 바위에 잠들어 있던 황금 호미가<br>마침내 산객의 손에서 깨어났다.<br>번개가 산등성을 가르고 천둥이 울린다.</p>
-        <div class="goldenHoeGift"><strong>✦ 황금 호미의 은총</strong><span>조심스러운 채집에 실패해도<br>채집물이 사라지지 않고 한 번 더 기회를 얻습니다.</span></div>
-        <button id="goldenHoeAchievementClose" type="button">산행 계속하기</button>
-      </div>`}
-  ];
-  let missing=false;
-  for(const panel of panels){
-    const old=$(panel.id);
-    if(old&&panel.ids.every(id=>!!$(id)))continue;
-    if(old)old.remove();
-    const el=document.createElement('section');el.id=panel.id;el.className='hide';
-    el.innerHTML=panel.markup;
-    if(panel.id==='goldenHoePanel')el.setAttribute('aria-label','황금 호미 채집');
-    else{el.setAttribute('role','dialog');el.setAttribute('aria-modal','false');el.setAttribute('aria-label','황금 호미 획득')}
-    document.body.appendChild(el);missing=true;
+  // Remove the large excavation panel even if a previous HTML revision is
+  // temporarily cached by GitHub Pages. The actual hoe is tapped in-world.
+  const obsolete=document.getElementById('goldenHoePanel');
+  if(obsolete?.remove)obsolete.remove();
+  // The completion celebration is a separate optional UI, retained intact.
+  const old=$('goldenHoeAchievement');
+  if(!old||!$('goldenHoeAchievementClose')){
+    if(old?.remove)old.remove();
+    const el=document.createElement('section');el.id='goldenHoeAchievement';el.className='hide';
+  el.innerHTML=`<div class="goldenHoeAchievementSheet">
+    <div class="goldenHoeRay">✦</div>
+    <div class="goldenHoeEyebrow">백약산의 숨겨진 유산</div>
+    <h2>황금 호미를 얻었다!</h2>
+    <div class="goldenHoeEmblem" aria-hidden="true">⚒</div>
+    <p class="goldenHoeLore">오랜 세월 바위에 잠들어 있던 황금 호미가<br>마침내 산객의 손에서 깨어났다.<br>번개가 산등성을 가르고 천둥이 울린다.</p>
+    <div class="goldenHoeGift"><strong>✦ 황금 호미의 은총</strong><span>조심스러운 채집에 실패해도<br>채집물이 사라지지 않고 한 번 더 기회를 얻습니다.</span></div>
+    <button id="goldenHoeAchievementClose" type="button">산행 계속하기</button>
+  </div>`;
+  el.setAttribute('role','dialog');el.setAttribute('aria-modal','false');el.setAttribute('aria-label','황금 호미 획득');
+    document.body.appendChild(el);
   }
-  // Recover the associated stylesheet if an older HTML document omitted it.
-  if(missing&&!document.querySelector('link[href*="14-golden-hoe-ui.css"]')){
+  // An older page may also omit the celebration stylesheet.
+  if(!document.querySelector('link[href*="14-golden-hoe-ui.css"]')){
     const link=document.createElement('link');link.rel='stylesheet';
-    link.href='./styles/14-golden-hoe-ui.css?v=1.2.8-buddha-hoe2';document.head.appendChild(link);
+    link.href='./styles/14-golden-hoe-ui.css?v=1.2.8-hoe30dots1';document.head.appendChild(link);
   }
 }
 let caveAuraNear=false,hoeAuraNear=false,lastAuraNoticeAt=-10000;
-let goldenHoePanelLastUpdate=0,goldenHoeAchievementTimer=0;
+let goldenHoeAchievementTimer=0;
 function updateMysteriousAuraAlert(){
   if(mode!=='game'||inSecretCave||inTent)return;
   const caveDistance=caveSite?Math.hypot(P.x-caveSite.x,P.z-caveSite.z):Infinity;
@@ -4986,28 +4993,6 @@ function updateMysteriousAuraAlert(){
     lastAuraNoticeAt=clock;toast('심상치 않은 기운이 느껴진다...');
   }
 }
-function updateGoldenHoePanel(){
-  const panel=$('goldenHoePanel');
-  if(!panel)return;
-  const nearHoe=!!goldenHoeMesh&&Math.hypot(P.x-goldenHoeMesh.position.x,P.z-goldenHoeMesh.position.z)<=1.25;
-  if(mode!=='game'||inTent||inSecretCave||save.goldenHoeOwned||goldenHoeBusy()||
-     !onRock||onRock!==goldenHoeRock||!goldenHoeMesh?.visible||!nearHoe){
-    panel.classList.add('hide');return;
-  }
-  panel.classList.remove('hide');
-  // Update at most ten times per second, except first show via dig button.
-  if(clock-goldenHoePanelLastUpdate<.10)return;
-  goldenHoePanelLastUpdate=clock;
-  const n=goldenHoeAttempt?.hits||0,cool=goldenHoeCooldownLeft();
-  $('goldenHoeProgress').innerHTML=n+'회<br>/ '+GOLDEN_HOE_REQUIRED_HITS+'회';
-  $('goldenHoeProgressBar').style.width=(100*n/GOLDEN_HOE_REQUIRED_HITS)+'%';
-  const button=$('goldenHoeDigBtn');button.disabled=cool>0;
-  button.textContent=cool>0?'재도전 대기 중':'조심히 캐기';
-  $('goldenHoeInstruction').textContent=cool>0?
-    '바위가 다시 굳어 있다 · '+formatGoldenHoeCooldown(cool)+' 남음':
-    n>0?'서두르면 실패합니다. 천천히, 정확하게 두드리세요.':
-    '바위 틈의 황금 호미 · 조심스럽게 30번 캐내세요.';
-}
 function showGoldenHoeAchievement(){
   const el=$('goldenHoeAchievement');
   if(!el){toast('✦ 황금 호미를 얻었다!');return;}
@@ -5016,7 +5001,6 @@ function showGoldenHoeAchievement(){
   goldenHoeAchievementTimer=setTimeout(()=>el.classList.add('hide'),7600);
 }
 ensureGoldenHoeUiElements();
-$('goldenHoeDigBtn')?.addEventListener('click',()=>{interactGoldenHoe();goldenHoePanelLastUpdate=-1;updateGoldenHoePanel()});
 $('goldenHoeAchievementClose')?.addEventListener('click',()=>{
   clearTimeout(goldenHoeAchievementTimer);$('goldenHoeAchievement')?.classList.add('hide');
 });
