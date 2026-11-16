@@ -169,6 +169,7 @@ function climbFail(){
  faintAnimal({name:'바위 추락',fall:true,durationMs:2*60*1000});
 }
 function climbAct(){if(inSecretCave)return;
+ if(isRiding())return;
  if(Date.now()<faintUntil||inTent||cooking||goldenHoeBusy())return;
  if(onRock){
    const rock=onRock,dx=P.x-rock.x,dz=P.z-rock.z,len=Math.hypot(dx,dz)||1;
@@ -198,7 +199,7 @@ function climbAct(){if(inSecretCave)return;
 function updateRockClimbing(dt){
  updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);
  const btn=$('jumpBtn');
- if(mode!=='game'||inTent){btn.classList.add('hide');return}
+ if(mode!=='game'||inTent||isRiding()){btn.classList.add('hide');return}
  if(climbing){btn.classList.remove('hide');
    $('climbPanel').classList.remove('hide');
    $('climbNeedle').style.left=(climbPhase()*99)+'%';

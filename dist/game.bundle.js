@@ -141,12 +141,17 @@ const FIVE_STAR_SENSE_RANK_TEXT={
 function fiveStarSenseRankText(level){
  return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
 }
+function animalRideRankText(level){
+ return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 야생동물 비회피':
+   level>=9?'🦌 야생동물 비회피 · 고라니 탑승 +30%':'';
+}
 function renderRankGuide(){
  const progress=$('rankProgress'),guide=$('rankGuide');progress.replaceChildren();guide.replaceChildren();
  const current=document.createElement('strong');current.textContent=rankLabel();progress.appendChild(current);
  const desc=document.createElement('div');desc.textContent='도감 '+discoveredCount()+'종 · 누적 채집 '+(rankStats().totalCollected||0)+'개';progress.appendChild(desc);
  const currentSense=fiveStarSenseRankText(playerRank);
  if(currentSense){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+currentSense;progress.appendChild(sense)}
+ if(playerRank>=9){const riding=document.createElement('div');riding.className='rankSense';riding.textContent=animalRideRankText(playerRank);progress.appendChild(riding)}
  if(playerRank>=RANKS.length){const done=document.createElement('div');done.textContent='백약산 최고 등급에 도달했습니다!';progress.appendChild(done)}
  else{const next=document.createElement('div');next.style.marginTop='5px';next.textContent='다음 목표: Lv.'+(playerRank+1)+' '+RANKS[playerRank].name;progress.appendChild(next);
   for(const g of rankGoals(playerRank+1)){const line=document.createElement('div');line.className='rankGoal '+(g.now>=g.required?'done':'pending');line.textContent=(g.now>=g.required?'✓ ':'○ ')+g.label+' '+g.now+'/'+g.required+g.unit;progress.appendChild(line)}
@@ -165,6 +170,7 @@ function renderRankGuide(){
   const label=document.createElement('strong');label.textContent='Lv.'+l+' · '+RANKS[l-1].name;section.appendChild(label);
   const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);
   if(l>=6&&l<=9){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+fiveStarSenseRankText(l);section.appendChild(sense)}
+  if(l===9||l===10){const riding=document.createElement('div');riding.className='rankSense';riding.textContent=animalRideRankText(l);section.appendChild(riding)}
   guide.appendChild(section);
  }
 }
@@ -1405,6 +1411,7 @@ function poseHiker(h,dt,speed){
     aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
     lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
+  else if(h.mode==='ride'){lL=-1.26;lR=-1.26;aL=-.42;aR=-.42;aLz=.18;aRz=-.18;by=-.25;lean=.13;hd=-.06;h.torso.rotation.z=Math.sin(h.t*5)*.018}
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}
   const f=1-Math.exp(-dt*(h.mode==='dig'?40:14));
@@ -3033,6 +3040,7 @@ const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
   if(inSecretCave)return;
+  if(isRiding()){toast('동물에서 내린 후 채집하세요.');return}
   if(Date.now()<faintUntil||cooking||climbing||(me.mode==='joy'||me.mode==='joyspin')||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;
@@ -3169,8 +3177,11 @@ function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
   if(typeof goldenHoeMesh!=='undefined'&&goldenHoeMesh&&goldenHoeMesh.visible)objs.push(goldenHoeMesh);
+  for(const a of animals.values())if(a.mesh?.visible&&RIDE_SPEC[a.kind.id]&&Math.hypot(a.x-P.x,a.z-P.z)<12)objs.push(a.mesh);
   const hits=ray.intersectObjects(objs,true);
   for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire&&!o.userData.goldenHoe)o=o.parent;if(o?.userData.goldenHoe){interactGoldenHoe();hideHint();return;}if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
+  // The animal itself is a physical target, with no automatic mount panel.
+  for(const h of hits)if(tryMountAnimalFromRay(h.object)){hideHint();return}
   // If the tap narrowly misses a small collectible, check its projected
   // silhouette before treating the tap as terrain or an ordinary tree.
   // Real ray hits on items, tents and campfires always take priority.
@@ -3451,7 +3462,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
 function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
-  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0};}
+  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0,ride:ridingKind()==='deer'?'d':ridingKind()==='boar'?'b':''};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
   peopleCount=count;
@@ -3461,6 +3472,7 @@ function updatePeople(){
 function netDrop(id){const o=others.get(id);if(o){
     if(o.headLamp){scene.remove(o.headLamp);scene.remove(o.headLamp.target);o.headLamp.dispose&&o.headLamp.dispose()}
     if(o.lampLens){o.av.root.remove(o.lampLens);o.lampLens.geometry.dispose();o.lampLens.material.dispose()}
+    if(o.mountMesh)scene.remove(o.mountMesh);
     scene.remove(o.av.root);o.el.remove();others.delete(id)
   }peerSeen.delete(id);updatePeople();if(inTent)updateTentSeats(.12)}
 function netCleanup(){const now=Date.now();if(now-lastPeerCleanup<1500)return;lastPeerCleanup=now;
@@ -3562,9 +3574,10 @@ function upOther(p){
     o={av,el,headLamp,lampLens,x:s.x,y:s.y||H(s.x,s.z),z:s.z,h:s.h||0,tx:s.x,ty:s.y,tz:s.z,th:s.h||0,mode:'idle',nick:''};others.set(p.peer,o)}
   o.tx=+s.x;o.tz=+s.z;o.ty=Number.isFinite(+s.y)?+s.y:H(o.tx,o.tz);o.th=+s.h||0;
   o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);o.av.hasGoldenHoe=s.gh===1;
+  o.ride=(s.ride==='d'&&o.rank>=9)?'deer':(s.ride==='b'&&o.rank>=10)?'boar':'';
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
-  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
+  const md=o.ride?'ride':s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
   setTitleTag(o.el,o.specialTitle,o.rank,(o.mode==='faint'?'💤 ':'')+(o.nick||'산객'));
 }
 let presT=0;
@@ -3578,7 +3591,7 @@ function sendPresence(force){
 function updateMyRankTag(){
  if(mode!=='game'||inTent){myRankTag.style.display='none';return}
  setTitleTag(myRankTag,activeSpecialTitle(),playerRank,cleanNick(save.nick)||'산객');
- const p=myRankTagPos.set(P.x,P.y+2.28,P.z).project(camera);
+ const p=myRankTagPos.set(P.x,P.y+2.28+(isRiding()?ridingHeight(ridingKind()):0),P.z).project(camera);
  if(p.z<=-1||p.z>=1||Math.abs(p.x)>1.05||Math.abs(p.y)>1.05){myRankTag.style.display='none';return}
  myRankTag.style.display='';myRankTag.style.transform=`translate(${(p.x*.5+.5)*W}px,${(-p.y*.5+.5)*Hh}px) translate(-50%,-100%)`;
 }
@@ -3586,9 +3599,13 @@ function updOthers(dt){
   const f=1-Math.exp(-dt*8);
   for(const o of others.values()){o.x=lerp(o.x,o.tx,f);o.z=lerp(o.z,o.tz,f);o.y=lerp(o.y,o.ty,f);let dh=o.th-o.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));o.h+=dh*f;
     const down=o.mode==='faint';
-    o.av.root.position.set(o.x,o.y+(down?.28:0),o.z);o.av.root.rotation.y=o.h;
+    o.av.root.position.set(o.x,o.y+(down?.28:0)+(o.ride?ridingHeight(o.ride):0),o.z);o.av.root.rotation.y=o.h;
     o.av.root.rotation.x=lerp(o.av.root.rotation.x,down?-Math.PI/2:0,Math.min(1,dt*12));
     poseHiker(o.av,dt,down?0:1);
+    if(o.ride){
+      if(o.mountKind!==o.ride){if(o.mountMesh)scene.remove(o.mountMesh);const kind=WILDLIFE.find(w=>w.id===o.ride);o.mountMesh=kind?createAnimal(kind):null;o.mountKind=o.ride;o.mountPose=null;if(o.mountMesh)scene.add(o.mountMesh)}
+      if(o.mountMesh){o.mountMesh.position.set(o.x,o.y,o.z);o.mountMesh.rotation.y=o.h;o.mountMesh.visible=!o.tent&&!!o.inCave===!!inSecretCave;poseAnimal(o.mountPose||(o.mountPose={mesh:o.mountMesh,kind:WILDLIFE.find(w=>w.id===o.ride)}),dt,Math.hypot(o.tx-o.x,o.tz-o.z)*8,false)}
+    }else if(o.mountMesh){scene.remove(o.mountMesh);o.mountMesh=null;o.mountKind='';o.mountPose=null}
     if(o.mode==='joyspin')o.av.root.rotation.y+=Math.min(1,o.av.t/3.4)*Math.PI*4;
     const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent&&!!o.inCave===!!inSecretCave;
     const night=skyAtHour(gameMin/60).night;
@@ -4261,6 +4278,7 @@ function isBoarFreeArea(x,z,now=Date.now()){
 }
 function removeWildAnimal(key,animal){
   if(!animal)return;
+  if(mountedAnimal===animal)dismountAnimal(true);
   animal.nameEl?.remove();scene.remove(animal.mesh);animals.delete(key);
 }
 function disperseBoars(x,z,until=Date.now()+BOAR_WAKE_CLEAR_MS,broadcast=false){
@@ -4470,18 +4488,19 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
      const a=rr()*Math.PI*2,radius=Math.max(.4,homeTree.s*.4+.24);
      xx=homeTree.x+Math.cos(a)*radius;zz=homeTree.z+Math.sin(a)*radius;
    }else{xx=homeTree.x;zz=homeTree.z}}
- const mesh=createAnimal(kind);scene.add(mesh);
+ const mesh=createAnimal(kind);mesh.userData.animalKey=key;scene.add(mesh);
  const nameEl=document.createElement('div');nameEl.className='nametag';nameEl.textContent=kind.name;nameEl.style.display='none';$('labels').appendChild(nameEl);
  animals.set(key,{key,kind,mesh,nameEl,x:xx,z:zz,originX:xx,originZ:zz,phase:rr()*6.28,range:2+rr()*5,treeY:kind.hab==='tree'?2+rr()*5:0,
    homeTree,climbHeight:0,climbTarget:0,climbing:false})}
  near.add(key)}}
- for(const [id,a] of animals)if(!near.has(id))removeWildAnimal(id,a);
+ for(const [id,a] of animals)if(!near.has(id)&&a!==mountedAnimal)removeWildAnimal(id,a);
 }
 const FAINT_MS=3*60*1000;
 let faintUntil=0,faintReason='';
 try{faintUntil=Math.min(+(localStorage.getItem('baek_faint_until')||0),Date.now()+FAINT_MS)}catch(e){faintUntil=0}
 let lastBuddhaProtectionToast=0;
 function faintAnimal(spec){
+ if((spec?.id==='boar'||spec?.name==='멧돼지')&&playerRank>=10)return false;
  if((spec?.bees||spec?.fall||spec?.id==='boar'||spec?.name==='멧돼지')&&goldenBuddhaProtects()){
    const now=Date.now();
    if(now-lastBuddhaProtectionToast>8000){
@@ -4492,7 +4511,7 @@ function faintAnimal(spec){
    }
    return false; // No faint overlay, radio, save mutation or movement lock.
  }
- if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
+ if(Date.now()<faintUntil)return;dismountAnimal(true);if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
  try{localStorage.setItem('baek_faint_until',String(faintUntil))}catch(e){}persist();
  target=null;pending=null;joy.x=0;joy.y=0;me.mode='faint';me.t=0;$('faintOverlay').classList.remove('hide');
  faintSoundVolume(faintDuration);
@@ -4513,16 +4532,16 @@ function updFaint(){const left=faintUntil-Date.now();const overlay=$('faintOverl
   }return false}
  overlay.classList.remove('hide');const secs=Math.ceil(left/1000);$('faintCountdown').textContent=`${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;return true}
 function nearestHiker(x,z){
- let best={x:P.x,z:P.z,dist:Math.hypot(P.x-x,P.z-z),moving:P.speed>.07&&me.mode==='walk',self:true};
+ let best={x:P.x,z:P.z,dist:Math.hypot(P.x-x,P.z-z),moving:P.speed>.07&&(me.mode==='walk'||me.mode==='ride'),rank:playerRank,self:true};
  for(const o of others.values()){
    const d=Math.hypot(o.x-x,o.z-z);
-   if(d<best.dist)best={x:o.x,z:o.z,dist:d,moving:o.mode==='walk',self:false};
+   if(d<best.dist)best={x:o.x,z:o.z,dist:d,moving:o.mode==='walk'||o.mode==='ride',rank:o.rank||1,self:false};
  }
  return best;
 }
 function updateBoarWarning(){
   let close=false;
-  if(!inTent&&Date.now()>=faintUntil){
+  if(!inTent&&playerRank<10&&Date.now()>=faintUntil){
     for(const a of animals.values()){
       if(a.kind.id!=='boar'||!a.mesh.visible)continue;
       const vertical=Math.abs(H(a.x,a.z)-P.y);
@@ -4534,6 +4553,90 @@ function updateBoarWarning(){
   if(close&&!boarAlertActive){toast('어디선가 고약한 냄새가 난다… 멧돼지를 조심하자!');playBoarTension()}
   boarAlertActive=close;
 }
+/* === LV.9/10 WILDLIFE TRUST & MOUNTS ===
+ * Local mounts are temporary. Never rewrite profile records, wild-spawn slots,
+ * cave coordinates, or the old herb-gathering animation/logic.
+ * Network presence only announces the animal type so peers can render a mount.
+ */
+const RIDE_SPEC=Object.freeze({deer:{level:9,multiplier:1.30,height:.76},boar:{level:10,multiplier:1.50,height:.70}});
+let mountedAnimal=null;
+function rideAllowed(kind,level=playerRank){return !!RIDE_SPEC[kind]&&level>=RIDE_SPEC[kind].level}
+function ridingMultiplier(){return mountedAnimal?RIDE_SPEC[mountedAnimal.kind.id]?.multiplier||1:1}
+function ridingKind(){return mountedAnimal?.kind.id||''}
+function ridingHeight(kind){return RIDE_SPEC[kind]?.height||0}
+function isRiding(){return !!mountedAnimal}
+function mountAnimal(animal){
+  if(!animal||!animal.mesh?.visible||!animals.has(animal.key))return false;
+  if(mountedAnimal)return true;
+  const species=animal.kind.id;
+  if(!RIDE_SPEC[species])return false;
+  if(!rideAllowed(species)){
+    toast(species==='boar'?'멧돼지 탑승은 Lv.10부터 가능합니다.':'고라니 탑승은 Lv.9부터 가능합니다.');return false;
+  }
+  if(mode!=='game'||inSecretCave||inTent||climbing||onRock||cooking||P.air||Date.now()<faintUntil||goldenHoeBusy())return false;
+  if(Math.hypot(P.x-animal.x,P.z-animal.z)>2.9||Math.abs(H(animal.x,animal.z)-P.y)>2.2){
+    toast('동물에게 조금 더 가까이 다가가세요.');return false;
+  }
+  mountedAnimal=animal;
+  animal.chargeUntil=0;animal.chargeTarget=null;animal.vx=0;animal.vz=0;
+  target=null;pending=null;curAct=null;queued=null;
+  P.air=false;P.vy=0;P.speed=0;
+  me.mode='ride';me.t=0;
+  if($('animalDismountBtn'))$('animalDismountBtn').classList.remove('hide');
+  toast((species==='deer'?'고라니':'멧돼지')+'에 올라탔다! 이동 속도 '+(Math.round((RIDE_SPEC[species].multiplier-1)*100))+'% 증가');
+  sendPresence(true);
+  return true;
+}
+function dismountAnimal(quiet=false){
+  if(!mountedAnimal)return false;
+  const animal=mountedAnimal;
+  mountedAnimal=null;
+  animal.x=P.x;animal.z=P.z;animal.originX=P.x;animal.originZ=P.z;
+  animal.vx=0;animal.vz=0;animal.chargeUntil=0;animal.chargeTarget=null;
+  animal.mesh.rotation.y=P.h;
+  me.mode='idle';me.t=0;
+  $('animalDismountBtn')?.classList.add('hide');
+  if(!quiet)toast('동물에게서 내려왔다.');
+  sendPresence(true);
+  return true;
+}
+function syncMountedAnimal(dt){
+  const a=mountedAnimal;
+  if(!a)return;
+  if(!animals.has(a.key)||!a.mesh.parent||inTent||inSecretCave||playerRank<RIDE_SPEC[a.kind.id].level){dismountAnimal(true);return}
+  a.x=P.x;a.z=P.z;a.renderY=P.y;a.vx=0;a.vz=0;a.chargeUntil=0;
+  a.mesh.position.set(P.x,P.y,P.z);
+  a.mesh.rotation.y=P.h;
+  a.mesh.visible=true;
+  poseAnimal(a,dt,P.speed*4*ridingMultiplier(),false);
+}
+function tryMountAnimalFromRay(object){
+  let o=object;
+  while(o){
+    if(o.userData?.animalKey){
+      const animal=animals.get(o.userData.animalKey);
+      if(animal&&RIDE_SPEC[animal.kind.id]){mountAnimal(animal);return true}
+      return false;
+    }
+    o=o.parent;
+  }
+  return false;
+}
+// An older cached HTML revision may lack the new button. Repair locally so
+// mixed index/bundle revisions never lock a rider on an animal.
+function ensureAnimalDismountButton(){
+  let button=$('animalDismountBtn');
+  if(button)return button;
+  button=document.createElement('button');
+  button.id='animalDismountBtn';button.type='button';button.className='hide';button.textContent='내리기';
+  button.setAttribute('aria-label','동물에서 내리기');
+  Object.assign(button.style,{position:'fixed',right:'22px',bottom:'36px',width:'78px',height:'78px',
+    borderRadius:'50%',background:'rgba(182,144,76,.91)',color:'#30291f',fontSize:'16px',
+    fontWeight:'700',zIndex:'7',touchAction:'manipulation'});
+  document.body.appendChild(button);
+  return button;
+}
+ensureAnimalDismountButton()?.addEventListener('click',e=>{e.stopPropagation();dismountAnimal()});
 // Five-star perception is a local HUD skill; it never reveals coordinates or
 // changes resource generation, harvest results, networking, or save records.
 const RARE_SENSE_SCAN_SECONDS=.25,RARE_SENSE_TEMP_MS=3000;
@@ -4624,12 +4727,13 @@ function updateAnimals(dt){
    turtledove:{idle:1.4,flee:5.2},owl:{idle:.9,flee:4.5},eagleowl:{idle:1.0,flee:4.7}
  };
  for(const [animalKey,a] of animals){
+   if(a===mountedAnimal)continue; // synced once after player movement in updateGame
    if(a.kind.id==='boar'&&(isBoarFreeArea(a.x,a.z)||summitForbidsBoar(a.x,a.z))){removeWildAnimal(animalKey,a);continue}
    const sp=a.kind,person=nearestHiker(a.x,a.z),awake=animalAwake(sp);
    const ang=t*.24+a.phase,baseX=a.originX+Math.sin(ang)*a.range*.65,baseZ=a.originZ+Math.cos(ang)*a.range*.65;
    const squirrel=(sp.id==='squirrel'||sp.id==='redsquirrel');
    const trunk=a.homeTree;
-   const fleeNear=person.dist<sp.fear&&awake;
+   const fleeNear=person.dist<sp.fear&&awake&&person.rank<9;
    if(squirrel&&trunk){
      const cycle=(t+a.phase*19)%46;
      const wantClimb=fleeNear||cycle>=18&&cycle<37;
@@ -4651,20 +4755,20 @@ function updateAnimals(dt){
    const danger=sp.id==='boar';
    if(danger){
      const nearbyTerrain=Math.abs(H(a.x,a.z)-H(person.x,person.z))<2.6;
-     if(person.dist<BOAR_CHARGE_RANGE&&nearbyTerrain&&person.moving&&awake&&Date.now()>=(a.chargeCooldown||0)&&Date.now()>=(a.chargeUntil||0)){
+     if(person.rank<10&&person.dist<BOAR_CHARGE_RANGE&&nearbyTerrain&&person.moving&&awake&&Date.now()>=(a.chargeCooldown||0)&&Date.now()>=(a.chargeUntil||0)){
        a.chargeUntil=Date.now()+2500;
        a.chargeTarget={x:person.x,z:person.z};
      }
-     if(person.dist>BOAR_CHASE_LIMIT||!nearbyTerrain||!awake){a.chargeUntil=0;a.chargeTarget=null;}
+     if(person.rank>=10||person.dist>BOAR_CHASE_LIMIT||!nearbyTerrain||!awake){a.chargeUntil=0;a.chargeTarget=null;}
      const charging=Date.now()<(a.chargeUntil||0);
      if(charging){
        destX=person.x;destZ=person.z;
        spd=7.0;
-     }else if(person.dist<4.5){
+     }else if(person.rank<9&&person.dist<4.5){
        const dx=a.x-person.x,dz=a.z-person.z,len=Math.hypot(dx,dz)||1;
        destX=a.x+(dx/len)*5+Math.sin(ang)*2;destZ=a.z+(dz/len)*5+Math.cos(ang)*2;spd=1.5;
      }
-   }else if(person.dist<sp.fear&&awake){
+   }else if(fleeNear){
      if(squirrel&&trunk){
        destX=a.climbX;destZ=a.climbZ;
      }else{
@@ -4706,7 +4810,7 @@ function updateAnimals(dt){
    a.mesh.position.set(a.x,a.renderY,a.z);
    a.mesh.visible=awake&&Math.hypot(a.x-P.x,a.z-P.z)<95;
    poseAnimal(a,step,actualSpeed,danger&&Date.now()<(a.chargeUntil||0));
-   if(danger&&Date.now()<(a.chargeUntil||0)&&Date.now()-lastAnimalAttack>10000){
+   if(danger&&playerRank<10&&Date.now()<(a.chargeUntil||0)&&Date.now()-lastAnimalAttack>10000){
      const meDist=Math.hypot(a.x-P.x,a.z-P.z);
      if(P.speed>.07&&me.mode==='walk'&&meDist<BOAR_CONTACT_RANGE&&Math.abs(yy-P.y)<1.4){
        lastAnimalAttack=Date.now();a.chargeUntil=0;a.chargeCooldown=Date.now()+16000;faintAnimal(sp)
@@ -4900,6 +5004,7 @@ function climbFail(){
  faintAnimal({name:'바위 추락',fall:true,durationMs:2*60*1000});
 }
 function climbAct(){if(inSecretCave)return;
+ if(isRiding())return;
  if(Date.now()<faintUntil||inTent||cooking||goldenHoeBusy())return;
  if(onRock){
    const rock=onRock,dx=P.x-rock.x,dz=P.z-rock.z,len=Math.hypot(dx,dz)||1;
@@ -4929,7 +5034,7 @@ function climbAct(){if(inSecretCave)return;
 function updateRockClimbing(dt){
  updateGoldenHoeMesh(dt);updateGoldenHoeClaim(dt);
  const btn=$('jumpBtn');
- if(mode!=='game'||inTent){btn.classList.add('hide');return}
+ if(mode!=='game'||inTent||isRiding()){btn.classList.add('hide');return}
  if(climbing){btn.classList.remove('hide');
    $('climbPanel').classList.remove('hide');
    $('climbNeedle').style.left=(climbPhase()*99)+'%';
@@ -5350,6 +5455,7 @@ function showCaveAction(which){
   for(const id of ids)$(id).classList.toggle('hide',which!==id);
 }
 function enterSecretCave(){
+  if(isRiding())dismountAnimal(true);
   const entry=getSecretCaveEntryLocal();
   if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
     entry.d>2.05||Math.abs(entry.x)>.82||entry.z<.74||entry.z>2.15||me.mode==='dig'||P.air)return;
@@ -5697,6 +5803,7 @@ function updateGame(dt){
   const fwd=up-dn-joy.y,str=rt-lf+joy.x;
   const rot=(keys.KeyQ?1:0)-(keys.KeyE?1:0);if(rot){camYaw+=rot*dt*1.8;lastDrag=clock}
   me.hasGoldenHoe=!!save.goldenHoeOwned;
+  if(isRiding()&&(inTent||inSecretCave||!!climbing||Date.now()<faintUntil))dismountAnimal(true);
   const busy=fainted||me.mode==='dig'||(me.mode==='joy'||me.mode==='joyspin')||!!cooking||inTent||!!climbing||goldenHoeBusy();
   let moveAmt=0,mvx=0,mvz=0;
   if(!busy&&(Math.abs(fwd)>.08||Math.abs(str)>.08)){target=null;pending=null;
@@ -5710,14 +5817,14 @@ function updateGame(dt){
   if(moveAmt){
     if(onRock){
       // Walk freely within this boulder's safe upper surface.
-      const speed=2.55*offeringSpeedMultiplier(),limit=onRock.r*rockWalkLimit;
+      const speed=2.55*offeringSpeedMultiplier()*ridingMultiplier(),limit=onRock.r*rockWalkLimit;
       let nx=P.x+mvx*moveAmt*speed*dt,nz=P.z+mvz*moveAmt*speed*dt;
       const dx=nx-onRock.x,dz=nz-onRock.z,d=Math.hypot(dx,dz);
       if(d>limit){nx=onRock.x+dx/d*limit;nz=onRock.z+dz/d*limit}
       P.x=nx;P.z=nz;
       if(target&&Math.hypot(target.x-onRock.x,target.z-onRock.z)>limit+1)target=null;
     }else{
-      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*offeringSpeedMultiplier()*clamp(1-slope*.35,.6,1.15);
+      const slope=H(P.x+mvx*.6,P.z+mvz*.6)-P.y,spd=4.0*offeringSpeedMultiplier()*ridingMultiplier()*clamp(1-slope*.35,.6,1.15);
       let nx=P.x+mvx*moveAmt*spd*dt,nz=P.z+mvz*moveAmt*spd*dt;
       const d=nx-pathX(nz);if(Math.abs(d)>58)nx=pathX(nz)+Math.sign(d)*58;if(nz>34)nz=34;if(nz<SUMMIT_Z+2)nz=SUMMIT_Z+2;
       if(H(nx,nz)-P.y<.9||P.air){const q=collide(nx,nz);P.x=q.x;P.z=q.z}
@@ -5732,15 +5839,17 @@ function updateGame(dt){
   else if(me.mode==='joy'||me.mode==='joyspin'){joyT-=dt;if(joyT<=0){me.mode='idle';me.t=0}}
   else if(goldenHoeBusy())me.mode='goldhoe';
   else if(cooking)me.mode='cook';
+  else if(isRiding())me.mode='ride';
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
-  me.root.position.set(P.x,P.y+(fainted?.28:0),P.z);
+  syncMountedAnimal(dt);
+  me.root.position.set(P.x,P.y+(fainted?.28:0)+(isRiding()?ridingHeight(ridingKind()):0),P.z);
   me.root.rotation.x=lerp(me.root.rotation.x,fainted?-Math.PI/2:climbing?-.20:0,Math.min(1,dt*12));
   {let dh=P.h-me.root.rotation.y;dh=Math.atan2(Math.sin(dh),Math.cos(dh));me.root.rotation.y+=dh*Math.min(1,dt*14)}poseHiker(me,dt,fainted?0:P.speed);
   if(me.mode==='joyspin')me.root.rotation.y+=Math.min(1,me.t/3.4)*Math.PI*4;
   for(const it of shaking){const m=it.mesh;if(!m||!m.parent){shaking.delete(it);continue}const u=m.userData;u.shake-=dt;if(u.shake>0)m.rotation.z=Math.sin(clock*60)*.36*u.shake;else{m.rotation.z=0;shaking.delete(it)}}
   if(target&&clock-lastDrag>2){let dh=P.h-camYaw;dh=Math.atan2(Math.sin(dh),Math.cos(dh));if(Math.abs(dh)<1.4)camYaw+=dh*Math.min(1,dt*1.2)}
-  const cy=camYaw,tx=P.x,ty=P.y+1.45,tz=P.z,dist=camDist;
+  const cy=camYaw,tx=P.x,ty=P.y+1.45+(isRiding()?.55:0),tz=P.z,dist=camDist;
   occT+=dt;if(occT>=PERF.occEvery){occT=0;let pick=null,bestK=0,bestP=camPitch;
     for(const add of [0,.1,.2]){const pp=Math.min(1.2,camPitch+add);const kk=occlusion(tx,ty,tz,tx-Math.sin(cy)*dist*Math.cos(pp),ty+dist*Math.sin(pp),tz-Math.cos(cy)*dist*Math.cos(pp));if(kk>=1){pick=pp;break}if(kk>bestK){bestK=kk;bestP=pp}}
     occPitch=pick!==null?pick:bestP;
@@ -6170,6 +6279,7 @@ function beginGame(){
   if(mode==='game')return;
   // Immediate screen transition matches the previously working build.
   // Do not block this button on audio, terrain, networking or summit generation.
+  dismountAnimal(true);
   const jacket=JACKETS[((save.color|0)%JACKETS.length+JACKETS.length)%JACKETS.length];
   scene.remove(me.root);
   const nm=makeHiker(jacket);Object.assign(me,nm);scene.add(me.root);
@@ -6224,7 +6334,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeGameSettings()});
 $('terrainRefreshBtn').addEventListener('click',refreshWorldFromSettings);
 // Refresh operates only through the settings button; jumping is unchanged.
 setTimeout(()=>resumeAfterSettingsReload(),120);
-function jump(){if(mode==='game'&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*offeringJumpMultiplier();P.air=true}}
+function jump(){if(mode==='game'&&!isRiding()&&!inSecretCave&&!climbing&&!onRock&&!inTent&&Date.now()>=faintUntil&&!P.air&&me.mode!=='dig'&&!cooking){P.vy=5.2*offeringJumpMultiplier();P.air=true}}
 $('jumpBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();climbAct()});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('visibilitychange',()=>{if(!AMB)return;if(document.hidden)AMB.a.suspend();else AMB.a.resume()});

@@ -37,18 +37,19 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
      const a=rr()*Math.PI*2,radius=Math.max(.4,homeTree.s*.4+.24);
      xx=homeTree.x+Math.cos(a)*radius;zz=homeTree.z+Math.sin(a)*radius;
    }else{xx=homeTree.x;zz=homeTree.z}}
- const mesh=createAnimal(kind);scene.add(mesh);
+ const mesh=createAnimal(kind);mesh.userData.animalKey=key;scene.add(mesh);
  const nameEl=document.createElement('div');nameEl.className='nametag';nameEl.textContent=kind.name;nameEl.style.display='none';$('labels').appendChild(nameEl);
  animals.set(key,{key,kind,mesh,nameEl,x:xx,z:zz,originX:xx,originZ:zz,phase:rr()*6.28,range:2+rr()*5,treeY:kind.hab==='tree'?2+rr()*5:0,
    homeTree,climbHeight:0,climbTarget:0,climbing:false})}
  near.add(key)}}
- for(const [id,a] of animals)if(!near.has(id))removeWildAnimal(id,a);
+ for(const [id,a] of animals)if(!near.has(id)&&a!==mountedAnimal)removeWildAnimal(id,a);
 }
 const FAINT_MS=3*60*1000;
 let faintUntil=0,faintReason='';
 try{faintUntil=Math.min(+(localStorage.getItem('baek_faint_until')||0),Date.now()+FAINT_MS)}catch(e){faintUntil=0}
 let lastBuddhaProtectionToast=0;
 function faintAnimal(spec){
+ if((spec?.id==='boar'||spec?.name==='멧돼지')&&playerRank>=10)return false;
  if((spec?.bees||spec?.fall||spec?.id==='boar'||spec?.name==='멧돼지')&&goldenBuddhaProtects()){
    const now=Date.now();
    if(now-lastBuddhaProtectionToast>8000){
@@ -59,7 +60,7 @@ function faintAnimal(spec){
    }
    return false; // No faint overlay, radio, save mutation or movement lock.
  }
- if(Date.now()<faintUntil)return;if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
+ if(Date.now()<faintUntil)return;dismountAnimal(true);if(cooking){clearCampCookingProps(cooking.tent.camp);cooking=null;}closeCampPanel();climbing=null;onRock=null;$('climbPanel').classList.add('hide');const faintDuration=spec.durationMs||FAINT_MS;faintUntil=Date.now()+faintDuration;faintReason=spec.name;
  try{localStorage.setItem('baek_faint_until',String(faintUntil))}catch(e){}persist();
  target=null;pending=null;joy.x=0;joy.y=0;me.mode='faint';me.t=0;$('faintOverlay').classList.remove('hide');
  faintSoundVolume(faintDuration);
@@ -80,16 +81,16 @@ function updFaint(){const left=faintUntil-Date.now();const overlay=$('faintOverl
   }return false}
  overlay.classList.remove('hide');const secs=Math.ceil(left/1000);$('faintCountdown').textContent=`${String(Math.floor(secs/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;return true}
 function nearestHiker(x,z){
- let best={x:P.x,z:P.z,dist:Math.hypot(P.x-x,P.z-z),moving:P.speed>.07&&me.mode==='walk',self:true};
+ let best={x:P.x,z:P.z,dist:Math.hypot(P.x-x,P.z-z),moving:P.speed>.07&&(me.mode==='walk'||me.mode==='ride'),rank:playerRank,self:true};
  for(const o of others.values()){
    const d=Math.hypot(o.x-x,o.z-z);
-   if(d<best.dist)best={x:o.x,z:o.z,dist:d,moving:o.mode==='walk',self:false};
+   if(d<best.dist)best={x:o.x,z:o.z,dist:d,moving:o.mode==='walk'||o.mode==='ride',rank:o.rank||1,self:false};
  }
  return best;
 }
 function updateBoarWarning(){
   let close=false;
-  if(!inTent&&Date.now()>=faintUntil){
+  if(!inTent&&playerRank<10&&Date.now()>=faintUntil){
     for(const a of animals.values()){
       if(a.kind.id!=='boar'||!a.mesh.visible)continue;
       const vertical=Math.abs(H(a.x,a.z)-P.y);

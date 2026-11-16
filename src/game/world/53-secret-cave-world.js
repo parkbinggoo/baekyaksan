@@ -344,6 +344,7 @@ function showCaveAction(which){
   for(const id of ids)$(id).classList.toggle('hide',which!==id);
 }
 function enterSecretCave(){
+  if(isRiding())dismountAnimal(true);
   const entry=getSecretCaveEntryLocal();
   if(inSecretCave||!caveSite||mode!=='game'||inTent||caveEntryLock>Date.now()||
     entry.d>2.05||Math.abs(entry.x)>.82||entry.z<.74||entry.z>2.15||me.mode==='dig'||P.air)return;

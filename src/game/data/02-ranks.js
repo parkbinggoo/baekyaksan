@@ -70,12 +70,17 @@ const FIVE_STAR_SENSE_RANK_TEXT={
 function fiveStarSenseRankText(level){
  return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
 }
+function animalRideRankText(level){
+ return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 야생동물 비회피':
+   level>=9?'🦌 야생동물 비회피 · 고라니 탑승 +30%':'';
+}
 function renderRankGuide(){
  const progress=$('rankProgress'),guide=$('rankGuide');progress.replaceChildren();guide.replaceChildren();
  const current=document.createElement('strong');current.textContent=rankLabel();progress.appendChild(current);
  const desc=document.createElement('div');desc.textContent='도감 '+discoveredCount()+'종 · 누적 채집 '+(rankStats().totalCollected||0)+'개';progress.appendChild(desc);
  const currentSense=fiveStarSenseRankText(playerRank);
  if(currentSense){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+currentSense;progress.appendChild(sense)}
+ if(playerRank>=9){const riding=document.createElement('div');riding.className='rankSense';riding.textContent=animalRideRankText(playerRank);progress.appendChild(riding)}
  if(playerRank>=RANKS.length){const done=document.createElement('div');done.textContent='백약산 최고 등급에 도달했습니다!';progress.appendChild(done)}
  else{const next=document.createElement('div');next.style.marginTop='5px';next.textContent='다음 목표: Lv.'+(playerRank+1)+' '+RANKS[playerRank].name;progress.appendChild(next);
   for(const g of rankGoals(playerRank+1)){const line=document.createElement('div');line.className='rankGoal '+(g.now>=g.required?'done':'pending');line.textContent=(g.now>=g.required?'✓ ':'○ ')+g.label+' '+g.now+'/'+g.required+g.unit;progress.appendChild(line)}
@@ -94,6 +99,7 @@ function renderRankGuide(){
   const label=document.createElement('strong');label.textContent='Lv.'+l+' · '+RANKS[l-1].name;section.appendChild(label);
   const goals=document.createElement('div');goals.textContent=l===1?'첫 입장 시 자동 부여':rankGoals(l).map(g=>g.label+' '+g.required+g.unit).join(' · ');section.appendChild(goals);
   if(l>=6&&l<=9){const sense=document.createElement('div');sense.className='rankSense';sense.textContent='🌿 '+fiveStarSenseRankText(l);section.appendChild(sense)}
+  if(l===9||l===10){const riding=document.createElement('div');riding.className='rankSense';riding.textContent=animalRideRankText(l);section.appendChild(riding)}
   guide.appendChild(section);
  }
 }

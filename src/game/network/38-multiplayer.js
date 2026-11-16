@@ -14,7 +14,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
 function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
-  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0};}
+  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0,ride:ridingKind()==='deer'?'d':ridingKind()==='boar'?'b':''};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
   peopleCount=count;
@@ -24,6 +24,7 @@ function updatePeople(){
 function netDrop(id){const o=others.get(id);if(o){
     if(o.headLamp){scene.remove(o.headLamp);scene.remove(o.headLamp.target);o.headLamp.dispose&&o.headLamp.dispose()}
     if(o.lampLens){o.av.root.remove(o.lampLens);o.lampLens.geometry.dispose();o.lampLens.material.dispose()}
+    if(o.mountMesh)scene.remove(o.mountMesh);
     scene.remove(o.av.root);o.el.remove();others.delete(id)
   }peerSeen.delete(id);updatePeople();if(inTent)updateTentSeats(.12)}
 function netCleanup(){const now=Date.now();if(now-lastPeerCleanup<1500)return;lastPeerCleanup=now;
@@ -125,9 +126,10 @@ function upOther(p){
     o={av,el,headLamp,lampLens,x:s.x,y:s.y||H(s.x,s.z),z:s.z,h:s.h||0,tx:s.x,ty:s.y,tz:s.z,th:s.h||0,mode:'idle',nick:''};others.set(p.peer,o)}
   o.tx=+s.x;o.tz=+s.z;o.ty=Number.isFinite(+s.y)?+s.y:H(o.tx,o.tz);o.th=+s.h||0;
   o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);o.av.hasGoldenHoe=s.gh===1;
+  o.ride=(s.ride==='d'&&o.rank>=9)?'deer':(s.ride==='b'&&o.rank>=10)?'boar':'';
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
-  const md=s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
+  const md=o.ride?'ride':s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
   setTitleTag(o.el,o.specialTitle,o.rank,(o.mode==='faint'?'💤 ':'')+(o.nick||'산객'));
 }
 let presT=0;
@@ -141,7 +143,7 @@ function sendPresence(force){
 function updateMyRankTag(){
  if(mode!=='game'||inTent){myRankTag.style.display='none';return}
  setTitleTag(myRankTag,activeSpecialTitle(),playerRank,cleanNick(save.nick)||'산객');
- const p=myRankTagPos.set(P.x,P.y+2.28,P.z).project(camera);
+ const p=myRankTagPos.set(P.x,P.y+2.28+(isRiding()?ridingHeight(ridingKind()):0),P.z).project(camera);
  if(p.z<=-1||p.z>=1||Math.abs(p.x)>1.05||Math.abs(p.y)>1.05){myRankTag.style.display='none';return}
  myRankTag.style.display='';myRankTag.style.transform=`translate(${(p.x*.5+.5)*W}px,${(-p.y*.5+.5)*Hh}px) translate(-50%,-100%)`;
 }
@@ -149,9 +151,13 @@ function updOthers(dt){
   const f=1-Math.exp(-dt*8);
   for(const o of others.values()){o.x=lerp(o.x,o.tx,f);o.z=lerp(o.z,o.tz,f);o.y=lerp(o.y,o.ty,f);let dh=o.th-o.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));o.h+=dh*f;
     const down=o.mode==='faint';
-    o.av.root.position.set(o.x,o.y+(down?.28:0),o.z);o.av.root.rotation.y=o.h;
+    o.av.root.position.set(o.x,o.y+(down?.28:0)+(o.ride?ridingHeight(o.ride):0),o.z);o.av.root.rotation.y=o.h;
     o.av.root.rotation.x=lerp(o.av.root.rotation.x,down?-Math.PI/2:0,Math.min(1,dt*12));
     poseHiker(o.av,dt,down?0:1);
+    if(o.ride){
+      if(o.mountKind!==o.ride){if(o.mountMesh)scene.remove(o.mountMesh);const kind=WILDLIFE.find(w=>w.id===o.ride);o.mountMesh=kind?createAnimal(kind):null;o.mountKind=o.ride;o.mountPose=null;if(o.mountMesh)scene.add(o.mountMesh)}
+      if(o.mountMesh){o.mountMesh.position.set(o.x,o.y,o.z);o.mountMesh.rotation.y=o.h;o.mountMesh.visible=!o.tent&&!!o.inCave===!!inSecretCave;poseAnimal(o.mountPose||(o.mountPose={mesh:o.mountMesh,kind:WILDLIFE.find(w=>w.id===o.ride)}),dt,Math.hypot(o.tx-o.x,o.tz-o.z)*8,false)}
+    }else if(o.mountMesh){scene.remove(o.mountMesh);o.mountMesh=null;o.mountKind='';o.mountPose=null}
     if(o.mode==='joyspin')o.av.root.rotation.y+=Math.min(1,o.av.t/3.4)*Math.PI*4;
     const far=Math.hypot(o.x-P.x,o.z-P.z);o.av.root.visible=far<220&&!o.tent&&!!o.inCave===!!inSecretCave;
     const night=skyAtHour(gameMin/60).night;

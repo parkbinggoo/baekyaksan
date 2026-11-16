@@ -12,6 +12,7 @@ const v3=new THREE.Vector3();
 function nearTo(p,r){return Math.hypot(p.x-P.x,p.z-P.z)<r}
 function act(tg){
   if(inSecretCave)return;
+  if(isRiding()){toast('동물에서 내린 후 채집하세요.');return}
   if(Date.now()<faintUntil||cooking||climbing||(me.mode==='joy'||me.mode==='joyspin')||(tg.item&&takenUntil(tg.item.id)))return;
   if(tg.item&&tg.item.rock&&onRock!==tg.item.rock){
     const rock=tg.item.rock;

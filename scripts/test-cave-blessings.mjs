@@ -106,8 +106,8 @@ const faintSrc=await read('world/47-wildlife-states.js');
 const faintFragment=faintSrc.slice(faintSrc.indexOf('let lastBuddhaProtectionToast=0;'),faintSrc.indexOf('function updFaint(){'));
 const overlays=[];let protectedToasts=[];let faintSaves=0;let accidentCalls=0;
 const faintOverlay={classList:{remove:()=>overlays.push('show')},querySelector:()=>({textContent:''})};
-const faintCtx={Date,Math,console,FAINT_MS:3*60000,me:{mode:'walk',t:0},joy:{x:0,y:0},
-  faintUntil:0,faintReason:'',cooking:null,climbing:null,onRock:null,closeCampPanel(){},
+const faintCtx={Date,Math,console,playerRank:9,FAINT_MS:3*60000,me:{mode:'walk',t:0},joy:{x:0,y:0},
+  faintUntil:0,faintReason:'',cooking:null,climbing:null,onRock:null,closeCampPanel(){},dismountAnimal(){},
   goldenBuddhaProtects:()=>faintCtx.isGold, isGold:true,
   $:name=>name==='faintOverlay'?faintOverlay:{classList:{add(){} }},
   toast:s=>protectedToasts.push(s),tone(){},localStorage:{setItem(){}},persist:()=>faintSaves++,

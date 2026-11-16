@@ -133,6 +133,7 @@ function poseHiker(h,dt,speed){
     aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
     lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
+  else if(h.mode==='ride'){lL=-1.26;lR=-1.26;aL=-.42;aR=-.42;aLz=.18;aRz=-.18;by=-.25;lean=.13;hd=-.06;h.torso.rotation.z=Math.sin(h.t*5)*.018}
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}
   const f=1-Math.exp(-dt*(h.mode==='dig'?40:14));

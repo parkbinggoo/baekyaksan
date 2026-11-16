@@ -9,12 +9,13 @@ function updateAnimals(dt){
    turtledove:{idle:1.4,flee:5.2},owl:{idle:.9,flee:4.5},eagleowl:{idle:1.0,flee:4.7}
  };
  for(const [animalKey,a] of animals){
+   if(a===mountedAnimal)continue; // synced once after player movement in updateGame
    if(a.kind.id==='boar'&&(isBoarFreeArea(a.x,a.z)||summitForbidsBoar(a.x,a.z))){removeWildAnimal(animalKey,a);continue}
    const sp=a.kind,person=nearestHiker(a.x,a.z),awake=animalAwake(sp);
    const ang=t*.24+a.phase,baseX=a.originX+Math.sin(ang)*a.range*.65,baseZ=a.originZ+Math.cos(ang)*a.range*.65;
    const squirrel=(sp.id==='squirrel'||sp.id==='redsquirrel');
    const trunk=a.homeTree;
-   const fleeNear=person.dist<sp.fear&&awake;
+   const fleeNear=person.dist<sp.fear&&awake&&person.rank<9;
    if(squirrel&&trunk){
      const cycle=(t+a.phase*19)%46;
      const wantClimb=fleeNear||cycle>=18&&cycle<37;
@@ -36,20 +37,20 @@ function updateAnimals(dt){
    const danger=sp.id==='boar';
    if(danger){
      const nearbyTerrain=Math.abs(H(a.x,a.z)-H(person.x,person.z))<2.6;
-     if(person.dist<BOAR_CHARGE_RANGE&&nearbyTerrain&&person.moving&&awake&&Date.now()>=(a.chargeCooldown||0)&&Date.now()>=(a.chargeUntil||0)){
+     if(person.rank<10&&person.dist<BOAR_CHARGE_RANGE&&nearbyTerrain&&person.moving&&awake&&Date.now()>=(a.chargeCooldown||0)&&Date.now()>=(a.chargeUntil||0)){
        a.chargeUntil=Date.now()+2500;
        a.chargeTarget={x:person.x,z:person.z};
      }
-     if(person.dist>BOAR_CHASE_LIMIT||!nearbyTerrain||!awake){a.chargeUntil=0;a.chargeTarget=null;}
+     if(person.rank>=10||person.dist>BOAR_CHASE_LIMIT||!nearbyTerrain||!awake){a.chargeUntil=0;a.chargeTarget=null;}
      const charging=Date.now()<(a.chargeUntil||0);
      if(charging){
        destX=person.x;destZ=person.z;
        spd=7.0;
-     }else if(person.dist<4.5){
+     }else if(person.rank<9&&person.dist<4.5){
        const dx=a.x-person.x,dz=a.z-person.z,len=Math.hypot(dx,dz)||1;
        destX=a.x+(dx/len)*5+Math.sin(ang)*2;destZ=a.z+(dz/len)*5+Math.cos(ang)*2;spd=1.5;
      }
-   }else if(person.dist<sp.fear&&awake){
+   }else if(fleeNear){
      if(squirrel&&trunk){
        destX=a.climbX;destZ=a.climbZ;
      }else{
@@ -91,7 +92,7 @@ function updateAnimals(dt){
    a.mesh.position.set(a.x,a.renderY,a.z);
    a.mesh.visible=awake&&Math.hypot(a.x-P.x,a.z-P.z)<95;
    poseAnimal(a,step,actualSpeed,danger&&Date.now()<(a.chargeUntil||0));
-   if(danger&&Date.now()<(a.chargeUntil||0)&&Date.now()-lastAnimalAttack>10000){
+   if(danger&&playerRank<10&&Date.now()<(a.chargeUntil||0)&&Date.now()-lastAnimalAttack>10000){
      const meDist=Math.hypot(a.x-P.x,a.z-P.z);
      if(P.speed>.07&&me.mode==='walk'&&meDist<BOAR_CONTACT_RANGE&&Math.abs(yy-P.y)<1.4){
        lastAnimalAttack=Date.now();a.chargeUntil=0;a.chargeCooldown=Date.now()+16000;faintAnimal(sp)

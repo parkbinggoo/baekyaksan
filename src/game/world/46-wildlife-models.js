@@ -24,6 +24,7 @@ function isBoarFreeArea(x,z,now=Date.now()){
 }
 function removeWildAnimal(key,animal){
   if(!animal)return;
+  if(mountedAnimal===animal)dismountAnimal(true);
   animal.nameEl?.remove();scene.remove(animal.mesh);animals.delete(key);
 }
 function disperseBoars(x,z,until=Date.now()+BOAR_WAKE_CLEAR_MS,broadcast=false){
