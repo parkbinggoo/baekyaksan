@@ -1,8 +1,8 @@
-/* The original rare-sense panel stays in place; both distances can coexist. */
-.rare-sense-tier{display:flex;align-items:center;flex-direction:column;gap:3px}
-.rare-sense-tier+.rare-sense-tier{border-top:1px solid rgba(221,232,183,.28);margin-top:8px;padding-top:8px}
-.rare-sense-range{font-size:11px;font-weight:700;letter-spacing:.06em;color:#e1e9b3}
-#rareSense10 .rare-sense-range{color:#f5dfa3}
+.rare-sense-tier{display:flex;align-items:center;flex-direction:column;gap:0;margin-top:1px}
+.rare-sense-tier+.rare-sense-tier{margin-top:7px;padding-top:0;border-top:0}
+.rare-sense-range{font-size:14px;font-weight:800;letter-spacing:.02em;color:#ecf2af}
+#rareSense10 .rare-sense-range{color:#f4e2a8}
+.rare-sense-tier span:last-child{font-size:12px;color:#f7f8e7}
 .rankSense{margin-top:5px;padding:5px 8px;border-left:2px solid #739064;background:rgba(104,132,85,.08);border-radius:0 5px 5px 0;font-size:12px;line-height:1.6}
 .rankTier.current .rankSense{font-weight:700}
-@media(max-width:760px){.rare-sense-range{font-size:10px}.rankSense{font-size:11px}}
+@media(max-width:760px){.rare-sense-range{font-size:12px}.rare-sense-tier span:last-child{font-size:11px}.rankSense{font-size:11px}}
