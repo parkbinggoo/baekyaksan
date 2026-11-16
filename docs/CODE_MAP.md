@@ -155,6 +155,7 @@ index.html (화면 구조)
 | world | `src/game/world/47-wildlife-states.js` | 4184–4319 | 105줄 | 동물 움직임·위협·기절·멧돼지 경고 |
 | world | `src/game/world/47c-animal-riding.js` | —–— | 84줄 | Lv.9 고라니 / Lv.10 멧돼지 탑승, 내리기 및 속도 강화 |
 | world | `src/game/world/47d-squirrel-companion.js` | —–— | 118줄 | Lv.10 다람쥐/청설모 같은 개체 10회 먹이·어깨 반려 동물·저장/다인 렌더 연결 |
+| world | `src/game/world/47e-squirrel-whisper.js` | —–— | 92줄 | Lv.10 어깨 동물 20m 도감 채집물 감지·작은 말풍선·찍찍 효과음·재진입 알림 |
 | gameplay | `src/game/gameplay/47b-five-star-sense.js` | —–— | 79줄 | 레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림 |
 | world | `src/game/world/48-wildlife-update.js` | 4320–4435 | 117줄 | 동물 AI 및 이름표 갱신 |
 | gameplay | `src/game/gameplay/49-rock-climbing.js` | 4436–4527 | 214줄 | 바위 등반 타이밍·기절·점프 연결 |
@@ -163,10 +164,10 @@ index.html (화면 구조)
 | world | `src/game/world/53a-cave-blessing-visuals.js` | —–— | 63줄 | 공양 후 촛불 동시 흔들림·은은한 광원·황금 불상 빛·동굴 카메라 진동 |
 | gameplay | `src/game/gameplay/54-secret-offering-and-titles.js` | —–— | 132줄 | 공양 확인·재료 소모·절하기·영구 칭호·공양 UI 및 멀티 연출 |
 | gameplay | `src/game/gameplay/54a-cave-blessing-buff.js` | —–— | 51줄 | 일반/황금 5성 공양 40분/24시간 음식 동일 효과·산삼 힌트 3%·황금 기절 보호·저장·HUD |
-| core | `src/game/core/50-game-update.js` | 4528–4605 | 88줄 | 프레임별 게임 로직·물리·상태 갱신 |
+| core | `src/game/core/50-game-update.js` | 4528–4605 | 89줄 | 프레임별 게임 로직·물리·상태 갱신 |
 | save | `src/game/save/51-profile-and-files.js` | 4606–4843 | 260줄 | 프로필 키·JSON 저장·복원·기록 내보내기 |
 | core | `src/game/core/51a-settings-terrain-refresh.js` | —–— | 73줄 | 설정 > 지형 새로고침: 프로필 위치 보존·자동 복귀·청크 복구 대체 |
-| core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 143줄 | 시작·버튼 이벤트·메인 렌더 루프 |
+| core | `src/game/core/52-start-and-event-bindings.js` | 4844–4970 | 146줄 | 시작·버튼 이벤트·메인 렌더 루프 |
 <!-- AUTO-MAP-END -->
 
 ## 3. CSS 코드 맵

@@ -85,6 +85,9 @@ function beginGame(){
   const jacket=JACKETS[((save.color|0)%JACKETS.length+JACKETS.length)%JACKETS.length];
   scene.remove(me.root);
   const nm=makeHiker(jacket);Object.assign(me,nm);scene.add(me.root);
+  // This avatar is recreated on entry; restore the saved shoulder companion too.
+  setShoulderPet(me,playerRank>=10?save.shoulderPet?.kind:'');
+  hideSquirrelWhisper(true);
   me.root.position.set(P.x,P.y,P.z);setGreens(me,totalCount());
   camera.position.set(P.x-Math.sin(camYaw)*7.7,P.y+3.2,P.z-Math.cos(camYaw)*7.7);
   mode='game';

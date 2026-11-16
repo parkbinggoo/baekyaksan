@@ -54,7 +54,7 @@ assert(run('complete'));
 assert(run('partial'));
 assert(run('missing'));
 const html=await readFile(new URL('../index.html',import.meta.url),'utf8');
-assert.match(html,/dist\/game\.bundle\.js\?v=1\.2\.8-shoulder1/,'bust stale bundle cache');
+assert.match(html,/dist\/game\.bundle\.js\?v=1\.2\.8-squirrelwhisper1/,'bust stale bundle cache');
 assert.match(html,/styles\/14-golden-hoe-ui\.css\?v=1\.2\.8-shoulder1/,'bust stale CSS cache');
 assert.match(html,/id="animalDismountBtn"/,'new mount dismount control is present');
 assert(!html.includes('id="goldenHoePanel"'));

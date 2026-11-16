@@ -415,6 +415,10 @@
       "purpose": "Lv.10 다람쥐/청설모 같은 개체 10회 먹이·어깨 반려 동물·저장/다인 렌더 연결"
     },
     {
+      "file": "world/47e-squirrel-whisper.js",
+      "purpose": "Lv.10 어깨 동물 20m 도감 채집물 감지·작은 말풍선·찍찍 효과음·재진입 알림"
+    },
+    {
       "file": "gameplay/47b-five-star-sense.js",
       "purpose": "레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림"
     },

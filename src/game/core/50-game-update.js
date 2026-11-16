@@ -1,7 +1,7 @@
 /* ================= GAME LOOP ================= */
 let clock=0,lastRespawnCheck=-10,summitNotified=false;
 function updateGame(dt){
-  if(inSecretCave){updateSecretCaveInterior(dt);return}
+  if(inSecretCave){hideSquirrelWhisper(true);updateSecretCaveInterior(dt);return}
   syncKST();syncWeather();const currentAlt=H(P.x,P.z)*ALT_K;updateRain(dt,currentAlt);updateAlpineSnow(dt,currentAlt);updateThunderstorm();
   const fainted=updFaint();if(!fainted&&!inTent)updateAnimals(dt);else if(boarAlertActive){$('boarWarning').classList.add('hide');boarAlertActive=false;}
   for(const c of chunks.values())for(const it of c.items)if(it.kind==='fruit'&&it.mesh&&it.fall!==false){
@@ -75,6 +75,7 @@ function updateGame(dt){
   for(let i=pulls.length-1;i>=0;i--){const p=pulls[i];p.t+=dt;const k=clamp(p.t/.7,0,1);p.m.position.y=p.y0+ease(k)*p.d;p.m.rotation.z=Math.sin(p.t*9)*.15*(1-k);if(p.t>1.1)p.m.scale.setScalar(Math.max(.001,1-(p.t-1.1)/.4));if(p.t>1.5){p.m.parent&&p.m.parent.remove(p.m);pulls.splice(i,1)}}
   updateSecretCaveExterior(dt);
   updateRareSense(dt);
+  updateShoulderSquirrelWhisper(dt);
   updateAnimalLookLabel(); updateTents();updateCampfires(dt);updateRockClimbing(dt);updateMysteriousAuraAlert();
   updParticles(dt);updLabels(dt);updOthers(dt);updateMyRankTag();updSky();updateNightSky(dt);updateFireflies();updAmbience(dt);updateWorldSounds(dt);
   updateHudCompass();
