@@ -101,13 +101,24 @@ function normalizeRecord(raw){
   const buffUntil=buffKind&&Number.isFinite(raw?.offeringBuffUntil)?clamp(raw.offeringBuffUntil,0,Date.now()+buffCap):0;
   const goldenHoeOwned=!!raw?.goldenHoeOwned;
   const goldenHoeCooldownUntil=Number.isFinite(raw?.goldenHoeCooldownUntil)?Math.max(0,Math.min(Date.now()+24*60*60*1000,Math.floor(raw.goldenHoeCooldownUntil))):0;
-  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
+  const squirrelFeeds={};
+  if(raw?.squirrelFeeds&&typeof raw.squirrelFeeds==='object'&&!Array.isArray(raw.squirrelFeeds)){
+    for(const [id,value] of Object.entries(raw.squirrelFeeds).slice(-250)){
+      if(/^-?\d{1,4},-?\d{1,4}:animal[01]$/.test(id)&&Number.isInteger(value)&&value>0&&value<10)squirrelFeeds[id]=value;
+    }
+  }
+  const companion=raw?.shoulderPet;
+  const shoulderPet=companion&&/^-?\d{1,4},-?\d{1,4}:animal[01]$/.test(companion.id)&&
+    (companion.kind==='squirrel'||companion.kind==='redsquirrel')?
+    {id:companion.id,kind:companion.kind}:null;
+  return {inv,known,goldKnown,specialTitles,shoulderPet,squirrelFeeds,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0,squirrelFeeds:v.squirrelFeeds||{},shoulderPet:v.shoulderPet||null};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
+  setShoulderPet(me,playerRank>=10?save.shoulderPet?.kind:'');
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;
   faintUntil=v.faintUntil;

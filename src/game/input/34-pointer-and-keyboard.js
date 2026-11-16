@@ -18,11 +18,12 @@ function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
   if(typeof goldenHoeMesh!=='undefined'&&goldenHoeMesh&&goldenHoeMesh.visible)objs.push(goldenHoeMesh);
-  for(const a of animals.values())if(a.mesh?.visible&&RIDE_SPEC[a.kind.id]&&Math.hypot(a.x-P.x,a.z-P.z)<12)objs.push(a.mesh);
+  for(const a of animals.values())if(a.mesh?.visible&&(RIDE_SPEC[a.kind.id]||isSquirrelKind(a.kind.id))&&Math.hypot(a.x-P.x,a.z-P.z)<12)objs.push(a.mesh);
   const hits=ray.intersectObjects(objs,true);
   for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire&&!o.userData.goldenHoe)o=o.parent;if(o?.userData.goldenHoe){interactGoldenHoe();hideHint();return;}if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
   // The animal itself is a physical target, with no automatic mount panel.
-  for(const h of hits)if(tryMountAnimalFromRay(h.object)){hideHint();return}
+  for(const h of hits){if(tryFeedSquirrelFromRay(h.object)){hideHint();return}if(tryMountAnimalFromRay(h.object)){hideHint();return}}
+  if(tryFeedSquirrelTapAssist(sx,sy)){hideHint();return}
   // If the tap narrowly misses a small collectible, check its projected
   // silhouette before treating the tap as terrain or an ordinary tree.
   // Real ray hits on items, tents and campfires always take priority.

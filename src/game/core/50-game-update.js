@@ -54,6 +54,7 @@ function updateGame(dt){
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
   syncMountedAnimal(dt);
+  me.rideType=ridingKind();
   me.root.position.set(P.x,P.y+(fainted?.28:0)+(isRiding()?ridingHeight(ridingKind()):0),P.z);
   me.root.rotation.x=lerp(me.root.rotation.x,fainted?-Math.PI/2:climbing?-.20:0,Math.min(1,dt*12));
   {let dh=P.h-me.root.rotation.y;dh=Math.atan2(Math.sin(dh),Math.cos(dh));me.root.rotation.y+=dh*Math.min(1,dt*14)}poseHiker(me,dt,fainted?0:P.speed);

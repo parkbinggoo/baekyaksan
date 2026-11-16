@@ -3,7 +3,7 @@
  * cave coordinates, or the old herb-gathering animation/logic.
  * Network presence only announces the animal type so peers can render a mount.
  */
-const RIDE_SPEC=Object.freeze({deer:{level:9,multiplier:1.30,height:.76},boar:{level:10,multiplier:1.50,height:.70}});
+const RIDE_SPEC=Object.freeze({deer:{level:9,multiplier:1.30,height:.66},boar:{level:10,multiplier:1.50,height:.51}});
 let mountedAnimal=null;
 function rideAllowed(kind,level=playerRank){return !!RIDE_SPEC[kind]&&level>=RIDE_SPEC[kind].level}
 function ridingMultiplier(){return mountedAnimal?RIDE_SPEC[mountedAnimal.kind.id]?.multiplier||1:1}

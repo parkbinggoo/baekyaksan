@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="./styles/01-intro-hud-inventory.css">
 <link rel="stylesheet" href="./styles/02-controls-and-profiles.css">
 <link rel="stylesheet" href="./styles/03-ranks-upgrades.css">
-<link rel="stylesheet" href="./styles/04-joystick-map-climb.css?v=1.2.8-animalride1">
+<link rel="stylesheet" href="./styles/04-joystick-map-climb.css?v=1.2.8-shoulder1">
 <link rel="stylesheet" href="./styles/05-responsive-layout.css">
 <link rel="stylesheet" href="./styles/06-save-and-camp.css">
 <link rel="stylesheet" href="./styles/07-tent-and-market.css">
@@ -22,7 +22,8 @@
 <link rel="stylesheet" href="./styles/11-five-star-sense.css">
 <link rel="stylesheet" href="./styles/12-hud-navigation.css">
 <link rel="stylesheet" href="./styles/13-cave-blessing.css">
-<link rel="stylesheet" href="./styles/14-golden-hoe-ui.css?v=1.2.8-animalride1">
+<link rel="stylesheet" href="./styles/14-golden-hoe-ui.css?v=1.2.8-shoulder1">
+<link rel="stylesheet" href="./styles/16-squirrel-friend.css?v=1.2.8-shoulder1">
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -113,6 +114,12 @@
 <div id="joy" class="hide"><div id="knob"></div></div>
 <button id="jumpBtn" class="hide">점프</button>
 <button id="animalDismountBtn" class="hide" type="button" aria-label="동물에서 내리기">내리기</button>
+<section id="squirrelFeedPanel" class="hide" aria-label="다람쥐 먹이 주기">
+  <button id="squirrelFeedClose" type="button" aria-label="먹이 주기 닫기">×</button>
+  <div id="squirrelFeedHeading" class="friendHeading"></div>
+  <div id="squirrelFeedCount" class="friendCount"></div>
+  <div id="squirrelFeedFoods" class="friendFoods"></div>
+</section>
 <div id="climbPanel" class="hide" role="status" aria-live="off"><strong id="climbTitle">큰 바위 오르기</strong><small id="climbInfo">초록색 구간에 맞춰 오르기를 누르세요. 실패하면 2분간 기절합니다.</small><div id="climbBeat"><div id="climbBeatSafe"></div><div id="climbNeedle"></div></div></div>
 
 <section id="goldenHoeAchievement" class="hide" role="dialog" aria-label="황금 호미 획득" aria-modal="false">
@@ -228,6 +235,6 @@
 </div>
 <div id="secretAchievement" class="hide" role="status" aria-live="polite"></div>
 <div id="fade"></div>
-<script src="./dist/game.bundle.js?v=1.2.8-animalride1"></script>
+<script src="./dist/game.bundle.js?v=1.2.8-shoulder1"></script>
 </body>
 </html>

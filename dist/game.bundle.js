@@ -142,7 +142,7 @@ function fiveStarSenseRankText(level){
  return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
 }
 function animalRideRankText(level){
- return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 야생동물 비회피':
+ return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 🐿 다람쥐·청설모에게 같은 개체당 먹이 10개 → 어깨 동행 · 야생동물 비회피':
    level>=9?'🦌 야생동물 비회피 · 고라니 탑승 +30%':'';
 }
 function renderRankGuide(){
@@ -253,13 +253,13 @@ function chime(rar){const base=[392,494,587,784,988]; const n=rar>=4?5:3; for(le
 const SAVE3='baekyaksan3d-v1'; // Old single-browser record; kept for one-time migration.
 const TWIG_KEY='fallenTwig',MEAL_SPEED_MULT=1.32,MEAL_JUMP_MULT=1.175;
 const PROFILE_STORE_PREFIX='baekyaksan-profile-v2:', PROFILE_APP='baekyaksan3d', PROFILE_FORMAT=2;
-let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''},offeringBuffKind:'',offeringBuffUntil:0,goldenHoeOwned:false,goldenHoeCooldownUntil:0};
+let save={inv:{},known:{},won:0,taken:{},nick:'',color:0,pos:null,bagCap:10,lanternLevel:1,stats:{},goldKnown:{},specialTitles:{unlocked:[],equipped:''},offeringBuffKind:'',offeringBuffUntil:0,goldenHoeOwned:false,goldenHoeCooldownUntil:0,squirrelFeeds:{},shoulderPet:null};
 try{const s=JSON.parse(localStorage.getItem(SAVE3)||'null');if(s&&s.inv)save=Object.assign(save,s)}catch(e){}
 const legacySave=JSON.parse(JSON.stringify(save));
 let activeProfileKey='',activeCredential=null;
 function profileProgress(){
   const pos=(typeof P!=='undefined'&&mode==='game')?(inSecretCave&&caveReturnPos?{x:caveReturnPos.x,z:caveReturnPos.z}:{x:+P.x.toFixed(2),z:+P.z.toFixed(2)}):save.pos;
-  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,offeringBuffKind:save.offeringBuffKind||'',offeringBuffUntil:+save.offeringBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''},goldenHoeOwned:!!save.goldenHoeOwned,goldenHoeCooldownUntil:+save.goldenHoeCooldownUntil||0};
+  return {inv:save.inv,known:save.known||{},won:+save.won||0,color:save.color|0,pos,faintUntil:Math.max(0,faintUntil||0),bagCap:bagLimit(),lanternLevel:lanternLevel(),stats:save.stats||{},highestRank:playerRank,mealBuffUntil:+save.mealBuffUntil||0,offeringBuffKind:save.offeringBuffKind||'',offeringBuffUntil:+save.offeringBuffUntil||0,goldKnown:save.goldKnown||{},specialTitles:save.specialTitles||{unlocked:[],equipped:''},goldenHoeOwned:!!save.goldenHoeOwned,goldenHoeCooldownUntil:+save.goldenHoeCooldownUntil||0,squirrelFeeds:save.squirrelFeeds||{},shoulderPet:save.shoulderPet||null};
 }
 function profileDocument(cred,progress){return {app:PROFILE_APP,format:PROFILE_FORMAT,profile:{name:cred.nick,verifier:cred.verifier},progress,updatedAt:Date.now()}}
 function persist(){
@@ -1285,13 +1285,17 @@ function makeHiker(jacket){
         pack=T(0x9ccf2a),packD=T(0x86b521),grey=T(0x8b9096),greyD=T(0x5d6268),black=T(0x232528),wood=T(0xa47a4a);
   const mk=(geo,mat,parent,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
   const box=(w,h,d,mat,parent,x,y,z)=>mk(new THREE.BoxGeometry(w,h,d),mat,parent,x,y,z);
-  const legL=new THREE.Group(),legR=new THREE.Group();legL.position.set(-.1,.9,0);legR.position.set(.1,.9,0);
-  for(const [lg,s] of [[legL,-1],[legR,1]]){
-    mk(new THREE.CylinderGeometry(.085,.07,.8,8),pants,lg,0,-.4,0);
-    box(.13,.2,.03,pantsD,lg,0,-.5,.07);                                  // knee panel
-    box(.04,.16,.12,pantsD,lg,s*.085,-.22,.0);                             // cargo pocket
-    box(.13,.1,.27,boot,lg,0,-.82,.04);box(.14,.035,.29,sole,lg,0,-.885,.045);
-    for(let i=0;i<3;i++)box(.07,.008,.01,lace,lg,0,-.8+i*.025,.175-i*.015);
+  const legL=new THREE.Group(),legR=new THREE.Group(),kneeL=new THREE.Group(),kneeR=new THREE.Group();
+  legL.position.set(-.1,.9,0);legR.position.set(.1,.9,0);
+  for(const [lg,knee,s] of [[legL,kneeL,-1],[legR,kneeR,1]]){
+    // Pivot at hip and knee: natural straddle while mounted, unchanged standing height.
+    mk(new THREE.CylinderGeometry(.086,.074,.43,8),pants,lg,0,-.215,0);
+    box(.04,.16,.12,pantsD,lg,s*.085,-.22,0);                         // upper-leg pocket
+    knee.position.y=-.43;lg.add(knee);
+    mk(new THREE.CylinderGeometry(.074,.065,.40,8),pants,knee,0,-.2,0);
+    box(.13,.10,.035,pantsD,knee,0,-.035,.073);
+    box(.13,.1,.27,boot,knee,0,-.39,.04);box(.14,.035,.29,sole,knee,0,-.455,.045);
+    for(let i=0;i<3;i++)box(.07,.008,.01,lace,knee,0,-.37+i*.025,.175-i*.015);
     body.add(lg)}
   const torso=new THREE.Group();torso.position.y=.9;body.add(torso);
   mk(new THREE.CylinderGeometry(.215,.235,.62,12),jk,torso,0,.33,0);
@@ -1361,7 +1365,23 @@ function makeHiker(jacket){
   ferrule.material=ferrule.material.clone();
   blade.material=blade.material.clone();
   const hoeGlow=new THREE.PointLight(0xffd76f,0,7.5,1.55);hoeGlow.position.set(0,-.03,.24);hoeGlow.castShadow=false;hoe.add(hoeGlow);
-  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
+  const petAnchor=new THREE.Group();petAnchor.position.set(-.31,.62,.10);petAnchor.rotation.y=-.16;torso.add(petAnchor);
+  return {root,body,legL,legR,kneeL,kneeR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,petAnchor,shoulderPetKind:'',shoulderPetMesh:null,rideType:'',phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
+}
+// Retain the original squirrel / Eurasian red squirrel meshes; only mount on the shoulder.
+function setShoulderPet(h,kind){
+  const value=kind==='squirrel'||kind==='redsquirrel'?kind:'';
+  if(h.shoulderPetKind===value)return;
+  if(h.shoulderPetMesh){h.petAnchor.remove(h.shoulderPetMesh);h.shoulderPetMesh=null}
+  h.shoulderPetKind=value;
+  if(!value)return;
+  const spec=WILDLIFE.find(a=>a.id===value);
+  if(!spec)return;
+  const mesh=createAnimal(spec);
+  mesh.position.set(0,0,0);
+  mesh.rotation.y=-.12;
+  h.petAnchor.add(mesh);
+  h.shoulderPetMesh=mesh;
 }
 function setGreens(h,n){n=Math.min(6,n);if(h.nGreens===n)return;h.nGreens=n;while(h.greens.children.length)h.greens.remove(h.greens.children[0]);
   for(let i=0;i<n;i++){leafM(h.greens,0,0,(i-2.5)*.025,.2,.05,i*.5,1.3,M(i%2?0x5a8a3a:0x6fa046))}}
@@ -1411,15 +1431,32 @@ function poseHiker(h,dt,speed){
     aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
     lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
-  else if(h.mode==='ride'){lL=-1.26;lR=-1.26;aL=-.42;aR=-.42;aLz=.18;aRz=-.18;by=-.25;lean=.13;hd=-.06;h.torso.rotation.z=Math.sin(h.t*5)*.018}
+  else if(h.mode==='ride'){
+    const wide=h.rideType==='boar'?.78:.60;
+    // Thighs straddle both sides; knees bend so boots hang naturally beside the flank.
+    lL=-1.06;lR=-1.06;aL=-.50;aR=-.50;aLz=.14;aRz=-.14;
+    by=-.40+Math.sin(h.t*6)*.013;lean=.09;hd=-.06;
+    h.rideSpread=wide;h.torso.rotation.z=Math.sin(h.t*5)*.018;
+  }
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}
   const f=1-Math.exp(-dt*(h.mode==='dig'?40:14));
   h.legL.rotation.x=lerp(h.legL.rotation.x,lL,f);h.legR.rotation.x=lerp(h.legR.rotation.x,lR,f);
   h.armL.rotation.x=lerp(h.armL.rotation.x,aL,f);h.armR.rotation.x=lerp(h.armR.rotation.x,aR,f);
   h.armL.rotation.z=lerp(h.armL.rotation.z,aLz,f);h.armR.rotation.z=lerp(h.armR.rotation.z,aRz,f);
-  h.legL.rotation.y=lerp(h.legL.rotation.y,h.mode==='sit'?.16:0,f);h.legR.rotation.y=lerp(h.legR.rotation.y,h.mode==='sit'?-.16:0,f);
+  const mounted=h.mode==='ride',sideSpread=mounted?(h.rideSpread||.60):0;
+  h.legL.rotation.z=lerp(h.legL.rotation.z,-sideSpread,f);
+  h.legR.rotation.z=lerp(h.legR.rotation.z,sideSpread,f);
+  h.legL.rotation.y=lerp(h.legL.rotation.y,mounted?-.16:h.mode==='sit'?.16:0,f);
+  h.legR.rotation.y=lerp(h.legR.rotation.y,mounted?.16:h.mode==='sit'?-.16:0,f);
+  if(h.kneeL)h.kneeL.rotation.x=lerp(h.kneeL.rotation.x,mounted?1.22:0,f);
+  if(h.kneeR)h.kneeR.rotation.x=lerp(h.kneeR.rotation.x,mounted?1.22:0,f);
   h.body.position.y=lerp(h.body.position.y,by,(h.mode==='joy'||h.mode==='joyspin')?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
+  if(h.shoulderPetMesh){
+    const rig=h.shoulderPetMesh.userData?.anim;
+    if(rig?.tail){rig.tail.rotation.x=-.48+Math.sin(h.t*3.1)*.08;rig.tail.rotation.y=Math.sin(h.t*2.8)*.16}
+    h.petAnchor.rotation.z=Math.sin(h.t*2.1)*.03;
+  }
   if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar((h.mode==='joy'||h.mode==='joyspin')?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
 }
 /* ================= FLORA: 한국 자생 약초·나물 64종 =================
@@ -3177,11 +3214,12 @@ function clickAt(sx,sy){if(inSecretCave||Date.now()<faintUntil||inTent||cooking)
   const objs=[];for(const c of chunks.values()){for(const it of c.items)if(it.mesh)objs.push(it.mesh);objs.push(...c.treeMeshes,c.ground)}
   for(const t of tents){if(t.mesh.visible)objs.push(t.mesh);if(t.camp?.group.visible)objs.push(t.camp.group)}
   if(typeof goldenHoeMesh!=='undefined'&&goldenHoeMesh&&goldenHoeMesh.visible)objs.push(goldenHoeMesh);
-  for(const a of animals.values())if(a.mesh?.visible&&RIDE_SPEC[a.kind.id]&&Math.hypot(a.x-P.x,a.z-P.z)<12)objs.push(a.mesh);
+  for(const a of animals.values())if(a.mesh?.visible&&(RIDE_SPEC[a.kind.id]||isSquirrelKind(a.kind.id))&&Math.hypot(a.x-P.x,a.z-P.z)<12)objs.push(a.mesh);
   const hits=ray.intersectObjects(objs,true);
   for(const h of hits){let o=h.object;while(o&&!o.userData.item&&!o.userData.tent&&!o.userData.campfire&&!o.userData.goldenHoe)o=o.parent;if(o?.userData.goldenHoe){interactGoldenHoe();hideHint();return;}if(o?.userData.campfire){showCampPanel(o.userData.campfire);hideHint();return;}if(o&&o.userData.tent){const t=o.userData.tent, pos=t.mesh.position.clone(); if(nearTo(pos,3.1)) openTent(t); else{target={x:pos.x,z:pos.z,stop:2.4}; pending={kind:'tent',tent:t,pos};} hideHint(); return;} if(o&&o.userData.item){const it=o.userData.item;act({kind:it.kind,item:it,pos:it.mesh.position.clone()});hideHint();return}}
   // The animal itself is a physical target, with no automatic mount panel.
-  for(const h of hits)if(tryMountAnimalFromRay(h.object)){hideHint();return}
+  for(const h of hits){if(tryFeedSquirrelFromRay(h.object)){hideHint();return}if(tryMountAnimalFromRay(h.object)){hideHint();return}}
+  if(tryFeedSquirrelTapAssist(sx,sy)){hideHint();return}
   // If the tap narrowly misses a small collectible, check its projected
   // silhouette before treating the tap as terrain or an ordinary tree.
   // Real ray hits on items, tents and campfires always take priority.
@@ -3462,7 +3500,7 @@ function netPublish(type,extra){if(!mqttOnline||!mqttClient)return;
   try{mqttClient.publish(MQTT_TOPIC+type+'/'+myId,JSON.stringify(packet),{qos:0,retain:false})}catch(e){}
 }
 function netState(){const act=Date.now()<faintUntil?'f':me.mode==='walk'?'w':me.mode==='dig'?'d':me.mode==='joy'?'j':me.mode==='joyspin'?'s':me.mode==='cook'?'c':me.mode==='bow'?'b':'i';
-  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0,ride:ridingKind()==='deer'?'d':ridingKind()==='boar'?'b':''};}
+  return {x:+P.x.toFixed(2),y:+P.y.toFixed(2),z:+P.z.toFixed(2),h:+P.h.toFixed(2),a:act,c:save.color|0,n:cleanNick(save.nick),alt:Math.min(SUMMIT_ALT,Math.round(P.y*ALT_K)),g:Math.min(6,totalCount()),lv:playerRank,lt:lanternLevel(),tent:inTent&&activeTent?activeTent.id:'',cv:inSecretCave?1:0,tt:activeSpecialTitle(),gh:save.goldenHoeOwned?1:0,ride:ridingKind()==='deer'?'d':ridingKind()==='boar'?'b':'',pet:playerRank>=10?(save.shoulderPet?.kind==='squirrel'?'s':save.shoulderPet?.kind==='redsquirrel'?'r':''):''};}
 function updatePeople(){
   const count=netJoined?1+[...peerSeen.values()].filter(v=>Date.now()-v.seen<11000).length:0;
   peopleCount=count;
@@ -3575,6 +3613,8 @@ function upOther(p){
   o.tx=+s.x;o.tz=+s.z;o.ty=Number.isFinite(+s.y)?+s.y:H(o.tx,o.tz);o.th=+s.h||0;
   o.rank=Number.isInteger(s.lv)?clamp(s.lv,1,RANKS.length):1;o.nick=cleanNick(s.n);o.alt=Math.round(+s.alt||0);o.tent=typeof s.tent==='string'&&/^tent-\d{1,2}$/.test(s.tent)?s.tent:'';o.color=Number.isInteger(s.c)?s.c:0;o.lanternLevel=Number.isInteger(s.lt)?clamp(s.lt,1,3):1;o.inCave=s.cv===1;o.specialTitle=validSpecialTitle(s.tt);o.av.hasGoldenHoe=s.gh===1;
   o.ride=(s.ride==='d'&&o.rank>=9)?'deer':(s.ride==='b'&&o.rank>=10)?'boar':'';
+  o.av.rideType=o.ride;
+  setShoulderPet(o.av,o.rank>=10?(s.pet==='s'?'squirrel':s.pet==='r'?'redsquirrel':''):'');
   o.av.root.traverse(part=>part.layers.set(o.inCave?1:0));o.headLamp.layers.set(o.inCave?1:0);o.headLamp.target.layers.set(o.inCave?1:0);
   setGreens(o.av,+s.g|0);
   const md=o.ride?'ride':s.a==='b'?'bow':s.a==='f'?'faint':s.a==='w'?'walk':s.a==='d'?'dig':s.a==='j'?'joy':s.a==='s'?'joyspin':s.a==='c'?'cook':'idle';if(md!==o.mode){o.mode=md;o.av.mode=md;o.av.t=0}
@@ -4479,6 +4519,7 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
  for(let j=0;j<2;j++){let kind=WILDLIFE[Math.floor(rr()*WILDLIFE.length)],key=id+':animal'+j;
  if(kind.id==='boar'&&h2(x*37+j*13+1041,z*43-j*19-191)>.80)
    kind=WILDLIFE[h2(x*11+j*31+81,z*23-57)>.5?2:3]; // rabbit / water deer
+ if(save.shoulderPet?.id===key&&save.shoulderPet?.kind===kind.id)continue;
  if(!animals.has(key)){let xx=x*CH+5+rr()*(CH-10),zz=z*CH+5+rr()*(CH-10);
    if(kind.id==='boar'&&(isBoarFreeArea(xx,zz)||summitForbidsBoar(xx,zz)))continue;
    const c=chunks.get(id);
@@ -4558,7 +4599,7 @@ function updateBoarWarning(){
  * cave coordinates, or the old herb-gathering animation/logic.
  * Network presence only announces the animal type so peers can render a mount.
  */
-const RIDE_SPEC=Object.freeze({deer:{level:9,multiplier:1.30,height:.76},boar:{level:10,multiplier:1.50,height:.70}});
+const RIDE_SPEC=Object.freeze({deer:{level:9,multiplier:1.30,height:.66},boar:{level:10,multiplier:1.50,height:.51}});
 let mountedAnimal=null;
 function rideAllowed(kind,level=playerRank){return !!RIDE_SPEC[kind]&&level>=RIDE_SPEC[kind].level}
 function ridingMultiplier(){return mountedAnimal?RIDE_SPEC[mountedAnimal.kind.id]?.multiplier||1:1}
@@ -4637,6 +4678,124 @@ function ensureAnimalDismountButton(){
   return button;
 }
 ensureAnimalDismountButton()?.addEventListener('click',e=>{e.stopPropagation();dismountAnimal()});
+/* === Lv.10 SQUIRREL / EURASIAN RED SQUIRREL COMPANION ===
+ * A player feeds ONE stable world animal ID over time (10 fruit/nuts total).
+ * Food is taken from the inventory. The earned shoulder companion is stored
+ * in the player's portable profile; peers see the same low-poly species.
+ */
+const SQUIRREL_FOOD=Object.freeze([
+  {key:'chestnut',label:'밤'},
+  {key:'jat',label:'잣'},
+  {key:'acorn',label:'도토리'},
+  {key:'wildberry',label:'산딸기'}
+]);
+const SQUIRREL_FEED_GOAL=10;
+let feedingSquirrelKey='';
+function isSquirrelKind(kind){return kind==='squirrel'||kind==='redsquirrel'}
+function squirrelFeedCount(key){return Math.max(0,Math.min(SQUIRREL_FEED_GOAL,(save.squirrelFeeds?.[key]|0)||0))}
+function ensureSquirrelFeedPanel(){
+  let panel=$('squirrelFeedPanel');
+  if(panel)return panel;
+  panel=document.createElement('section');panel.id='squirrelFeedPanel';panel.className='hide';
+  panel.setAttribute('aria-label','다람쥐 먹이 주기');
+  const heading=document.createElement('div');heading.className='friendHeading';heading.id='squirrelFeedHeading';
+  const count=document.createElement('div');count.className='friendCount';count.id='squirrelFeedCount';
+  const foods=document.createElement('div');foods.className='friendFoods';foods.id='squirrelFeedFoods';
+  const close=document.createElement('button');close.id='squirrelFeedClose';close.type='button';close.textContent='×';close.setAttribute('aria-label','먹이 주기 닫기');
+  close.addEventListener('click',()=>closeSquirrelFeedPanel());
+  panel.append(close,heading,count,foods);document.body.appendChild(panel);
+  if(!document.querySelector('link[href*="16-squirrel-friend.css"]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='./styles/16-squirrel-friend.css?v=1.2.8-shoulder1';document.head.appendChild(link);
+  }
+  return panel;
+}
+function closeSquirrelFeedPanel(){feedingSquirrelKey='';$('squirrelFeedPanel')?.classList.add('hide')}
+function canReachSquirrel(a){
+  if(!a||!a.mesh?.visible)return false;
+  return Math.hypot(P.x-a.x,P.z-a.z)<=3.0&&Math.abs(a.mesh.position.y-P.y)<=2.25;
+}
+function openSquirrelFeedPanel(a){
+  if(!a||!isSquirrelKind(a.kind.id))return false;
+  if(playerRank<10){toast('다람쥐와 청설모에게 먹이를 주는 능력은 Lv.10부터 열립니다.');return true}
+  if(mode!=='game'||inSecretCave||inTent||isRiding()||climbing||cooking||Date.now()<faintUntil)return true;
+  if(!canReachSquirrel(a)){toast('다람쥐가 너무 멀리 있거나 나무 위에 있습니다. 조금 더 가까이 다가가세요.');return true}
+  feedingSquirrelKey=a.key;
+  renderSquirrelFeedPanel();
+  ensureSquirrelFeedPanel().classList.remove('hide');
+  return true;
+}
+function renderSquirrelFeedPanel(){
+  const a=animals.get(feedingSquirrelKey),panel=ensureSquirrelFeedPanel();
+  if(!a||!isSquirrelKind(a.kind.id)||playerRank<10){closeSquirrelFeedPanel();return}
+  $('squirrelFeedHeading').textContent=a.kind.name+'에게 먹이 주기';
+  $('squirrelFeedCount').textContent='같은 개체에게 '+squirrelFeedCount(a.key)+' / '+SQUIRREL_FEED_GOAL+'개';
+  const foodHost=$('squirrelFeedFoods');foodHost.replaceChildren();
+  for(const f of SQUIRREL_FOOD){
+    const n=save.inv[f.key]||0;
+    const button=document.createElement('button');button.type='button';button.disabled=n<1;
+    button.textContent=f.label+' '+n+'개';
+    button.addEventListener('click',()=>feedSquirrel(f.key));
+    foodHost.appendChild(button);
+  }
+  panel.classList.remove('hide');
+}
+function feedSquirrel(foodKey){
+  const a=animals.get(feedingSquirrelKey);
+  if(playerRank<10||!a||!isSquirrelKind(a.kind.id)||!SQUIRREL_FOOD.some(f=>f.key===foodKey)||
+    !canReachSquirrel(a)||isRiding()||inTent||inSecretCave||cooking||Date.now()<faintUntil){
+    if(a)toast('동물이 멀어졌습니다. 다시 가까이 다가가세요.');
+    closeSquirrelFeedPanel();return false;
+  }
+  if(!(save.inv[foodKey]>0)){renderSquirrelFeedPanel();return false}
+  // Durable per-animal count; do not combine different squirrels' progress.
+  save.inv[foodKey]--;if(!save.inv[foodKey])delete save.inv[foodKey];
+  save.squirrelFeeds=save.squirrelFeeds||{};
+  const count=Math.min(SQUIRREL_FEED_GOAL,squirrelFeedCount(a.key)+1);
+  if(count<SQUIRREL_FEED_GOAL){save.squirrelFeeds[a.key]=count;
+    toast(a.kind.name+'가 먹이를 받아먹었다. '+count+'/'+SQUIRREL_FEED_GOAL);
+  }else{
+    delete save.squirrelFeeds[a.key];
+    save.shoulderPet={id:a.key,kind:a.kind.id};
+    setShoulderPet(me,a.kind.id);
+    toast('🐿 '+a.kind.name+'가 마음을 열고 어깨에 올라탔다!');
+    tone(523,.2,'sine',.045);tone(659,.34,'sine',.035,1,.12);
+    removeWildAnimal(a.key,a);
+    closeSquirrelFeedPanel();
+    sendPresence(true);
+  }
+  hudKey='';persist();setGreens(me,totalCount());
+  if(count<SQUIRREL_FEED_GOAL)renderSquirrelFeedPanel();
+  if(!$('bag').classList.contains('hide'))buildBag();
+  return true;
+}
+// Enlarged screen-space touch assist for tiny squirrel silhouettes on mobile.
+function tryFeedSquirrelTapAssist(sx,sy){
+  if(playerRank<10||isRiding())return false;
+  let best=null,bestD2=Infinity;
+  const radius=IS_TOUCH?37:23;
+  for(const a of animals.values()){
+    if(!isSquirrelKind(a.kind.id)||!canReachSquirrel(a))continue;
+    const projected=a.mesh.position.clone();projected.y+=.13;projected.project(camera);
+    if(projected.z<=-1||projected.z>=1)continue;
+    const x=(projected.x*.5+.5)*W,y=(-projected.y*.5+.5)*Hh;
+    const d2=(sx-x)*(sx-x)+(sy-y)*(sy-y);
+    if(d2<radius*radius&&d2<bestD2){best=a;bestD2=d2}
+  }
+  return best?openSquirrelFeedPanel(best):false;
+}
+function tryFeedSquirrelFromRay(object){
+  let node=object;
+  while(node){
+    if(node.userData?.animalKey){
+      const a=animals.get(node.userData.animalKey);
+      return a&&isSquirrelKind(a.kind.id)?openSquirrelFeedPanel(a):false;
+    }
+    node=node.parent;
+  }
+  return false;
+}
+ensureSquirrelFeedPanel();
+$('squirrelFeedClose')?.addEventListener('click',closeSquirrelFeedPanel);
 // Five-star perception is a local HUD skill; it never reveals coordinates or
 // changes resource generation, harvest results, networking, or save records.
 const RARE_SENSE_SCAN_SECONDS=.25,RARE_SENSE_TEMP_MS=3000;
@@ -5843,6 +6002,7 @@ function updateGame(dt){
   else if(climbing)me.mode='climb';
   else me.mode=moveAmt?'walk':'idle';
   syncMountedAnimal(dt);
+  me.rideType=ridingKind();
   me.root.position.set(P.x,P.y+(fainted?.28:0)+(isRiding()?ridingHeight(ridingKind()):0),P.z);
   me.root.rotation.x=lerp(me.root.rotation.x,fainted?-Math.PI/2:climbing?-.20:0,Math.min(1,dt*12));
   {let dh=P.h-me.root.rotation.y;dh=Math.atan2(Math.sin(dh),Math.cos(dh));me.root.rotation.y+=dh*Math.min(1,dt*14)}poseHiker(me,dt,fainted?0:P.speed);
@@ -5977,13 +6137,24 @@ function normalizeRecord(raw){
   const buffUntil=buffKind&&Number.isFinite(raw?.offeringBuffUntil)?clamp(raw.offeringBuffUntil,0,Date.now()+buffCap):0;
   const goldenHoeOwned=!!raw?.goldenHoeOwned;
   const goldenHoeCooldownUntil=Number.isFinite(raw?.goldenHoeCooldownUntil)?Math.max(0,Math.min(Date.now()+24*60*60*1000,Math.floor(raw.goldenHoeCooldownUntil))):0;
-  return {inv,known,goldKnown,specialTitles,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
+  const squirrelFeeds={};
+  if(raw?.squirrelFeeds&&typeof raw.squirrelFeeds==='object'&&!Array.isArray(raw.squirrelFeeds)){
+    for(const [id,value] of Object.entries(raw.squirrelFeeds).slice(-250)){
+      if(/^-?\d{1,4},-?\d{1,4}:animal[01]$/.test(id)&&Number.isInteger(value)&&value>0&&value<10)squirrelFeeds[id]=value;
+    }
+  }
+  const companion=raw?.shoulderPet;
+  const shoulderPet=companion&&/^-?\d{1,4},-?\d{1,4}:animal[01]$/.test(companion.id)&&
+    (companion.kind==='squirrel'||companion.kind==='redsquirrel')?
+    {id:companion.id,kind:companion.kind}:null;
+  return {inv,known,goldKnown,specialTitles,shoulderPet,squirrelFeeds,won:wonValue,color,pos,faintUntil:until>Date.now()?until:0,bagCap:safeCap,lanternLevel:safeLantern,stats,highestRank,mealBuffUntil,offeringBuffKind:buffUntil>Date.now()?buffKind:'',offeringBuffUntil:buffUntil>Date.now()?buffUntil:0,goldenHoeOwned,goldenHoeCooldownUntil:goldenHoeCooldownUntil>Date.now()?goldenHoeCooldownUntil:0};
 }
 function setSwatchSelection(){[...$('swatches').children].forEach((b,i)=>b.classList.toggle('on',i===(save.color|0)))}
 function applyRecord(cred,progress){
   const v=normalizeRecord(progress);
-  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0};
+  save={inv:v.inv,known:v.known||{},goldKnown:v.goldKnown||{},specialTitles:v.specialTitles,won:+v.won||0,taken:{},nick:cred.nick,color:v.color,pos:v.pos,bagCap:v.bagCap,lanternLevel:v.lanternLevel,stats:v.stats,mealBuffUntil:v.mealBuffUntil,offeringBuffKind:v.offeringBuffKind,offeringBuffUntil:v.offeringBuffUntil,goldenHoeOwned:!!v.goldenHoeOwned,goldenHoeCooldownUntil:+v.goldenHoeCooldownUntil||0,squirrelFeeds:v.squirrelFeeds||{},shoulderPet:v.shoulderPet||null};
   playerRank=Math.max(earnedRank(),v.highestRank);save.highestRank=playerRank;
+  setShoulderPet(me,playerRank>=10?save.shoulderPet?.kind:'');
   P.x=v.pos?v.pos.x:pathX(24);P.z=v.pos?v.pos.z:24;P.y=H(P.x,P.z);
   P.h=Math.PI;P.speed=0;P.vy=0;P.air=false;camYaw=P.h;
   faintUntil=v.faintUntil;

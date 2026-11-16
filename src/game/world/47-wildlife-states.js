@@ -28,6 +28,7 @@ function refreshAnimals(){clearExpiredBoarZones();const near=new Set();const cx=
  for(let j=0;j<2;j++){let kind=WILDLIFE[Math.floor(rr()*WILDLIFE.length)],key=id+':animal'+j;
  if(kind.id==='boar'&&h2(x*37+j*13+1041,z*43-j*19-191)>.80)
    kind=WILDLIFE[h2(x*11+j*31+81,z*23-57)>.5?2:3]; // rabbit / water deer
+ if(save.shoulderPet?.id===key&&save.shoulderPet?.kind===kind.id)continue;
  if(!animals.has(key)){let xx=x*CH+5+rr()*(CH-10),zz=z*CH+5+rr()*(CH-10);
    if(kind.id==='boar'&&(isBoarFreeArea(xx,zz)||summitForbidsBoar(xx,zz)))continue;
    const c=chunks.get(id);

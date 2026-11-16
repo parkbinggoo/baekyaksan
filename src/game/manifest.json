@@ -411,6 +411,10 @@
       "purpose": "Lv.9 고라니 / Lv.10 멧돼지 탑승, 내리기 및 속도 강화"
     },
     {
+      "file": "world/47d-squirrel-companion.js",
+      "purpose": "Lv.10 다람쥐/청설모 같은 개체 10회 먹이·어깨 반려 동물·저장/다인 렌더 연결"
+    },
+    {
       "file": "gameplay/47b-five-star-sense.js",
       "purpose": "레벨 6~9/상위 등급별 5성 채집물 20m·10m 일시/유지 탐지 알림"
     },

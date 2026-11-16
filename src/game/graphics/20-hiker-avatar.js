@@ -7,13 +7,17 @@ function makeHiker(jacket){
         pack=T(0x9ccf2a),packD=T(0x86b521),grey=T(0x8b9096),greyD=T(0x5d6268),black=T(0x232528),wood=T(0xa47a4a);
   const mk=(geo,mat,parent,x=0,y=0,z=0)=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
   const box=(w,h,d,mat,parent,x,y,z)=>mk(new THREE.BoxGeometry(w,h,d),mat,parent,x,y,z);
-  const legL=new THREE.Group(),legR=new THREE.Group();legL.position.set(-.1,.9,0);legR.position.set(.1,.9,0);
-  for(const [lg,s] of [[legL,-1],[legR,1]]){
-    mk(new THREE.CylinderGeometry(.085,.07,.8,8),pants,lg,0,-.4,0);
-    box(.13,.2,.03,pantsD,lg,0,-.5,.07);                                  // knee panel
-    box(.04,.16,.12,pantsD,lg,s*.085,-.22,.0);                             // cargo pocket
-    box(.13,.1,.27,boot,lg,0,-.82,.04);box(.14,.035,.29,sole,lg,0,-.885,.045);
-    for(let i=0;i<3;i++)box(.07,.008,.01,lace,lg,0,-.8+i*.025,.175-i*.015);
+  const legL=new THREE.Group(),legR=new THREE.Group(),kneeL=new THREE.Group(),kneeR=new THREE.Group();
+  legL.position.set(-.1,.9,0);legR.position.set(.1,.9,0);
+  for(const [lg,knee,s] of [[legL,kneeL,-1],[legR,kneeR,1]]){
+    // Pivot at hip and knee: natural straddle while mounted, unchanged standing height.
+    mk(new THREE.CylinderGeometry(.086,.074,.43,8),pants,lg,0,-.215,0);
+    box(.04,.16,.12,pantsD,lg,s*.085,-.22,0);                         // upper-leg pocket
+    knee.position.y=-.43;lg.add(knee);
+    mk(new THREE.CylinderGeometry(.074,.065,.40,8),pants,knee,0,-.2,0);
+    box(.13,.10,.035,pantsD,knee,0,-.035,.073);
+    box(.13,.1,.27,boot,knee,0,-.39,.04);box(.14,.035,.29,sole,knee,0,-.455,.045);
+    for(let i=0;i<3;i++)box(.07,.008,.01,lace,knee,0,-.37+i*.025,.175-i*.015);
     body.add(lg)}
   const torso=new THREE.Group();torso.position.y=.9;body.add(torso);
   mk(new THREE.CylinderGeometry(.215,.235,.62,12),jk,torso,0,.33,0);
@@ -83,7 +87,23 @@ function makeHiker(jacket){
   ferrule.material=ferrule.material.clone();
   blade.material=blade.material.clone();
   const hoeGlow=new THREE.PointLight(0xffd76f,0,7.5,1.55);hoeGlow.position.set(0,-.03,.24);hoeGlow.castShadow=false;hoe.add(hoeGlow);
-  return {root,body,legL,legR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
+  const petAnchor=new THREE.Group();petAnchor.position.set(-.31,.62,.10);petAnchor.rotation.y=-.16;torso.add(petAnchor);
+  return {root,body,legL,legR,kneeL,kneeR,torso,head,armL,armR,stick,hoe,hoeHandle:handle,hoeFerrule:ferrule,hoeBlade:blade,hoeGlow,greens,mouth,backLantern,rearLight,petAnchor,shoulderPetKind:'',shoulderPetMesh:null,rideType:'',phase:0,mode:'idle',t:0,nGreens:-1,hasGoldenHoe:false};
+}
+// Retain the original squirrel / Eurasian red squirrel meshes; only mount on the shoulder.
+function setShoulderPet(h,kind){
+  const value=kind==='squirrel'||kind==='redsquirrel'?kind:'';
+  if(h.shoulderPetKind===value)return;
+  if(h.shoulderPetMesh){h.petAnchor.remove(h.shoulderPetMesh);h.shoulderPetMesh=null}
+  h.shoulderPetKind=value;
+  if(!value)return;
+  const spec=WILDLIFE.find(a=>a.id===value);
+  if(!spec)return;
+  const mesh=createAnimal(spec);
+  mesh.position.set(0,0,0);
+  mesh.rotation.y=-.12;
+  h.petAnchor.add(mesh);
+  h.shoulderPetMesh=mesh;
 }
 function setGreens(h,n){n=Math.min(6,n);if(h.nGreens===n)return;h.nGreens=n;while(h.greens.children.length)h.greens.remove(h.greens.children[0]);
   for(let i=0;i<n;i++){leafM(h.greens,0,0,(i-2.5)*.025,.2,.05,i*.5,1.3,M(i%2?0x5a8a3a:0x6fa046))}}
@@ -133,14 +153,31 @@ function poseHiker(h,dt,speed){
     aL=-.65-.9*bend;aR=-.65-.9*bend;lL=.15+bend*.65;lR=-.15+bend*.65;
     lean=.16+bend*.95;by=-bend*.28;hd=.15+bend*.42;
   }
-  else if(h.mode==='ride'){lL=-1.26;lR=-1.26;aL=-.42;aR=-.42;aLz=.18;aRz=-.18;by=-.25;lean=.13;hd=-.06;h.torso.rotation.z=Math.sin(h.t*5)*.018}
+  else if(h.mode==='ride'){
+    const wide=h.rideType==='boar'?.78:.60;
+    // Thighs straddle both sides; knees bend so boots hang naturally beside the flank.
+    lL=-1.06;lR=-1.06;aL=-.50;aR=-.50;aLz=.14;aRz=-.14;
+    by=-.40+Math.sin(h.t*6)*.013;lean=.09;hd=-.06;
+    h.rideSpread=wide;h.torso.rotation.z=Math.sin(h.t*5)*.018;
+  }
   else if(h.mode==='sit'){lL=-1.28;lR=-1.28;aL=-.36;aR=-.36;aLz=.10;aRz=-.10;by=-.36;lean=.08;hd=-.06}
   else if(h.mode==='faint'){lL=.13;lR=-.18;aL=-.25;aR=-.35;aLz=.9;aRz=-.9;lean=0;hd=-.12;by=0}
   const f=1-Math.exp(-dt*(h.mode==='dig'?40:14));
   h.legL.rotation.x=lerp(h.legL.rotation.x,lL,f);h.legR.rotation.x=lerp(h.legR.rotation.x,lR,f);
   h.armL.rotation.x=lerp(h.armL.rotation.x,aL,f);h.armR.rotation.x=lerp(h.armR.rotation.x,aR,f);
   h.armL.rotation.z=lerp(h.armL.rotation.z,aLz,f);h.armR.rotation.z=lerp(h.armR.rotation.z,aRz,f);
-  h.legL.rotation.y=lerp(h.legL.rotation.y,h.mode==='sit'?.16:0,f);h.legR.rotation.y=lerp(h.legR.rotation.y,h.mode==='sit'?-.16:0,f);
+  const mounted=h.mode==='ride',sideSpread=mounted?(h.rideSpread||.60):0;
+  h.legL.rotation.z=lerp(h.legL.rotation.z,-sideSpread,f);
+  h.legR.rotation.z=lerp(h.legR.rotation.z,sideSpread,f);
+  h.legL.rotation.y=lerp(h.legL.rotation.y,mounted?-.16:h.mode==='sit'?.16:0,f);
+  h.legR.rotation.y=lerp(h.legR.rotation.y,mounted?.16:h.mode==='sit'?-.16:0,f);
+  if(h.kneeL)h.kneeL.rotation.x=lerp(h.kneeL.rotation.x,mounted?1.22:0,f);
+  if(h.kneeR)h.kneeR.rotation.x=lerp(h.kneeR.rotation.x,mounted?1.22:0,f);
   h.body.position.y=lerp(h.body.position.y,by,(h.mode==='joy'||h.mode==='joyspin')?1:f);h.torso.rotation.x=lerp(h.torso.rotation.x,lean,f);h.head.rotation.x=lerp(h.head.rotation.x,hd,f);
+  if(h.shoulderPetMesh){
+    const rig=h.shoulderPetMesh.userData?.anim;
+    if(rig?.tail){rig.tail.rotation.x=-.48+Math.sin(h.t*3.1)*.08;rig.tail.rotation.y=Math.sin(h.t*2.8)*.16}
+    h.petAnchor.rotation.z=Math.sin(h.t*2.1)*.03;
+  }
   if(h.mode!=='walk')h.torso.rotation.z*=.85;h.mouth.scale.setScalar((h.mode==='joy'||h.mode==='joyspin')?1.7:1);if(h.mode==='idle'){h.head.rotation.y=Math.sin(h.t*.5)*.35;h.head.rotation.z=0;h.body.scale.y=1+Math.sin(h.t*2)*.006}else{h.head.rotation.y*=.9;h.body.scale.y=1}
 }

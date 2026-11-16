@@ -71,7 +71,7 @@ function fiveStarSenseRankText(level){
  return level>=6?FIVE_STAR_SENSE_RANK_TEXT[Math.min(9,level)]:'';
 }
 function animalRideRankText(level){
- return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 야생동물 비회피':
+ return level>=10?'🐗 멧돼지 비공격 · 멧돼지 탑승 +50% · 고라니 탑승 +30% · 🐿 다람쥐·청설모에게 같은 개체당 먹이 10개 → 어깨 동행 · 야생동물 비회피':
    level>=9?'🦌 야생동물 비회피 · 고라니 탑승 +30%':'';
 }
 function renderRankGuide(){
