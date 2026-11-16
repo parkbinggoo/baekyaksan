@@ -1,0 +1,10 @@
+/* Lv.10 forest companion, deliberate tap-to-feed interaction. */
+#squirrelFeedPanel{position:fixed;left:50%;bottom:calc(145px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:25;width:min(320px,88vw);border:1px solid #ab9b70;border-radius:14px;background:#f7f0dc;color:#3e3828;padding:13px 14px;box-shadow:0 8px 25px #0006;text-align:center;pointer-events:auto}
+#squirrelFeedPanel.hide{display:none!important}
+#squirrelFeedPanel .friendHeading{font:700 16px/1.6 'Nanum Myeongjo',serif}
+#squirrelFeedPanel .friendCount{font:700 13px/1.6 'Gowun Dodum',sans-serif;color:#705e3a}
+#squirrelFeedPanel .friendFoods{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+#squirrelFeedPanel .friendFoods button{min-height:44px;border:1px solid #bdb08e;border-radius:8px;background:#faf6ea;color:#4a3b25;font:700 12px 'Gowun Dodum',sans-serif;touch-action:manipulation}
+#squirrelFeedPanel .friendFoods button:disabled{opacity:.40}
+#squirrelFeedClose{position:absolute;right:9px;top:5px;border:0;background:transparent;color:#60533e;font-size:22px;min-width:32px;min-height:32px}
+@media(max-width:760px){#squirrelFeedPanel{bottom:calc(170px + env(safe-area-inset-bottom))}}
