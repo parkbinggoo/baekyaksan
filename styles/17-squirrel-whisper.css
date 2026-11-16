@@ -1,0 +1,15 @@
+/* Small speech bubble anchored to the actual shoulder squirrel/redsquirrel. */
+#squirrelWhisper{position:absolute;left:0;top:0;z-index:6;max-width:142px;min-width:104px;
+  padding:7px 10px 8px;border-radius:12px;background:rgba(249,245,226,.96);
+  border:1px solid rgba(100,83,49,.65);box-shadow:0 3px 11px #0005;
+  color:#463a28;text-shadow:none;text-align:center;pointer-events:none;
+  font-family:'Gowun Dodum',sans-serif;white-space:normal;line-height:1.35;
+  transition:opacity .2s ease;will-change:transform,opacity}
+#squirrelWhisper.hide{display:none!important}
+#squirrelWhisper strong{display:block;font-size:12px;font-weight:800;color:#71552b}
+#squirrelWhisper span{display:block;font-size:10px;margin-top:2px;word-break:keep-all}
+#squirrelWhisper::after{content:'';position:absolute;left:calc(50% - 5px);bottom:-6px;
+  width:9px;height:9px;transform:rotate(45deg);background:rgba(249,245,226,.96);
+  border-right:1px solid rgba(100,83,49,.65);border-bottom:1px solid rgba(100,83,49,.65)}
+@media(max-width:760px){#squirrelWhisper{max-width:128px;min-width:96px;padding:6px 8px}
+ #squirrelWhisper strong{font-size:11px}#squirrelWhisper span{font-size:10px}}
